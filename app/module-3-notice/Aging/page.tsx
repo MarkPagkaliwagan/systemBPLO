@@ -14,14 +14,12 @@ interface AgingNotice {
 }
 
 const AgingNoticeTable = () => {
-  // Placeholder empty array
   const notices: AgingNotice[] = [];
 
   return (
     <div className="p-8 bg-white min-h-screen font-sans text-black">
       <div className="max-w-6xl mx-auto relative">
 
-        {/* Back Button */}
         <div className="absolute top-8 left-0">
           <Link href="/module-3-notice/Dashboard" className="flex items-center text-gray-400 hover:text-black transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-8 h-8">
@@ -30,7 +28,6 @@ const AgingNoticeTable = () => {
           </Link>
         </div>
 
-        {/* Header */}
         <h1 className="text-3xl font-bold text-center py-8 tracking-tight">
           LIST OF AGING NOTICE
         </h1>
@@ -73,7 +70,6 @@ const AgingNoticeTable = () => {
                   </tr>
                 ))
               ) : (
-                // Skeleton placeholders
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse border-b border-gray-200">
                     {Array.from({ length: 7 }).map((_, j) => (
@@ -85,7 +81,6 @@ const AgingNoticeTable = () => {
             </tbody>
           </table>
 
-          {/* Optional: fallback message */}
           {notices.length === 0 && (
             <div className="py-8 text-center text-gray-400 italic text-sm">
               No records found for "Aging Notices". Placeholder rows shown.
