@@ -9,14 +9,6 @@ import {
 } from "react-icons/fi";
 
 export default function DashboardPage() {
-  const stats = [
-    { label: "Total Active Violations", value: 5, icon: <FiLayers size={20} /> },
-    { label: "Notice 1", value: 2, icon: <FiInfo size={20} /> },
-    { label: "Notice 2", value: 1, icon: <FiAlertCircle size={20} /> },
-    { label: "Notice 3", value: 1, icon: <FiShield size={20} /> },
-    { label: "Cease & Desist", value: 1, icon: <FiSlash size={20} /> },
-  ];
-
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10">
       {/* Header */}
@@ -29,29 +21,82 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats - Single Line, Scrollable on Small Screens */}
-      <div className="max-w-6xl mx-auto flex gap-4 overflow-x-auto scrollbar-hide">
-        {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="flex-shrink-0 bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300 min-w-[180px]"
-          >
-            {/* Icon */}
-            <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600 group-hover:bg-neutral-200 group-hover:text-neutral-800 transition">
-              {stat.icon}
-            </div>
-
-            {/* Info */}
-            <div className="flex flex-col">
-              <span className="text-xs text-neutral-400 uppercase tracking-widest">
-                {stat.label}
-              </span>
-              <h2 className="text-xl font-semibold text-neutral-900 mt-1">
-                {stat.value}
-              </h2>
-            </div>
+      {/* Stats - Responsive Grid */}
+      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        {/* Card 1 */}
+        <div className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600 transition">
+            <FiLayers size={20} />
           </div>
-        ))}
+          <div className="flex flex-col">
+            <span className="text-xs text-neutral-400 uppercase tracking-widest">
+              Total Active Violations
+            </span>
+            <h2 className="text-xl font-semibold text-neutral-900 mt-1">
+              5
+            </h2>
+          </div>
+        </div>
+
+        {/* Card 2 */}
+        <div className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600 transition">
+            <FiInfo size={20} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-neutral-400 uppercase tracking-widest">
+              Notice 1
+            </span>
+            <h2 className="text-xl font-semibold text-neutral-900 mt-1">
+              2
+            </h2>
+          </div>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600 transition">
+            <FiAlertCircle size={20} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-neutral-400 uppercase tracking-widest">
+              Notice 2
+            </span>
+            <h2 className="text-xl font-semibold text-neutral-900 mt-1">
+              1
+            </h2>
+          </div>
+        </div>
+
+        {/* Card 4 */}
+        <div className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600 transition">
+            <FiShield size={20} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-neutral-400 uppercase tracking-widest">
+              Notice 3
+            </span>
+            <h2 className="text-xl font-semibold text-neutral-900 mt-1">
+              1
+            </h2>
+          </div>
+        </div>
+
+        {/* Card 5 */}
+        <div className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300">
+          <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600 transition">
+            <FiSlash size={20} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-neutral-400 uppercase tracking-widest">
+              Cease & Desist
+            </span>
+            <h2 className="text-xl font-semibold text-neutral-900 mt-1">
+              1
+            </h2>
+          </div>
+        </div>
       </div>
     </div>
   );
