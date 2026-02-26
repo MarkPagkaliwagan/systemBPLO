@@ -38,39 +38,36 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900 px-12 py-14">
-      
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10">
       {/* Header */}
-      <div className="max-w-5xl mx-auto mb-16">
+      <div className="max-w-5xl mx-auto mb-12">
         <h1 className="text-3xl font-semibold tracking-tight">
           Compliance Notice Management
         </h1>
-        <p className="mt-3 text-neutral-500 max-w-xl">
+        <p className="mt-2 text-neutral-500 max-w-xl">
           Monitor violation stages and track compliance status with clarity and focus.
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* Slim Stats Cards */}
+      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="group bg-white rounded-2xl p-8 border border-neutral-200 hover:border-neutral-400 transition-all duration-300 hover:shadow-lg"
+            className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-neutral-200 hover:border-neutral-400 transition-all duration-300 hover:shadow-md"
           >
-            <div className="flex items-center justify-between text-neutral-400 group-hover:text-neutral-700 transition">
+            {/* Icon */}
+            <div className="text-neutral-400 group-hover:text-neutral-700 transition">
               {stat.icon}
-              <span className="text-xs uppercase tracking-widest">
-                Status
-              </span>
             </div>
 
-            <h2 className="mt-8 text-4xl font-semibold tracking-tight">
-              {stat.value}
-            </h2>
-
-            <p className="mt-2 text-sm text-neutral-500 group-hover:text-neutral-700 transition">
-              {stat.label}
-            </p>
+            {/* Label and Value */}
+            <div className="flex-1 flex justify-between ml-4">
+              <span className="text-sm text-neutral-500 group-hover:text-neutral-700">
+                {stat.label}
+              </span>
+              <span className="font-semibold text-lg">{stat.value}</span>
+            </div>
           </div>
         ))}
       </div>
