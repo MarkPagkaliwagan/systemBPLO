@@ -22,7 +22,7 @@ const AgingNoticeTable = () => {
         {/* Back Button matching the screenshot arrow */}
         <div className="absolute top-8 left-0">
           <Link 
-            href="/module-3-notice/dashboard" 
+            href="/module-3-notice/Dashboard" 
             className="flex items-center text-gray-400 hover:text-black transition-colors"
           >
             <svg 
