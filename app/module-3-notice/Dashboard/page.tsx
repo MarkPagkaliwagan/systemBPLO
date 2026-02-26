@@ -1,36 +1,79 @@
+"use client";
+
+import {
+  FiAlertCircle,
+  FiInfo,
+  FiShield,
+  FiSlash,
+  FiLayers,
+} from "react-icons/fi";
+
 export default function DashboardPage() {
   const stats = [
-    { label: "Total Active Violations", value: 5 },
-    { label: "Notice 1", value: 2 },
-    { label: "Notice 2", value: 1 },
-    { label: "Notice 3", value: 1 },
-    { label: "Cease and Desist", value: 1 },
+    {
+      label: "Total Active Violations",
+      value: 5,
+      icon: <FiLayers size={22} />,
+    },
+    {
+      label: "Notice 1",
+      value: 2,
+      icon: <FiInfo size={22} />,
+    },
+    {
+      label: "Notice 2",
+      value: 1,
+      icon: <FiAlertCircle size={22} />,
+    },
+    {
+      label: "Notice 3",
+      value: 1,
+      icon: <FiShield size={22} />,
+    },
+    {
+      label: "Cease & Desist",
+      value: 1,
+      icon: <FiSlash size={22} />,
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-white text-black p-10">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 px-12 py-14">
+      
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-wide border-b-2 border-black pb-2">
-          COMPLIANCE NOTICE MANAGEMENT System
+      <div className="max-w-5xl mx-auto mb-16">
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Compliance Notice Management
         </h1>
-        <p className="mt-2">
-          Monitor violation stages, track deadlines, and resolve notices efficiently.
+        <p className="mt-3 text-neutral-500 max-w-xl">
+          Monitor violation stages and track compliance status with clarity and focus.
         </p>
       </div>
 
-      {/* Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      {/* Stats Cards */}
+      <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white border-2 border-black rounded-xl p-6 hover:bg-black hover:text-white transition duration-300"
+            className="group bg-white rounded-2xl p-8 border border-neutral-200 hover:border-neutral-400 transition-all duration-300 hover:shadow-lg"
           >
-            <p className="text-sm">{stat.label}</p>
-            <p className="text-3xl font-bold mt-3">{stat.value}</p>
+            <div className="flex items-center justify-between text-neutral-400 group-hover:text-neutral-700 transition">
+              {stat.icon}
+              <span className="text-xs uppercase tracking-widest">
+                Status
+              </span>
+            </div>
+
+            <h2 className="mt-8 text-4xl font-semibold tracking-tight">
+              {stat.value}
+            </h2>
+
+            <p className="mt-2 text-sm text-neutral-500 group-hover:text-neutral-700 transition">
+              {stat.label}
+            </p>
           </div>
         ))}
       </div>
     </div>
   );
-}                                                                                                                                                                                                                                         
+}
