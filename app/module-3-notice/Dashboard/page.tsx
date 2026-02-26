@@ -99,7 +99,7 @@ export default function DashboardPage() {
         </div>
       </div>
       <div className="max-w-6xl mx-auto mt-12">
-  <h2 className="text-2xl font-bold mb-4">Compliance Details</h2>
+  <h2 className="text-2xl font-bold mb-4">Escalation Details</h2>
   <div className="overflow-x-auto">
     <table className="min-w-full bg-white border border-neutral-200 rounded-lg">
       <thead className="bg-green-800 text-white">
