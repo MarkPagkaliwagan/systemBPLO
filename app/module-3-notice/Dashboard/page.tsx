@@ -12,7 +12,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-wide border-b-2 border-black pb-2">
-          COMPLIANCE NOTICE MANAGEMENT system
+          COMPLIANCE NOTICE MANAGEMENT System
         </h1>
         <p className="mt-2">
           Monitor violation stages, track deadlines, and resolve notices efficiently.
