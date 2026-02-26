@@ -1,83 +1,86 @@
+// types/notice.ts
+export interface AgingNotice {
+  businessId: string;
+  violationType: 'Fire Safety' | 'Sanitation' | 'Environmental' | 'Building Code';
+  notice: string;
+  violationDate: string;
+  deadline: string;
+  timeStatus: string;
+  status: 'COMPLETED' | 'PENDING' | 'CEASE AND DESIST';
+}
 import React from 'react';
 
-const AgingNoticeTable: React.FC = () => {
-  // Define the headers exactly as seen in the photo
-  const headers = [
-    "Business ID",
-    "Violation Type",
-    "Notice",
-    "Violation Date",
-    "Deadline",
-    "Time Status",
-    "Status"
-  ];
+const notices: AgingNotice[] = [
+  { businessId: '73-4422523', violationType: 'Fire Safety', notice: 'NOTICE 1', violationDate: 'Feb 25, 2026', deadline: 'Feb 28, 2026', timeStatus: 'Closed Before Deadline', status: 'COMPLETED' },
+  { businessId: '80-6640823', violationType: 'Sanitation', notice: 'NOTICE 2', violationDate: 'Feb 15, 2026', deadline: 'Feb 28, 2026', timeStatus: 'Closed Before Deadline', status: 'COMPLETED' },
+  { businessId: '82-5522539', violationType: 'Environmental', notice: 'NOTICE 2', violationDate: 'Feb 15, 2026', deadline: 'Mar 1, 2026', timeStatus: 'Closed Before Deadline', status: 'COMPLETED' },
+  { businessId: '90-8620394', violationType: 'Building Code', notice: 'NOTICE 2', violationDate: 'Feb 26, 2026', deadline: 'Feb 26, 2026', timeStatus: '0 day(s) Remaining', status: 'PENDING' },
+  { businessId: '88-1373781', violationType: 'Fire Safety', notice: 'NOTICE 3', violationDate: 'Dec 11, 2025', deadline: 'Feb 1, 2026', timeStatus: 'Overdue by 21 day(s)', status: 'CEASE AND DESIST' },
+  { businessId: '75-7348615', violationType: 'Sanitation', notice: 'NOTICE 2', violationDate: 'Feb 28, 2026', deadline: 'Mar 3, 2026', timeStatus: '7 day(s) Remaining', status: 'PENDING' },
+  { businessId: '73-4422523', violationType: 'Environmental', notice: 'NOTICE 3', violationDate: 'Dec 11, 2025', deadline: 'Mar 1, 2026', timeStatus: 'Overdue by 21 day(s)', status: 'CEASE AND DESIST' },
+];
 
-  // Create an array of 7 empty rows to match the image structure
-  const emptyRows = Array.from({ length: 7 });
-
+const AgingNoticeTable = () => {
   return (
-    <div className="w-full max-w-6xl mx-auto p-4 font-sans">
-      {/* Header Section */}
-      <div className="flex items-center justify-center mb-8 relative">
-        <button className="absolute left-0 text-gray-400 hover:text-gray-600">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </button>
-        <h1 className="text-3xl font-bold text-black uppercase tracking-wide">
-          List of Aging Notice
+    <div className="p-8 bg-gray-50 min-h-screen font-sans">
+      <div className="max-w-6xl mx-auto bg-white shadow-sm border border-gray-100">
+        <h1 className="text-3xl font-bold text-center py-8 tracking-tight text-black">
+          LIST OF AGING NOTICE
         </h1>
-      </div>
 
-      {/* Table Container */}
-      <div className="overflow-hidden border border-gray-200 shadow-sm rounded-sm">
-        <table className="w-full text-center border-collapse">
-          <thead>
-            <tr className="bg-[#05513c] text-white">
-              {headers.map((header) => (
-                <th 
-                  key={header} 
-                  className="px-4 py-4 text-xs font-bold uppercase tracking-wider border-r border-[#044130] last:border-r-0"
-                >
-                  {header === "Violation Date" ? (
-                    <div>VIOLATION<br/>DATE</div>
-                  ) : header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white">
-            {emptyRows.map((_, index) => (
-              <tr key={index} className="border-b border-gray-100 last:border-b-0 h-14">
-                {/* Business ID Column (Underlined) */}
-                <td className="px-4 border-r border-gray-50 text-blue-800 font-bold underline decoration-gray-400 cursor-pointer"></td>
-                <td className="px-4 border-r border-gray-50 text-gray-600"></td>
-                <td className="px-4 border-r border-gray-50 text-gray-600 uppercase"></td>
-                {/* Violation Date Column (Pill Label) */}
-                <td className="px-4 border-r border-gray-50">
-                  <div className="inline-block bg-gray-200 px-3 py-1 rounded-full text-[10px] font-semibold text-gray-500 invisible">
-                    DATE
-                  </div>
-                </td>
-                {/* Deadline Column (Pill Label) */}
-                <td className="px-4 border-r border-gray-50">
-                  <div className="inline-block bg-gray-200 px-3 py-1 rounded-full text-[10px] font-semibold text-gray-500 invisible">
-                    DATE
-                  </div>
-                </td>
-                <td className="px-4 border-r border-gray-50 text-gray-500 italic"></td>
-                {/* Status Column */}
-                <td className="px-4 min-w-[160px]">
-                  <div className="w-full py-2 rounded text-[11px] font-bold invisible">
-                    STATUS
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-[#004d33] text-white uppercase text-sm">
+                <th className="py-4 px-4 border-r border-green-800">Business ID</th>
+                <th className="py-4 px-4 border-r border-green-800">Violation Type</th>
+                <th className="py-4 px-4 border-r border-green-800">Notice</th>
+                <th className="py-4 px-4 border-r border-green-800 leading-tight">Violation<br/>Date</th>
+                <th className="py-4 px-4 border-r border-green-800">Deadline</th>
+                <th className="py-4 px-4 border-r border-green-800 text-xs">Time Status</th>
+                <th className="py-4 px-4">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="text-gray-700 text-sm">
+              {notices.map((row, index) => (
+                <tr key={index} className="border-b border-gray-200 text-center">
+                  <td className="py-4 px-2 underline font-bold cursor-pointer">{row.businessId}</td>
+                  <td className="py-4 px-2">{row.violationType}</td>
+                  <td className="py-4 px-2 font-medium">{row.notice}</td>
+                  <td className="py-4 px-2 italic">
+                    <span className="bg-gray-200 px-3 py-1 rounded-full text-[12px]">{row.violationDate}</span>
+                  </td>
+                  <td className="py-4 px-2 italic">
+                    <span className="bg-gray-200 px-3 py-1 rounded-full text-[12px]">{row.deadline}</span>
+                  </td>
+                  <td className="py-4 px-2">{row.timeStatus}</td>
+                  <td className="py-4 px-4">
+                    <StatusBadge status={row.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
+  );
+};
+
+// Sub-component for the colorful status buttons
+const StatusBadge = ({ status }: { status: string }) => {
+  const baseClasses = "w-full py-2 px-4 rounded font-bold text-xs tracking-wider text-white transition-opacity hover:opacity-90";
+  
+  const styles = {
+    'COMPLETED': "bg-[#004d33]",
+    'PENDING': "bg-[#fcd34d] !text-gray-800", // Yellow with dark text
+    'CEASE AND DESIST': "bg-[#ef4444] leading-tight",
+  };
+
+  return (
+    <button className={`${baseClasses} ${styles[status as keyof typeof styles]}`}>
+      {status}
+    </button>
   );
 };
 
