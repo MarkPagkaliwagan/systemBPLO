@@ -70,23 +70,6 @@ export default function DashboardPage() {
             </div>
           ))}
         </section>
-
-        {/* Optional: quick actions / helpers for UX */}
-        <section className="mt-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <label htmlFor="filter" className="sr-only">Filter notices</label>
-              <input
-                id="filter"
-                placeholder="Search / filter"
-                className="h-10 w-52 rounded-md border border-neutral-200 px-3 text-sm placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-300"
-              />
-              <button className="h-10 rounded-md px-3 text-sm border border-neutral-200 bg-white hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-300">
-                Clear
-              </button>
-            </div>
-          </div>
-        </section>
       </div>
     </main>
   );
