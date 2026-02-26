@@ -85,8 +85,6 @@ export default function DashboardPage() {
                 Clear
               </button>
             </div>
-
-            <p className="text-xs text-neutral-500">Tap any stat for details (keyboard-focus friendly).</p>
           </div>
         </section>
       </div>
