@@ -11,7 +11,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-100 p-10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-wide">
+        <h1 className="text-4xl text-black font-bold tracking-wide">
           COMPLIANCE NOTICE MANAGEMENT
         </h1>
         <p className="text-gray-600 mt-2">
