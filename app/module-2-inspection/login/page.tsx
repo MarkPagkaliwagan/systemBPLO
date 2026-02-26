@@ -27,14 +27,14 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <h2 className="text-2xl font-semibold text-center mb-6">Login</h2>
+        <h2 className="text-2xl font-semibold text-gray-500 text-center mb-6">Login</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
             name="username"
             placeholder="Username"
-            className="w-full p-3 rounded-full bg-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
+            className="w-full p-3 rounded-full text-black bg-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
             onChange={handleChange}
             required
           />
@@ -42,7 +42,7 @@ export default function LoginPage() {
             type="password"
             name="password"
             placeholder="Password"
-            className="w-full p-3 rounded-full bg-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
+            className="w-full p-3 rounded-full text-black bg-gray-100 focus:ring-2 focus:ring-green-500 outline-none"
             onChange={handleChange}
             required
           />
