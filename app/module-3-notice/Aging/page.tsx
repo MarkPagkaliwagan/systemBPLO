@@ -54,7 +54,7 @@ const AgingNoticeTable = () => {
                 notices.map((row, index) => (
                   <tr key={index} className="border-b border-gray-200 text-center">
                     <td className="py-4 px-2 underline font-bold">
-                      <Link href={`/module-3-notice/aging/${row.businessId}`}>
+                      <Link href={`/module-3-notice/Aging/${row.businessId}`}>
                         {row.businessId}
                       </Link>
                     </td>
