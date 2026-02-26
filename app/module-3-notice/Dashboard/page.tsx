@@ -8,13 +8,13 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-10">
+    <div className="min-h-screen bg-white text-black p-10">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl text-black font-bold tracking-wide">
+        <h1 className="text-4xl font-bold tracking-wide border-b-2 border-black pb-2">
           COMPLIANCE NOTICE MANAGEMENT
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="mt-2">
           Monitor violation stages, track deadlines, and resolve notices efficiently.
         </p>
       </div>
@@ -24,13 +24,13 @@ export default function DashboardPage() {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white rounded-xl border border-gray-300 p-6 shadow-sm hover:shadow-md transition"
+            className="bg-white border-2 border-black rounded-xl p-6 hover:bg-black hover:text-white transition duration-300"
           >
-            <p className="text-sm text-gray-500">{stat.label}</p>
+            <p className="text-sm">{stat.label}</p>
             <p className="text-3xl font-bold mt-3">{stat.value}</p>
           </div>
         ))}
       </div>
     </div>
   );
-}
+}                                                                                                                                                                                                                                         
