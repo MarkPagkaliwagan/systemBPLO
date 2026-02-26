@@ -13,7 +13,7 @@ type Stat = {
   label: string;
   value: number | string;
   icon: React.ReactNode;
-  accent?: string; // tailwind color class for left accent
+  accent?: string; 
 };
 
 export default function DashboardPage() {
@@ -37,14 +37,17 @@ export default function DashboardPage() {
         </header>
 
         {/* Slim, single-line stat cards */}
-        <section aria-label="summary stats" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <section
+          aria-label="summary stats"
+          className="flex gap-3 overflow-x-auto pb-2"
+        >
           {stats.map((stat, idx) => (
             <div
               key={idx}
               tabIndex={0}
               role="article"
               aria-label={`${stat.label}: ${stat.value}`}
-              className="flex items-center justify-between h-12 sm:h-14 bg-white rounded-xl border border-neutral-200 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-300"
+              className="flex items-center justify-between h-12 sm:h-14 bg-white rounded-xl border border-neutral-200 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-300 min-w-[180px] flex-shrink-0"
             >
               {/* Accent bar */}
               <div className={`w-1 h-full rounded-l-xl ${stat.accent ?? "bg-neutral-300"}`} />
