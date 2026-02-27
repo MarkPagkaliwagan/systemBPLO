@@ -112,9 +112,14 @@ export default function Navbar({
   }
 
   return (
+<<<<<<< HEAD
     <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${
       isCollapsed ? 'w-20' : 'w-80'
     }`}>
+=======
+    <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${isCollapsed ? 'w-16' : 'w-80'  // Changed from w-64 to w-80 (320px)
+      }`}>
+>>>>>>> d3ed2cb08fa6ce0f433760f3e17d4e56d32f7203
       {/* Header with Logo */}
       <div className="flex items-center justify-center p-6 border-b border-gray-200">
         {isCollapsed ? (
