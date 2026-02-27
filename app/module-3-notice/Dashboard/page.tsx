@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useRouter } from "next/navigation";
 import {
   FiAlertCircle,
   FiInfo,
@@ -9,71 +9,92 @@ import {
   FiLayers,
 } from "react-icons/fi";
 
-type Stat = {
-  label: string;
-  value: number | string;
-  icon: React.ReactNode;
-  accent?: string; 
-};
-
 export default function DashboardPage() {
-  const stats: Stat[] = [
-    { label: "Total Active Violations", value: 5, icon: <FiLayers size={18} />, accent: "bg-indigo-500" },
-    { label: "Notice 1", value: 2, icon: <FiInfo size={18} />, accent: "bg-emerald-500" },
-    { label: "Notice 2", value: 1, icon: <FiAlertCircle size={18} />, accent: "bg-amber-500" },
-    { label: "Notice 3", value: 1, icon: <FiShield size={18} />, accent: "bg-rose-500" },
-    { label: "Cease & Desist", value: 1, icon: <FiSlash size={18} />, accent: "bg-sky-500" },
+  const router = useRouter();
+
+  // Placeholder state simulation
+  const stats = [
+    { label: "Total Active Violations", icon: <FiLayers size={20} />, value: null },
+    { label: "Notice 1", icon: <FiInfo size={20} />, value: null },
+    { label: "Notice 2", icon: <FiAlertCircle size={20} />, value: null },
+    { label: "Notice 3", icon: <FiShield size={20} />, value: null },
+    { label: "Cease & Desist", icon: <FiSlash size={20} />, value: null },
   ];
 
   return (
-    <main className="min-h-screen bg-neutral-50 text-neutral-900 px-4 py-8 sm:px-8 sm:py-12">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <header className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Compliance Notice Management</h1>
-          <p className="mt-2 text-sm sm:text-base text-neutral-500 max-w-xl">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10">
+      {/* Header */}
+      <div className="max-w-6xl mx-auto mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+            Compliance Notice Management
+          </h1>
+          <p className="mt-2 text-neutral-500 sm:text-lg max-w-2xl">
             Monitor violation stages and track compliance status with clarity and focus.
           </p>
-        </header>
-
-        {/* Slim, single-line stat cards */}
-        <section
-          aria-label="summary stats"
-          className="flex gap-3 overflow-x-auto pb-2"
+        </div>
+        <button
+          onClick={() => router.push("/module-3-notice/Aging")}
+          className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded shadow transition-all duration-200"
         >
-          {stats.map((stat, idx) => (
-            <div
-              key={idx}
-              tabIndex={0}
-              role="article"
-              aria-label={`${stat.label}: ${stat.value}`}
-              className="flex items-center justify-between h-12 sm:h-14 bg-white rounded-xl border border-neutral-200 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-300 min-w-[180px] flex-shrink-0"
-            >
-              {/* Accent bar */}
-              <div className={`w-1 h-full rounded-l-xl ${stat.accent ?? "bg-neutral-300"}`} />
-
-              {/* Content (single line) */}
-              <div className="flex-1 px-3 flex items-center justify-between min-w-0">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex items-center justify-center rounded-md bg-neutral-100 p-2">
-                    {stat.icon}
-                  </div>
-
-                  <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wider text-neutral-500 whitespace-nowrap truncate" title={stat.label}>
-                      {stat.label}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="ml-4 flex-shrink-0 text-right">
-                  <p className="text-lg sm:text-2xl font-semibold tracking-tight whitespace-nowrap">{stat.value}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </section>
+          List of Aging Notice
+        </button>
       </div>
-    </main>
+
+      {/* Stats - Responsive Grid */}
+      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        {stats.map((stat, idx) => (
+          <div
+            key={idx}
+            className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300"
+          >
+            <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600 transition">
+              {stat.icon}
+            </div>
+            <div className="flex flex-col w-full">
+              <span className="text-xs text-neutral-400 uppercase tracking-widest">
+                {stat.label}
+              </span>
+              {stat.value !== null ? (
+                <h2 className="text-xl font-semibold text-neutral-900 mt-1">
+                  {stat.value}
+                </h2>
+              ) : (
+                <div className="h-6 w-12 bg-neutral-200 rounded animate-pulse mt-1"></div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Escalation Table */}
+      <div className="max-w-6xl mx-auto mt-12">
+        <h2 className="text-2xl font-bold mb-4">Escalation Details</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border border-neutral-200 rounded-lg">
+            <thead className="bg-green-800 text-white">
+              <tr>
+                <th className="py-3 px-6 text-left">BUSINESS ID</th>
+                <th className="py-3 px-6 text-left">NOTICE 1</th>
+                <th className="py-3 px-6 text-left">NOTICE 2</th>
+                <th className="py-3 px-6 text-left">NOTICE 3</th>
+                <th className="py-3 px-6 text-left">STATUS</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-200">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i} className="hover:bg-neutral-50">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <td key={j} className="py-3 px-6 text-neutral-400">
+                      <div className="h-4 w-12 bg-neutral-200 rounded animate-pulse"></div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
