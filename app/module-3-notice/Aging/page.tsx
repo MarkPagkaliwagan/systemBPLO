@@ -17,7 +17,7 @@ const AgingNoticeTable = () => {
   const notices: AgingNotice[] = [];
 
   return (
-    <div className="p-8 bg-white min-h-screen font-sans text-black">
+    <div className="p-8 bg-white min-h-screen font-sans text-black ml-80">
       <div className="max-w-6xl mx-auto relative">
 
         <div className="absolute top-8 left-0">
