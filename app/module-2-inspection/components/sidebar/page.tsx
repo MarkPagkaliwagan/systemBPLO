@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FiHome, FiSettings, FiUser, FiMenu, FiX } from "react-icons/fi";
+import { FiHome, FiAlertCircle, FiUser, FiMenu, FiX, FiBookOpen, FiSettings } from "react-icons/fi";
 
 interface SidebarItem {
   id: string;
@@ -19,16 +19,22 @@ const sidebarItems: SidebarItem[] = [
     href: "/module-2-inspection/dashboard"
   },
   {
-    id: "profile",
-    label: "Profile",
-    icon: <FiUser className="w-5 h-5" />,
-    href: "/module-2-inspection/profile"
+    id: "masterlist",
+    label: "Masterlist",
+    icon: <FiBookOpen className="w-5 h-5" />,
+    href: "/module-2-inspection/masterlist"
+  },
+  {
+    id: "notifCompliance",
+    label: "Compliance Notification",
+    icon: <FiAlertCircle className="w-5 h-5" />,
+    href: "/module-3-notice/Dashboard"
   },
   {
     id: "settings",
     label: "Settings",
     icon: <FiSettings className="w-5 h-5" />,
-    href: "/module-2-inspection/settings"
+    href: "/module-2-inspection/notifCompliance"
   }
 ];
 
