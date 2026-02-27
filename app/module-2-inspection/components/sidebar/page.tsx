@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FiHome, FiSettings, FiUser, FiMenu, FiX } from "react-icons/fi";
+import { FiHome, FiAlertCircle, FiUser, FiMenu, FiX, FiBookOpen, FiSettings } from "react-icons/fi";
 
 interface SidebarItem {
   id: string;
@@ -19,16 +19,22 @@ const sidebarItems: SidebarItem[] = [
     href: "/module-2-inspection/dashboard"
   },
   {
-    id: "profile",
-    label: "Profile",
-    icon: <FiUser className="w-5 h-5" />,
-    href: "/module-2-inspection/profile"
+    id: "masterlist",
+    label: "Masterlist",
+    icon: <FiBookOpen className="w-5 h-5" />,
+    href: "/module-2-inspection/masterlist"
+  },
+  {
+    id: "notifCompliance",
+    label: "Compliance Notification",
+    icon: <FiAlertCircle className="w-5 h-5" />,
+    href: "/module-3-notice/Dashboard"
   },
   {
     id: "settings",
     label: "Settings",
     icon: <FiSettings className="w-5 h-5" />,
-    href: "/module-2-inspection/settings"
+    href: "/module-2-inspection/notifCompliance"
   }
 ];
 
@@ -36,9 +42,8 @@ export default function Navbar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${
-      isCollapsed ? 'w-20' : 'w-64'
-    }`}>
+    <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${isCollapsed ? 'w-20' : 'w-80'  // Changed from w-64 to w-80 (320px)
+      }`}>
       {/* Header with Logo */}
       <div className="flex items-center justify-between p-6 border-b border-gray-200">
         {!isCollapsed && (
