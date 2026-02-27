@@ -42,10 +42,6 @@ export default function AnalyticsDashboard() {
       <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
         isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
       }`}>
-        <header className="bg-[#B7E4A1] h-16 flex items-center justify-center border-b border-gray-400">
-          <h1 className="text-xl font-medium">Business Compliance and Inspection System</h1>
-        </header>
-        
         <div className="flex-1 p-4 md:p-10 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 h-full">
             <div className="col-span-1 lg:col-span-7 flex flex-col gap-4 lg:gap-8">
