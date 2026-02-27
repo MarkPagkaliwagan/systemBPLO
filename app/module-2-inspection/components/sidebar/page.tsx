@@ -16,7 +16,7 @@ const sidebarItems: SidebarItem[] = [
     id: "dashboard",
     label: "Dashboard",
     icon: <FiHome className="w-5 h-5" />,
-    href: "/module-2-inspection/dashboard"
+    href: "https://module-2-inspection/management/analytics"
   },
   {
     id: "masterlist",
