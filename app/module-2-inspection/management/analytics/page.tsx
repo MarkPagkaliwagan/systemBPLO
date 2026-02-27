@@ -12,7 +12,7 @@ const data = [
 
 export default function AnalyticsDashboard() {
   return (
-    <div className="flex h-screen bg-[#D9D9D9]">
+    <div className="flex h-screen bg-[#D9D9D9] ml-80">
       <Sidebar />
       
       <main className="flex-1 flex flex-col overflow-hidden">
