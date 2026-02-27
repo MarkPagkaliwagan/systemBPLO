@@ -45,6 +45,7 @@ const sidebarItems: SidebarItem[] = [
   }
 ];
 
+<<<<<<< HEAD
 export default function Navbar({ 
   isCollapsed, 
   setIsCollapsed, 
@@ -52,6 +53,28 @@ export default function Navbar({
   isMobileMenuOpen, 
   setIsMobileMenuOpen 
 }: SidebarProps) {
+=======
+
+
+export default function Navbar() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+>>>>>>> 9724642283f3c89b427f161d569c6060fdfeeb34
   if (isMobile) {
     return (
       <>
@@ -83,7 +106,7 @@ export default function Navbar({
                   <span className="font-semibold text-gray-800">System BPLO</span>
                 </div>
               </div>
-              
+
               <nav className="p-4">
                 <ul className="space-y-2">
                   {sidebarItems.map((item) => (
@@ -113,11 +136,15 @@ export default function Navbar({
 
   return (
 <<<<<<< HEAD
+<<<<<<< HEAD
     <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${
       isCollapsed ? 'w-20' : 'w-80'
     }`}>
 =======
     <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${isCollapsed ? 'w-16' : 'w-80'  // Changed from w-64 to w-80 (320px)
+=======
+    <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${isCollapsed ? 'w-' : 'w-80'  // Changed from w-64 to w-80 (320px)
+>>>>>>> 9724642283f3c89b427f161d569c6060fdfeeb34
       }`}>
 >>>>>>> d3ed2cb08fa6ce0f433760f3e17d4e56d32f7203
       {/* Header with Logo */}
@@ -156,7 +183,8 @@ export default function Navbar({
             <li key={item.id}>
               <Link
                 href={item.href}
-                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors group"
+                className={`flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors group ${isCollapsed ? 'justify-center' : 'space-x-3'
+                  }`}
               >
                 <span className="text-gray-600 group-hover:text-green-600 transition-colors">
                   {item.icon}
