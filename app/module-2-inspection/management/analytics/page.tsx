@@ -56,7 +56,7 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* Right: Pie Chart Section */}
-            <div className="col-span-1 lg:col-span-5 bg-white rounded-[20px] lg:rounded-[50px] shadow-lg flex flex-col items-center justify-center p-4 lg:p-8 min-h-[400px] lg:min-h-[550px]">
+            <div className="col-span-1 lg:col-span-5 bg-white rounded-[20px] lg:rounded-[50px] shadow-lg flex flex-col items-center justify-center p-4 lg:p-8 min-h-[500px] lg:min-h-[550px]">
               <h3 className="text-gray-500 font-bold mb-4 text-sm lg:text-base">Inspection Overview</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
