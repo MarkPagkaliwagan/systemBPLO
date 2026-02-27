@@ -45,28 +45,37 @@ export default function Navbar() {
     <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${isCollapsed ? 'w-32' : 'w-80'  // Wider when collapsed
       }`}>
       {/* Header with Logo */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200">
-        {!isCollapsed && (
-          <div className="flex items-center space-x-3">
+      <div className="flex items-center justify-center p-6 border-b border-gray-200">
+        {isCollapsed ? (
+          <div className="flex flex-col items-center space-y-3">
             <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold">
               LOGO
             </div>
-            <span className="font-semibold text-gray-800">System BPLO</span>
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <FiMenu className="w-5 h-5" />
+            </button>
           </div>
+        ) : (
+          <>
+            <div className="flex items-center space-x-3 flex-1">
+              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold">
+                LOGO
+              </div>
+              <span className="font-semibold text-gray-800">System BPLO</span>
+            </div>
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+          </>
         )}
-        {isCollapsed && (
-          <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold mx-auto">
-            LOGO
-          </div>
-        )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          {isCollapsed ? <FiMenu className="w-5 h-5" /> : <FiX className="w-5 h-5" />}
-        </button>
       </div>
-
+      
       {/* Navigation Items */}
       <nav className="p-4">
         <ul className="space-y-2">
