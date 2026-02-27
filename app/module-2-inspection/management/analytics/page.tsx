@@ -1,6 +1,8 @@
-"use client"; // Required for Recharts interactivity
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+"use client"; 
+import { PieChart, Pie,Cell, ResponsiveContainer, Tooltip } from "recharts";
 import StatCard from "../../components/statcard/page"; 
+import Sidebar from "../../components/sidebar/page";
+
 const data = [
   { name: "Active", value: 10, color: "#000000" },    
   { name: "Compliant", value: 10, color: "#4D4D4D" },  
@@ -11,6 +13,8 @@ const data = [
 export default function AnalyticsDashboard() {
   return (
     <div className="flex h-screen bg-[#D9D9D9]">
+      <Sidebar />
+      
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-[#B7E4A1] h-16 flex items-center justify-center border-b border-gray-400">
           <h1 className="text-xl font-medium">Business Compliance and Inspection System</h1>
@@ -30,7 +34,7 @@ export default function AnalyticsDashboard() {
             </div>
           </div>
 
-          {/* Right: Pie Chart Section */}
+          {/* Right: Pie Chart Section matching image mockup */}
           <div className="col-span-5 bg-white rounded-[50px] shadow-lg flex flex-col items-center justify-center p-8 min-h-[550px]">
             <h3 className="text-gray-500 font-bold mb-4">Inspection Overview</h3>
             <ResponsiveContainer width="100%" height={400}>
@@ -49,14 +53,6 @@ export default function AnalyticsDashboard() {
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Floating Chat Icon */}
-        <div className="fixed bottom-8 right-12">
-          <div className="relative w-16 h-16 bg-white rounded-full shadow-2xl flex items-center justify-center">
-             <div className="absolute top-0 right-0 w-4 h-4 bg-red-600 rounded-full border-2 border-white" />
-             <span className="text-2xl">💬</span>
           </div>
         </div>
       </main>
