@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
   FiAlertCircle,
   FiInfo,
@@ -10,55 +9,22 @@ import {
   FiLayers,
 } from "react-icons/fi";
 import Sidebar from "../../module-2-inspection/components/sidebar/page";
-import { supabase } from "@/lib/supabaseClient";
-
 export default function DashboardPage() {
   const router = useRouter();
 
-  const [violations, setViolations] = useState([]);
-  const [stats, setStats] = useState([
-    { label: "Total Active Violations", icon: <FiLayers size={20} />, value: 0 },
-    { label: "Notice 1", icon: <FiInfo size={20} />, value: 0 },
-    { label: "Notice 2", icon: <FiAlertCircle size={20} />, value: 0 },
-    { label: "Notice 3", icon: <FiShield size={20} />, value: 0 },
-    { label: "Cease & Desist", icon: <FiSlash size={20} />, value: 0 },
-  ]);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    const { data, error } = await supabase
-      .from("violations")
-      .select("*");
-
-    if (error) {
-      console.log(error);
-      return;
-    }
-
-    setViolations(data);
-
-    const totalActive = data.filter(v => v.status === "open").length;
-    const notice1 = data.filter(v => v.notice_level === 1).length;
-    const notice2 = data.filter(v => v.notice_level === 2).length;
-    const notice3 = data.filter(v => v.notice_level === 3).length;
-    const cease = data.filter(v => v.status === "cease_desist").length;
-
-    setStats([
-      { label: "Total Active Violations", icon: <FiLayers size={20} />, value: totalActive },
-      { label: "Notice 1", icon: <FiInfo size={20} />, value: notice1 },
-      { label: "Notice 2", icon: <FiAlertCircle size={20} />, value: notice2 },
-      { label: "Notice 3", icon: <FiShield size={20} />, value: notice3 },
-      { label: "Cease & Desist", icon: <FiSlash size={20} />, value: cease },
-    ]);
-  };
+  // Placeholder state simulation
+  const stats = [
+    { label: "Total Active Violations", icon: <FiLayers size={20} />, value: null },
+    { label: "Notice 1", icon: <FiInfo size={20} />, value: null },
+    { label: "Notice 2", icon: <FiAlertCircle size={20} />, value: null },
+    { label: "Notice 3", icon: <FiShield size={20} />, value: null },
+    { label: "Cease & Desist", icon: <FiSlash size={20} />, value: null },
+  ];
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10">
+            {/* Sidebar */}
       <Sidebar />
-
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -77,23 +43,27 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Stats - Responsive Grid */}
       <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         {stats.map((stat, idx) => (
           <div
             key={idx}
             className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300"
           >
-            <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600">
+            <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600 transition">
               {stat.icon}
             </div>
             <div className="flex flex-col w-full">
               <span className="text-xs text-neutral-400 uppercase tracking-widest">
                 {stat.label}
               </span>
-              <h2 className="text-xl font-semibold text-neutral-900 mt-1">
-                {stat.value}
-              </h2>
+              {stat.value !== null ? (
+                <h2 className="text-xl font-semibold text-neutral-900 mt-1">
+                  {stat.value}
+                </h2>
+              ) : (
+                <div className="h-6 w-12 bg-neutral-200 rounded animate-pulse mt-1"></div>
+              )}
             </div>
           </div>
         ))}
@@ -114,13 +84,13 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
-              {violations.map((v) => (
-                <tr key={v.id} className="hover:bg-neutral-50">
-                  <td className="py-3 px-6">{v.business_id}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 1 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 2 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 3 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6 capitalize">{v.status}</td>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i} className="hover:bg-neutral-50">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <td key={j} className="py-3 px-6 text-neutral-400">
+                      <div className="h-4 w-12 bg-neutral-200 rounded animate-pulse"></div>
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
