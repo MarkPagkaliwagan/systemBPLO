@@ -48,9 +48,6 @@ export default function Navbar() {
       <div className="flex items-center justify-center p-6 border-b border-gray-200">
         {isCollapsed ? (
           <div className="flex flex-col items-center space-y-3">
-            <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold">
-              LOGO
-            </div>
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -75,7 +72,7 @@ export default function Navbar() {
           </>
         )}
       </div>
-      
+
       {/* Navigation Items */}
       <nav className="p-4">
         <ul className="space-y-2">
