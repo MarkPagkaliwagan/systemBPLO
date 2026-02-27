@@ -47,7 +47,7 @@ export default function Navbar() {
       {/* Header with Logo */}
       <div className="flex items-center justify-center p-6 border-b border-gray-200">
         {isCollapsed ? (
-          <div className="flex flex-col items-center space-y-3">
+          <div className="flex flex-col items-center">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
