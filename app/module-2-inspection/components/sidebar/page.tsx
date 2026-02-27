@@ -30,7 +30,7 @@ const sidebarItems: SidebarItem[] = [
     id: "masterlist",
     label: "Masterlist",
     icon: <FiBookOpen className="w-5 h-5" />,
-    href: "/module-2-inspection/masterlist"
+    href: "/module-2-inspection/management/analytics/masterlist"
   },
   {
     id: "notifCompliance",
