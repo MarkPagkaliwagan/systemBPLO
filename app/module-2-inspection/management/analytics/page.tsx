@@ -1,4 +1,3 @@
-// File: app/module-2-inspection/management/page.tsx
 import StatCard from "../../components/statcard/page"; 
 
 export default function AnalyticsDashboard() {
@@ -39,13 +38,10 @@ export default function AnalyticsDashboard() {
               </div>
             </div>
           </div>
-          <div className="col-span-5 bg-white rounded-[50px] shadow-lg flex items-center justify-center p-8">
-            {/* Placeholder for Pie Chart matching colors: Black, Dark Gray, Light Gray */}
+          <div className="col-span-5 bg-white rounded-[50px] shadow-lg flex items-center justify-center p-8"> 
             <div className="w-72 h-72 rounded-full border-50 border-black border-l-[#737373] border-b-[#A6A6A6] rotate-45" />
           </div>
         </div>
-
-        {/* Floating Chat Icon */}
         <div className="fixed bottom-8 right-12">
           <div className="relative w-16 h-16 bg-white rounded-full shadow-2xl flex items-center justify-center">
              <div className="absolute top-0 right-0 w-4 h-4 bg-red-600 rounded-full border-2 border-white" />
