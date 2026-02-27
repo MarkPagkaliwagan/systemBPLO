@@ -41,10 +41,10 @@ const sidebarItems: SidebarItem[] = [
 
 
 export default function Navbar() {
-   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
- 
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -52,12 +52,12 @@ export default function Navbar() {
         setIsMobileMenuOpen(false);
       }
     };
- 
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
- 
+
   if (isMobile) {
     return (
       <>
@@ -76,7 +76,7 @@ export default function Navbar() {
             {isMobileMenuOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
           </button>
         </div>
- 
+
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsMobileMenuOpen(false)}>
@@ -89,7 +89,7 @@ export default function Navbar() {
                   <span className="font-semibold text-gray-800">System BPLO</span>
                 </div>
               </div>
-              
+
               <nav className="p-4">
                 <ul className="space-y-2">
                   {sidebarItems.map((item) => (
@@ -118,7 +118,7 @@ export default function Navbar() {
   }
 
   return (
-    <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${isCollapsed ? 'w-16' : 'w-80'  // Changed from w-64 to w-80 (320px)
+    <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${isCollapsed ? 'w-' : 'w-80'  // Changed from w-64 to w-80 (320px)
       }`}>
       {/* Header with Logo */}
       <div className="flex items-center justify-center p-6 border-b border-gray-200">
@@ -156,7 +156,8 @@ export default function Navbar() {
             <li key={item.id}>
               <Link
                 href={item.href}
-                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors group"
+                className={`flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors group ${isCollapsed ? 'justify-center' : 'space-x-3'
+                  }`}
               >
                 <span className="text-gray-600 group-hover:text-green-600 transition-colors">
                   {item.icon}
