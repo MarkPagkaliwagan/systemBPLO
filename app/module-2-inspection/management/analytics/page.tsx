@@ -25,9 +25,6 @@ export default function AnalyticsDashboard() {
               </div>
             </div>
           </div>
-          <div className="col-span-5 bg-white rounded-[50px] shadow-lg flex items-center justify-center p-8"> 
-            <div className="w-72 h-72 rounded-full border-50 border-black border-l-[#737373] border-b-[#A6A6A6] rotate-45" />
-          </div>
         </div>
       </main>
     </div>
