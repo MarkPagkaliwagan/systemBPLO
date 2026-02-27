@@ -27,20 +27,20 @@ interface Stat {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+const [isCollapsed, setIsCollapsed] = useState(false);
+const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+useEffect(() => {
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
 
-    handleResize(); // check on first load
-    window.addEventListener("resize", handleResize);
+  handleResize(); // check on first load
+  window.addEventListener("resize", handleResize);
 
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  return () => window.removeEventListener("resize", handleResize);
+}, []);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [stats, setStats] = useState<Stat[]>([
     { label: "Total Active Violations", icon: <FiLayers size={20} />, value: 0 },
@@ -84,15 +84,16 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className={`min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-      }`}>
-      <Sidebar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        isMobile={isMobile}
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+    <div className={`min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10 ${
+  isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
+}`}>
+     <Sidebar
+  isCollapsed={isCollapsed}
+  setIsCollapsed={setIsCollapsed}
+  isMobile={isMobile}
+  isMobileMenuOpen={isMobileMenuOpen}
+  setIsMobileMenuOpen={setIsMobileMenuOpen}
+/>
 
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
