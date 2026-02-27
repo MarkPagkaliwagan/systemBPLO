@@ -85,7 +85,13 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10">
-      <Sidebar />
+     <Sidebar
+  isCollapsed={isCollapsed}
+  setIsCollapsed={setIsCollapsed}
+  isMobile={isMobile}
+  isMobileMenuOpen={isMobileMenuOpen}
+  setIsMobileMenuOpen={setIsMobileMenuOpen}
+/>
 
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
