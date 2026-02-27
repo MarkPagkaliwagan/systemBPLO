@@ -71,7 +71,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10 ml-0 md:ml-80">
       <Sidebar />
 
       {/* Header */}
