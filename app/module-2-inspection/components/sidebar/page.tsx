@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { FiHome, FiAlertCircle, FiUser, FiMenu, FiX, FiBookOpen, FiSettings } from "react-icons/fi";
 
@@ -9,6 +8,14 @@ interface SidebarItem {
   label: string;
   icon: React.ReactNode;
   href: string;
+}
+
+interface SidebarProps {
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+  isMobile: boolean;
+  isMobileMenuOpen: boolean;
+  setIsMobileMenuOpen: (open: boolean) => void;
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -38,26 +45,13 @@ const sidebarItems: SidebarItem[] = [
   }
 ];
 
-
-
-export default function Navbar() {
-   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
- 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setIsMobileMenuOpen(false);
-      }
-    };
- 
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
- 
+export default function Navbar({ 
+  isCollapsed, 
+  setIsCollapsed, 
+  isMobile, 
+  isMobileMenuOpen, 
+  setIsMobileMenuOpen 
+}: SidebarProps) {
   if (isMobile) {
     return (
       <>
@@ -76,7 +70,7 @@ export default function Navbar() {
             {isMobileMenuOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
           </button>
         </div>
- 
+
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsMobileMenuOpen(false)}>
@@ -118,8 +112,9 @@ export default function Navbar() {
   }
 
   return (
-    <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${isCollapsed ? 'w-20' : 'w-80'  // Changed from w-64 to w-80 (320px)
-      }`}>
+    <div className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${
+      isCollapsed ? 'w-20' : 'w-80'
+    }`}>
       {/* Header with Logo */}
       <div className="flex items-center justify-center p-6 border-b border-gray-200">
         {isCollapsed ? (
