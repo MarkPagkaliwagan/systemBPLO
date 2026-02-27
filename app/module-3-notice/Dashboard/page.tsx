@@ -8,7 +8,7 @@ import {
   FiSlash,
   FiLayers,
 } from "react-icons/fi";
-
+import Sidebar from "../../module-2-inspection/components/sidebar/page";
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -23,6 +23,8 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10">
+            {/* Sidebar */}
+      <Sidebar />
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
