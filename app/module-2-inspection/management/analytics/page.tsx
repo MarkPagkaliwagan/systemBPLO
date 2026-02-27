@@ -29,12 +29,6 @@ export default function AnalyticsDashboard() {
             <div className="w-72 h-72 rounded-full border-50 border-black border-l-[#737373] border-b-[#A6A6A6] rotate-45" />
           </div>
         </div>
-        <div className="fixed bottom-8 right-12">
-          <div className="relative w-16 h-16 bg-white rounded-full shadow-2xl flex items-center justify-center">
-             <div className="absolute top-0 right-0 w-4 h-4 bg-red-600 rounded-full border-2 border-white" />
-             <span className="text-2xl">💬</span>
-          </div>
-        </div>
       </main>
     </div>
   );
