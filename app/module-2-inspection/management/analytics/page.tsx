@@ -40,9 +40,6 @@ export default function AnalyticsDashboard() {
       />
 
       <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-        }`}></main>
-
-      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
         }`}>
         <header className="bg-[#B7E4A1] h-16 flex items-center justify-center border-b border-gray-400">
           <h1 className="text-xl font-medium">Business Compliance and Inspection System</h1>
