@@ -1,14 +1,14 @@
-"use client"; 
+"use client";
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import StatCard from "../../components/statcard/page"; 
+import StatCard from "../../components/statcard/page";
 import Sidebar from "../../components/sidebar/page";
 
 const data = [
-  { name: "Active", value: 10, color: "#000000" },    
-  { name: "Compliant", value: 10, color: "#4D4D4D" },  
-  { name: "Non-Compliant", value: 10, color: "#808080" }, 
-  { name: "For Inspection", value: 10, color: "#B3B3B3" }, 
+  { name: "Active", value: 10, color: "#000000" },
+  { name: "Compliant", value: 10, color: "#4D4D4D" },
+  { name: "Non-Compliant", value: 10, color: "#808080" },
+  { name: "For Inspection", value: 10, color: "#B3B3B3" },
 ];
 
 export default function AnalyticsDashboard() {
@@ -31,14 +31,23 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="flex h-screen bg-[#D9D9D9]">
-      
-      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
-        isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-      }`}>
+      <Sidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isMobile={isMobile}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
+
+      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
+        }`}></main>
+
+      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
+        }`}>
         <header className="bg-[#B7E4A1] h-16 flex items-center justify-center border-b border-gray-400">
           <h1 className="text-xl font-medium">Business Compliance and Inspection System</h1>
         </header>
-        
+
         <div className="flex-1 p-4 md:p-10 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 h-full">
             <div className="col-span-1 lg:col-span-7 flex flex-col gap-4 lg:gap-8">
