@@ -137,71 +137,84 @@ export default function Sidebar({
   }
 
 
-  return (
-    <div
-      onMouseEnter={() => setIsCollapsed(false)}
-      onMouseLeave={() => setIsCollapsed(true)}
-      className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 z-50 shadow-lg ${
-        isCollapsed ? "w-20" : "w-72"
-      }`}
-    >
-      {/* Logo */}
-      <div className="flex items-center p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold">
-            LOGO
-          </div>
 
-          {!isCollapsed && (
-            <span className="font-semibold text-gray-800 whitespace-nowrap">
-              System BPLO
-            </span>
-          )}
+return (
+  <div
+    onMouseEnter={() => setIsCollapsed(false)}
+    onMouseLeave={() => setIsCollapsed(true)}
+    className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-50 shadow-lg ${
+      isCollapsed ? "w-20" : "w-72"
+    }`}
+  >
+    {/* Logo */}
+    <div className="flex items-center p-6 border-b border-gray-200 overflow-hidden">
+      <div className="flex items-center space-x-3">
+        <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold shrink-0">
+          LOGO
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="p-4">
-        <ul className="space-y-2">
-          {sidebarItems.map((item) => (
-            <li key={item.id}>
-              <Link
-                href={item.href}
-                className={`flex items-center p-3 rounded-lg transition-all duration-200 group ${
+        {/* Smooth label */}
+        <span
+          className={`whitespace-nowrap font-semibold text-gray-800 transition-all duration-300 ${
+            isCollapsed
+              ? "opacity-0 -translate-x-2.5"
+              : "opacity-100 translate-x-0"
+          }`}
+        >
+          System BPLO
+        </span>
+      </div>
+    </div>
+
+    {/* Navigation */}
+    <nav className="p-4">
+      <ul className="space-y-2">
+        {sidebarItems.map((item) => (
+          <li key={item.id}>
+            <Link
+              href={item.href}
+              className="flex items-center p-3 rounded-lg transition-all duration-200 hover:bg-green-50 group overflow-hidden"
+            >
+              {/* Icon */}
+              <span className="text-gray-600 group-hover:text-green-600 transition-colors shrink-0">
+                {item.icon}
+              </span>
+
+              {/* Smooth label */}
+              <span
+                className={`ml-3 whitespace-nowrap text-gray-700 group-hover:text-green-600 font-medium transition-all duration-300 ${
                   isCollapsed
-                    ? "justify-center"
-                    : "space-x-3 hover:bg-green-50"
+                    ? "opacity-0 -translate-x-2.5"
+                    : "opacity-100 translate-x-0"
                 }`}
               >
-                <span className="text-gray-600 group-hover:text-green-600 transition-colors">
-                  {item.icon}
-                </span>
+                {item.label}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
 
-                {!isCollapsed && (
-                  <span className="text-gray-700 group-hover:text-green-600 font-medium">
-                    {item.label}
-                  </span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      {/* Footer */}
-      {!isCollapsed && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <FiUser className="w-4 h-4 text-gray-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-800">User Name</p>
-              <p className="text-xs text-gray-500">user@example.com</p>
-            </div>
-          </div>
+    {/* Footer */}
+    <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 overflow-hidden">
+      <div className="flex items-center space-x-3">
+        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center shrink-0">
+          <FiUser className="w-4 h-4 text-gray-600" />
         </div>
-      )}
+
+        <div
+          className={`transition-all duration-300 ${
+            isCollapsed
+              ? "opacity-0 -translate-x-2.5"
+              : "opacity-100 translate-x-0"
+          }`}
+        >
+          <p className="text-sm font-medium text-gray-800">User Name</p>
+          <p className="text-xs text-gray-500">user@example.com</p>
+        </div>
+      </div>
     </div>
-  );
+  </div>
+);
 }
