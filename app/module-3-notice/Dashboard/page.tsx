@@ -85,8 +85,12 @@ useEffect(() => {
 
   return (
   <div
-    className={`min-h-screen bg-slate-50 text-slate-800 transition-all duration-300 ${
-      isMobile ? "pt-16 px-4" : isCollapsed ? "pl-20 px-6 py-10" : "pl-80 px-6 py-10"
+    className={`min-h-screen bg-slate-100 text-slate-800 transition-all duration-300 ${
+      isMobile
+        ? "pt-16 px-4"
+        : isCollapsed
+        ? "pl-20 px-8 py-8"
+        : "pl-80 px-8 py-8"
     }`}
   >
     <Sidebar
@@ -98,63 +102,70 @@ useEffect(() => {
     />
 
     {/* Header */}
-    <div className="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div className="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-emerald-700">
+        <h1 className="text-2xl font-semibold text-slate-800">
           Compliance Notice Management
         </h1>
-        <p className="mt-2 text-slate-500 max-w-xl">
-          Monitor violation stages and track compliance status in real-time.
+        <p className="text-sm text-slate-500 mt-1">
+          Overview of violation escalation status.
         </p>
       </div>
 
       <button
         onClick={() => router.push("/module-3-notice/Aging")}
-        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+        className="text-sm bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-md transition"
       >
-        <FiLayers />
-        List of Aging Notice
+        View Aging Notices
       </button>
     </div>
 
     {/* Stats */}
-    <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
+    <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {stats.map((stat, idx) => (
         <div
           key={idx}
-          className="group bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+          className="bg-white border border-slate-200 rounded-md px-4 py-4 flex items-center gap-3 hover:bg-slate-50 transition"
         >
-          <div className="p-4 rounded-xl bg-slate-100 text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-all duration-300">
-            {stat.icon}
-          </div>
+          <div className="text-slate-500">{stat.icon}</div>
 
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <div>
+            <p className="text-xs text-slate-400 uppercase tracking-wide">
               {stat.label}
-            </span>
-            <h2 className="text-2xl font-bold mt-1 text-slate-800 group-hover:text-emerald-700 transition">
+            </p>
+            <p className="text-lg font-semibold text-slate-800 mt-1">
               {stat.value}
-            </h2>
+            </p>
           </div>
         </div>
       ))}
     </div>
 
-    {/* Escalation Table */}
-    <div className="max-w-7xl mx-auto mt-14">
-      <h2 className="text-2xl font-bold mb-6 text-slate-700">
+    {/* Table */}
+    <div className="max-w-6xl mx-auto mt-10">
+      <h2 className="text-lg font-semibold text-slate-700 mb-4">
         Escalation Details
       </h2>
 
-      <div className="overflow-x-auto rounded-2xl shadow-md border border-slate-200 bg-white">
+      <div className="overflow-x-auto border border-slate-200 rounded-md bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wider">
+          <thead className="bg-slate-800 text-white">
             <tr>
-              <th className="py-4 px-6 text-left">Business ID</th>
-              <th className="py-4 px-6 text-left">Notice 1</th>
-              <th className="py-4 px-6 text-left">Notice 2</th>
-              <th className="py-4 px-6 text-left">Notice 3</th>
-              <th className="py-4 px-6 text-left">Status</th>
+              <th className="py-3 px-5 text-left font-medium">
+                Business ID
+              </th>
+              <th className="py-3 px-5 text-left font-medium">
+                Notice 1
+              </th>
+              <th className="py-3 px-5 text-left font-medium">
+                Notice 2
+              </th>
+              <th className="py-3 px-5 text-left font-medium">
+                Notice 3
+              </th>
+              <th className="py-3 px-5 text-left font-medium">
+                Status
+              </th>
             </tr>
           </thead>
 
@@ -162,39 +173,27 @@ useEffect(() => {
             {violations.map((v) => (
               <tr
                 key={v.id}
-                className="hover:bg-emerald-50 transition-colors duration-200"
+                className="hover:bg-slate-50 transition"
               >
-                <td className="py-4 px-6 font-medium text-slate-700">
+                <td className="py-3 px-5 font-medium">
                   {v.business_id}
                 </td>
 
-                <td className="py-4 px-6">
-                  {v.notice_level >= 1 ? (
-                    <span className="text-blue-600 font-medium">Sent</span>
-                  ) : (
-                    "-"
-                  )}
+                <td className="py-3 px-5 text-slate-600">
+                  {v.notice_level >= 1 ? "Sent" : "-"}
                 </td>
 
-                <td className="py-4 px-6">
-                  {v.notice_level >= 2 ? (
-                    <span className="text-amber-600 font-medium">Sent</span>
-                  ) : (
-                    "-"
-                  )}
+                <td className="py-3 px-5 text-slate-600">
+                  {v.notice_level >= 2 ? "Sent" : "-"}
                 </td>
 
-                <td className="py-4 px-6">
-                  {v.notice_level >= 3 ? (
-                    <span className="text-red-600 font-medium">Sent</span>
-                  ) : (
-                    "-"
-                  )}
+                <td className="py-3 px-5 text-slate-600">
+                  {v.notice_level >= 3 ? "Sent" : "-"}
                 </td>
 
-                <td className="py-4 px-6 capitalize font-semibold">
+                <td className="py-3 px-5 capitalize">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs ${
+                    className={`text-xs font-medium px-2 py-1 rounded ${
                       v.status === "open"
                         ? "bg-amber-100 text-amber-700"
                         : v.status === "cease_desist"
@@ -212,5 +211,4 @@ useEffect(() => {
       </div>
     </div>
   </div>
-);
-}
+);}
