@@ -84,85 +84,133 @@ useEffect(() => {
   };
 
   return (
-    <div className={`min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10 ${
-  isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-}`}>
-     <Sidebar
-  isCollapsed={isCollapsed}
-  setIsCollapsed={setIsCollapsed}
-  isMobile={isMobile}
-  isMobileMenuOpen={isMobileMenuOpen}
-  setIsMobileMenuOpen={setIsMobileMenuOpen}
-/>
+  <div
+    className={`min-h-screen bg-slate-50 text-slate-800 transition-all duration-300 ${
+      isMobile ? "pt-16 px-4" : isCollapsed ? "pl-20 px-6 py-10" : "pl-80 px-6 py-10"
+    }`}
+  >
+    <Sidebar
+      isCollapsed={isCollapsed}
+      setIsCollapsed={setIsCollapsed}
+      isMobile={isMobile}
+      isMobileMenuOpen={isMobileMenuOpen}
+      setIsMobileMenuOpen={setIsMobileMenuOpen}
+    />
 
-      {/* Header */}
-      <div className="max-w-6xl mx-auto mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Compliance Notice Management
-          </h1>
-          <p className="mt-2 text-neutral-500 sm:text-lg max-w-2xl">
-            Monitor violation stages and track compliance status.
-          </p>
-        </div>
-<button
-  onClick={() => router.push("/module-3-notice/Aging")}
-  className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded shadow transition-all duration-200"
->
-  List of Aging Notice
-</button>
+    {/* Header */}
+    <div className="max-w-7xl mx-auto mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-emerald-700">
+          Compliance Notice Management
+        </h1>
+        <p className="mt-2 text-slate-500 max-w-xl">
+          Monitor violation stages and track compliance status in real-time.
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        {stats.map((stat, idx) => (
-          <div
-            key={idx}
-            className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300"
-          >
-            <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600">
-              {stat.icon}
-            </div>
-            <div className="flex flex-col w-full">
-              <span className="text-xs text-neutral-400 uppercase tracking-widest">
-                {stat.label}
-              </span>
-              <h2 className="text-xl font-semibold text-neutral-900 mt-1">
-                {stat.value}
-              </h2>
-            </div>
+      <button
+        onClick={() => router.push("/module-3-notice/Aging")}
+        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-300"
+      >
+        <FiLayers />
+        List of Aging Notice
+      </button>
+    </div>
+
+    {/* Stats */}
+    <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
+      {stats.map((stat, idx) => (
+        <div
+          key={idx}
+          className="group bg-white rounded-2xl border border-slate-200 p-6 flex items-center gap-4 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+        >
+          <div className="p-4 rounded-xl bg-slate-100 text-slate-600 group-hover:bg-emerald-100 group-hover:text-emerald-600 transition-all duration-300">
+            {stat.icon}
           </div>
-        ))}
-      </div>
 
-      {/* Escalation Table */}
-      <div className="max-w-6xl mx-auto mt-12">
-        <h2 className="text-2xl font-bold mb-4">Escalation Details</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-neutral-200 rounded-lg">
-            <thead className="bg-green-800 text-white">
-              <tr>
-                <th className="py-3 px-6 text-left">BUSINESS ID</th>
-                <th className="py-3 px-6 text-left">NOTICE 1</th>
-                <th className="py-3 px-6 text-left">NOTICE 2</th>
-                <th className="py-3 px-6 text-left">NOTICE 3</th>
-                <th className="py-3 px-6 text-left">STATUS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200">
-              {violations.map((v) => (
-                <tr key={v.id} className="hover:bg-neutral-50">
-                  <td className="py-3 px-6">{v.business_id}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 1 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 2 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 3 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6 capitalize">{v.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              {stat.label}
+            </span>
+            <h2 className="text-2xl font-bold mt-1 text-slate-800 group-hover:text-emerald-700 transition">
+              {stat.value}
+            </h2>
+          </div>
         </div>
+      ))}
+    </div>
+
+    {/* Escalation Table */}
+    <div className="max-w-7xl mx-auto mt-14">
+      <h2 className="text-2xl font-bold mb-6 text-slate-700">
+        Escalation Details
+      </h2>
+
+      <div className="overflow-x-auto rounded-2xl shadow-md border border-slate-200 bg-white">
+        <table className="min-w-full text-sm">
+          <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wider">
+            <tr>
+              <th className="py-4 px-6 text-left">Business ID</th>
+              <th className="py-4 px-6 text-left">Notice 1</th>
+              <th className="py-4 px-6 text-left">Notice 2</th>
+              <th className="py-4 px-6 text-left">Notice 3</th>
+              <th className="py-4 px-6 text-left">Status</th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-slate-200">
+            {violations.map((v) => (
+              <tr
+                key={v.id}
+                className="hover:bg-emerald-50 transition-colors duration-200"
+              >
+                <td className="py-4 px-6 font-medium text-slate-700">
+                  {v.business_id}
+                </td>
+
+                <td className="py-4 px-6">
+                  {v.notice_level >= 1 ? (
+                    <span className="text-blue-600 font-medium">Sent</span>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+
+                <td className="py-4 px-6">
+                  {v.notice_level >= 2 ? (
+                    <span className="text-amber-600 font-medium">Sent</span>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+
+                <td className="py-4 px-6">
+                  {v.notice_level >= 3 ? (
+                    <span className="text-red-600 font-medium">Sent</span>
+                  ) : (
+                    "-"
+                  )}
+                </td>
+
+                <td className="py-4 px-6 capitalize font-semibold">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs ${
+                      v.status === "open"
+                        ? "bg-amber-100 text-amber-700"
+                        : v.status === "cease_desist"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {v.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
-  );
+  </div>
+);
 }
