@@ -48,11 +48,26 @@ const AgingNoticeTable = () => {
 
       <div className="max-w-7xl mx-auto">
 
+{/* Back Button */}
+<div className="mb-6">
+  <Link href="/module-3-notice/Dashboard">
+    <button
+      className="inline-flex items-center gap-2 px-5 py-2.5 
+      bg-white border border-green-700 text-green-700 
+      rounded-lg font-medium text-sm
+      hover:bg-green-700 hover:text-white
+      transition-all duration-200 active:scale-95 shadow-sm hover:shadow-md"
+    >
+      <span className="text-lg">←</span>
+      Back to Dashboard
+    </button>
+  </Link>
+</div>
                 <button
           onClick={() => router.push("/module-3-notice/Dashboard")}
           className="bg-green-700 hover:bg-green-800 active:scale-95 transition-all duration-200 text-white font-medium px-6 py-3 rounded-lg shadow-sm hover:shadow-md"
         >
-          Back to Dashboard
+          View Aging Notice
         </button>
 
         {/* Title */}
