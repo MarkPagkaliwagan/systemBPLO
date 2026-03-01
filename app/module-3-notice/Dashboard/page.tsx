@@ -105,12 +105,12 @@ useEffect(() => {
             Monitor violation stages and track compliance status.
           </p>
         </div>
-        <button
-          onClick={() => router.push("/module-3-notice/Aging")}
-          className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded shadow transition-all duration-200"
-        >
-          List of Aging Notice
-        </button>
+<button
+  onClick={() => router.push("/module-3-notice/Aging")}
+  className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded shadow transition-all duration-200"
+>
+  List of Aging Notice
+</button>
       </div>
 
       {/* Stats */}
