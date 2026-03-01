@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
   const getStatusBadge = (status: string) => {
     if (status === "open")
-      return "bg-emerald-100 text-emerald-700";
+      return "bg-green-100 text-green-700";
     if (status === "cease_desist")
       return "bg-red-100 text-red-600";
     return "bg-gray-100 text-gray-600";
@@ -90,7 +90,7 @@ export default function DashboardPage() {
 
   return (
     <div
-      className={`min-h-screen bg-[#0f1f17] text-gray-100 px-6 py-10 transition-all duration-300 ${
+      className={`min-h-screen bg-white text-gray-900 px-6 py-10 transition-all duration-300 ${
         isMobile ? "pt-16" : isCollapsed ? "pl-20" : "pl-80"
       }`}
     >
@@ -105,17 +105,17 @@ export default function DashboardPage() {
       {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-emerald-400">
+          <h1 className="text-3xl md:text-4xl font-bold text-green-800">
             Compliance Dashboard
           </h1>
-          <p className="mt-2 text-gray-400">
+          <p className="mt-2 text-gray-500">
             Monitor violation stages and track compliance status.
           </p>
         </div>
 
         <button
           onClick={() => router.push("/module-3-notice/Aging")}
-          className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 transition-all duration-200 text-white font-medium px-6 py-3 rounded-lg shadow-md hover:shadow-lg"
+          className="bg-green-700 hover:bg-green-800 active:scale-95 transition-all duration-200 text-white font-medium px-6 py-3 rounded-lg shadow-sm hover:shadow-md"
         >
           View Aging Notice
         </button>
@@ -126,19 +126,18 @@ export default function DashboardPage() {
         {stats.map((stat, idx) => (
           <div
             key={idx}
-            className="bg-[#13271d] border border-emerald-900/40 rounded-xl p-6 flex items-center gap-4 
-            hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-900/20
-            transition-all duration-300 cursor-pointer group"
+            className="bg-white border border-gray-200 rounded-xl p-6 flex items-center gap-4 
+            hover:border-green-600 hover:shadow-md transition-all duration-300 group"
           >
-            <div className="p-3 rounded-lg bg-emerald-900/40 text-emerald-400 group-hover:scale-110 transition">
+            <div className="p-3 rounded-lg bg-green-50 text-green-700 group-hover:bg-green-100 transition">
               {stat.icon}
             </div>
 
             <div>
-              <p className="text-xs uppercase tracking-wider text-gray-400">
+              <p className="text-xs uppercase tracking-wider text-gray-500">
                 {stat.label}
               </p>
-              <h2 className="text-2xl font-bold text-white mt-1">
+              <h2 className="text-2xl font-bold text-gray-900 mt-1">
                 {stat.value}
               </h2>
             </div>
@@ -148,13 +147,13 @@ export default function DashboardPage() {
 
       {/* TABLE */}
       <div className="max-w-7xl mx-auto mt-14">
-        <h2 className="text-2xl font-semibold text-emerald-400 mb-6">
+        <h2 className="text-2xl font-semibold text-green-800 mb-6">
           Escalation Details
         </h2>
 
-        <div className="overflow-x-auto rounded-xl border border-emerald-900/40">
+        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
           <table className="min-w-full text-sm text-left">
-            <thead className="bg-[#163126] text-emerald-300 uppercase text-xs tracking-wider">
+            <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
               <tr>
                 <th className="px-6 py-4">Business ID</th>
                 <th className="px-6 py-4">Notice 1</th>
@@ -164,25 +163,25 @@ export default function DashboardPage() {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-emerald-900/30">
+            <tbody className="divide-y divide-gray-200">
               {violations.map((v) => (
                 <tr
                   key={v.id}
-                  className="hover:bg-emerald-900/20 transition-all duration-200"
+                  className="hover:bg-green-50 transition duration-200"
                 >
-                  <td className="px-6 py-4 font-medium text-white">
+                  <td className="px-6 py-4 font-medium text-gray-900">
                     {v.business_id}
                   </td>
 
-                  <td className="px-6 py-4 text-gray-300">
+                  <td className="px-6 py-4 text-gray-600">
                     {v.notice_level >= 1 ? "Sent" : "-"}
                   </td>
 
-                  <td className="px-6 py-4 text-gray-300">
+                  <td className="px-6 py-4 text-gray-600">
                     {v.notice_level >= 2 ? "Sent" : "-"}
                   </td>
 
-                  <td className="px-6 py-4 text-gray-300">
+                  <td className="px-6 py-4 text-gray-600">
                     {v.notice_level >= 3 ? "Sent" : "-"}
                   </td>
 
