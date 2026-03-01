@@ -47,28 +47,21 @@ const AgingNoticeTable = () => {
       />
 
       <div className="max-w-7xl mx-auto">
-
-{/* Back Button */}
-<div className="mb-6">
-  <Link href="/module-3-notice/Dashboard">
-    <button
-      className="inline-flex items-center gap-2 px-5 py-2.5 
+        {/* Back Button */}
+        <div className="mb-6">
+          <Link href="/module-3-notice/Dashboard">
+            <button
+              className="inline-flex items-center gap-2 px-5 py-2.5 
       bg-white border border-green-700 text-green-700 
       rounded-lg font-medium text-sm
       hover:bg-green-700 hover:text-white
       transition-all duration-200 active:scale-95 shadow-sm hover:shadow-md"
-    >
-      <span className="text-lg">←</span>
-      Back to Dashboard
-    </button>
-  </Link>
-</div>
-                <button
-          onClick={() => router.push("/module-3-notice/Dashboard")}
-          className="bg-green-700 hover:bg-green-800 active:scale-95 transition-all duration-200 text-white font-medium px-6 py-3 rounded-lg shadow-sm hover:shadow-md"
-        >
-          View Aging Notice
-        </button>
+            >
+              <span className="text-lg">←</span>
+              Back to Dashboard
+            </button>
+          </Link>
+        </div>
 
         {/* Title */}
         <h1 className="text-3xl font-bold text-green-800 mb-10 text-center tracking-tight">
@@ -91,58 +84,56 @@ const AgingNoticeTable = () => {
             </thead>
 
             <tbody className="divide-y divide-gray-200">
-              {notices.length > 0 ? (
-                notices.map((row, index) => (
-                  <tr
-                    key={index}
-                    className="hover:bg-green-50 transition duration-200"
-                  >
-                    <td className="px-6 py-4 font-semibold text-green-800 underline">
-                      <Link href={`/module-3-notice/Aging/${row.businessId}`}>
-                        {row.businessId}
-                      </Link>
-                    </td>
-
-                    <td className="px-6 py-4 text-gray-700">
-                      {row.violationType}
-                    </td>
-
-                    <td className="px-6 py-4 font-medium text-gray-800">
-                      {row.notice}
-                    </td>
-
-                    <td className="px-6 py-4 text-center">
-                      <span className="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600">
-                        {row.violationDate}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <span className="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600">
-                        {row.deadline}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 text-gray-600">
-                      {row.timeStatus}
-                    </td>
-
-                    <td className="px-6 py-4 text-center">
-                      <StatusBadge status={row.status} />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <td key={j} className="px-6 py-6">
-                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+              {notices.length > 0
+                ? notices.map((row, index) => (
+                    <tr
+                      key={index}
+                      className="hover:bg-green-50 transition duration-200"
+                    >
+                      <td className="px-6 py-4 font-semibold text-green-800 underline">
+                        <Link href={`/module-3-notice/Aging/${row.businessId}`}>
+                          {row.businessId}
+                        </Link>
                       </td>
-                    ))}
-                  </tr>
-                ))
-              )}
+
+                      <td className="px-6 py-4 text-gray-700">
+                        {row.violationType}
+                      </td>
+
+                      <td className="px-6 py-4 font-medium text-gray-800">
+                        {row.notice}
+                      </td>
+
+                      <td className="px-6 py-4 text-center">
+                        <span className="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600">
+                          {row.violationDate}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span className="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600">
+                          {row.deadline}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-gray-600">
+                        {row.timeStatus}
+                      </td>
+
+                      <td className="px-6 py-4 text-center">
+                        <StatusBadge status={row.status} />
+                      </td>
+                    </tr>
+                  ))
+                : Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      {Array.from({ length: 7 }).map((_, j) => (
+                        <td key={j} className="px-6 py-6">
+                          <div className="h-4 bg-gray-200 rounded w-full"></div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
             </tbody>
           </table>
 
@@ -158,8 +149,7 @@ const AgingNoticeTable = () => {
 };
 
 const StatusBadge = ({ status }: { status: AgingNotice["status"] }) => {
-  const base =
-    "px-4 py-2 rounded-full text-xs font-semibold tracking-wider";
+  const base = "px-4 py-2 rounded-full text-xs font-semibold tracking-wider";
 
   const styles = {
     COMPLETED: "bg-green-700 text-white",
