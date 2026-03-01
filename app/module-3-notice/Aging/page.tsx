@@ -1,7 +1,8 @@
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import Sidebar from "../../module-2-inspection/components/sidebar/page";
 
 interface AgingNotice {
   businessId: string;
@@ -10,70 +11,122 @@ interface AgingNotice {
   violationDate: string;
   deadline: string;
   timeStatus: string;
-  status: 'COMPLETED' | 'PENDING' | 'CEASE AND DESIST';
+  status: "COMPLETED" | "PENDING" | "CEASE AND DESIST";
 }
 
 const AgingNoticeTable = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const notices: AgingNotice[] = [];
 
   return (
-    <div className="p-8 bg-white min-h-screen font-sans text-black ml-80">
-      <div className="max-w-6xl mx-auto relative">
+    <div
+      className={`min-h-screen bg-white text-gray-900 px-6 py-10 transition-all duration-300 ${
+        isMobile ? "pt-16" : isCollapsed ? "pl-20" : "pl-80"
+      }`}
+    >
+      <Sidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isMobile={isMobile}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
 
-        <div className="absolute top-8 left-0">
-          <Link href="/module-3-notice/Dashboard" className="flex items-center text-gray-400 hover:text-black transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-8 h-8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
+      <div className="max-w-7xl mx-auto">
+
+        {/* Back Button */}
+        <div className="mb-6">
+          <Link
+            href="/module-3-notice/Dashboard"
+            className="inline-flex items-center gap-2 text-green-700 hover:text-green-900 font-medium transition"
+          >
+            <span className="text-xl">←</span>
+            Back to Dashboard
           </Link>
         </div>
 
-        <h1 className="text-3xl font-bold text-center py-8 tracking-tight">
-          LIST OF AGING NOTICE
+        {/* Title */}
+        <h1 className="text-3xl font-bold text-green-800 mb-10 text-center tracking-tight">
+          List of Aging Notice
         </h1>
 
-        <div className="overflow-x-auto border border-gray-200 rounded">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-[#004d33] text-white uppercase text-[12px] tracking-wider">
-                <th className="py-4 px-4 border-r border-green-800">Business ID</th>
-                <th className="py-4 px-4 border-r border-green-800">Violation Type</th>
-                <th className="py-4 px-4 border-r border-green-800">Notice</th>
-                <th className="py-4 px-4 border-r border-green-800 leading-tight text-center">Violation<br/>Date</th>
-                <th className="py-4 px-4 border-r border-green-800">Deadline</th>
-                <th className="py-4 px-4 border-r border-green-800">Time Status</th>
-                <th className="py-4 px-4">Status</th>
+        {/* Table */}
+        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+          <table className="min-w-full text-sm text-left">
+            <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Business ID</th>
+                <th className="px-6 py-4">Violation Type</th>
+                <th className="px-6 py-4">Notice</th>
+                <th className="px-6 py-4 text-center">Violation Date</th>
+                <th className="px-6 py-4">Deadline</th>
+                <th className="px-6 py-4">Time Status</th>
+                <th className="px-6 py-4 text-center">Status</th>
               </tr>
             </thead>
 
-            <tbody className="text-gray-700 text-sm">
+            <tbody className="divide-y divide-gray-200">
               {notices.length > 0 ? (
                 notices.map((row, index) => (
-                  <tr key={index} className="border-b border-gray-200 text-center">
-                    <td className="py-4 px-2 underline font-bold">
+                  <tr
+                    key={index}
+                    className="hover:bg-green-50 transition duration-200"
+                  >
+                    <td className="px-6 py-4 font-semibold text-green-800 underline">
                       <Link href={`/module-3-notice/Aging/${row.businessId}`}>
                         {row.businessId}
                       </Link>
                     </td>
-                    <td className="py-4 px-2">{row.violationType}</td>
-                    <td className="py-4 px-2 font-medium">{row.notice}</td>
-                    <td className="py-4 px-2 italic">
-                      <span className="bg-gray-100 px-3 py-1 rounded-full text-[12px]">{row.violationDate}</span>
+
+                    <td className="px-6 py-4 text-gray-700">
+                      {row.violationType}
                     </td>
-                    <td className="py-4 px-2 italic">
-                      <span className="bg-gray-100 px-3 py-1 rounded-full text-[12px]">{row.deadline}</span>
+
+                    <td className="px-6 py-4 font-medium text-gray-800">
+                      {row.notice}
                     </td>
-                    <td className="py-4 px-2">{row.timeStatus}</td>
-                    <td className="py-4 px-4">
+
+                    <td className="px-6 py-4 text-center">
+                      <span className="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600">
+                        {row.violationDate}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <span className="bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600">
+                        {row.deadline}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-gray-600">
+                      {row.timeStatus}
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
                       <StatusBadge status={row.status} />
                     </td>
                   </tr>
                 ))
               ) : (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse border-b border-gray-200">
+                  <tr key={i} className="animate-pulse">
                     {Array.from({ length: 7 }).map((_, j) => (
-                      <td key={j} className="py-6 px-2 bg-gray-100 rounded mx-2">&nbsp;</td>
+                      <td key={j} className="px-6 py-6">
+                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                      </td>
                     ))}
                   </tr>
                 ))
@@ -92,14 +145,17 @@ const AgingNoticeTable = () => {
   );
 };
 
-const StatusBadge = ({ status }: { status: AgingNotice['status'] }) => {
-  const base = "w-full py-2 px-4 rounded font-bold text-xs tracking-wider text-white";
+const StatusBadge = ({ status }: { status: AgingNotice["status"] }) => {
+  const base =
+    "px-4 py-2 rounded-full text-xs font-semibold tracking-wider";
+
   const styles = {
-    'COMPLETED': "bg-[#004d33]",
-    'PENDING': "bg-[#fcd34d] !text-gray-800",
-    'CEASE AND DESIST': "bg-[#ef4444]",
+    COMPLETED: "bg-green-700 text-white",
+    PENDING: "bg-yellow-400 text-gray-900",
+    "CEASE AND DESIST": "bg-red-500 text-white",
   };
-  return <button className={`${base} ${styles[status]}`}>{status}</button>;
+
+  return <span className={`${base} ${styles[status]}`}>{status}</span>;
 };
 
 export default AgingNoticeTable;
