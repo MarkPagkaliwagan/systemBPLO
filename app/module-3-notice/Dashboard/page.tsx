@@ -84,85 +84,131 @@ useEffect(() => {
   };
 
   return (
-    <div className={`min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10 ${
-  isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-}`}>
-     <Sidebar
-  isCollapsed={isCollapsed}
-  setIsCollapsed={setIsCollapsed}
-  isMobile={isMobile}
-  isMobileMenuOpen={isMobileMenuOpen}
-  setIsMobileMenuOpen={setIsMobileMenuOpen}
-/>
+  <div
+    className={`min-h-screen bg-slate-100 text-slate-800 transition-all duration-300 ${
+      isMobile
+        ? "pt-16 px-4"
+        : isCollapsed
+        ? "pl-20 px-8 py-8"
+        : "pl-80 px-8 py-8"
+    }`}
+  >
+    <Sidebar
+      isCollapsed={isCollapsed}
+      setIsCollapsed={setIsCollapsed}
+      isMobile={isMobile}
+      isMobileMenuOpen={isMobileMenuOpen}
+      setIsMobileMenuOpen={setIsMobileMenuOpen}
+    />
 
-      {/* Header */}
-      <div className="max-w-6xl mx-auto mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            Compliance Notice Management
-          </h1>
-          <p className="mt-2 text-neutral-500 sm:text-lg max-w-2xl">
-            Monitor violation stages and track compliance status.
-          </p>
-        </div>
-<button
-  onClick={() => router.push("/module-3-notice/Aging")}
-  className="bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded shadow transition-all duration-200"
->
-  List of Aging Notice
-</button>
+    {/* Header */}
+    <div className="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-800">
+          Compliance Notice Management
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Overview of violation escalation status.
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        {stats.map((stat, idx) => (
-          <div
-            key={idx}
-            className="bg-white rounded-xl border border-neutral-200 px-6 py-4 flex items-center gap-4 hover:shadow-lg transition-all duration-300"
-          >
-            <div className="p-3 rounded-lg bg-neutral-100 text-neutral-600">
-              {stat.icon}
-            </div>
-            <div className="flex flex-col w-full">
-              <span className="text-xs text-neutral-400 uppercase tracking-widest">
-                {stat.label}
-              </span>
-              <h2 className="text-xl font-semibold text-neutral-900 mt-1">
-                {stat.value}
-              </h2>
-            </div>
+      <button
+        onClick={() => router.push("/module-3-notice/Aging")}
+        className="text-sm bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-md transition"
+      >
+        View Agisdsfdng Notices
+      </button>
+    </div>
+
+    {/* Stats */}
+    <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {stats.map((stat, idx) => (
+        <div
+          key={idx}
+          className="bg-white border border-slate-200 rounded-md px-4 py-4 flex items-center gap-3 hover:bg-slate-50 transition"
+        >
+          <div className="text-slate-500">{stat.icon}</div>
+
+          <div>
+            <p className="text-xs text-slate-400 uppercase tracking-wide">
+              {stat.label}
+            </p>
+            <p className="text-lg font-semibold text-slate-800 mt-1">
+              {stat.value}
+            </p>
           </div>
-        ))}
-      </div>
-
-      {/* Escalation Table */}
-      <div className="max-w-6xl mx-auto mt-12">
-        <h2 className="text-2xl font-bold mb-4">Escalation Details</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-neutral-200 rounded-lg">
-            <thead className="bg-green-800 text-white">
-              <tr>
-                <th className="py-3 px-6 text-left">BUSINESS ID</th>
-                <th className="py-3 px-6 text-left">NOTICE 1</th>
-                <th className="py-3 px-6 text-left">NOTICE 2</th>
-                <th className="py-3 px-6 text-left">NOTICE 3</th>
-                <th className="py-3 px-6 text-left">STATUS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200">
-              {violations.map((v) => (
-                <tr key={v.id} className="hover:bg-neutral-50">
-                  <td className="py-3 px-6">{v.business_id}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 1 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 2 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6">{v.notice_level >= 3 ? "Sent" : "-"}</td>
-                  <td className="py-3 px-6 capitalize">{v.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
+      ))}
+    </div>
+
+    {/* Table */}
+    <div className="max-w-6xl mx-auto mt-10">
+      <h2 className="text-lg font-semibold text-slate-700 mb-4">
+        Escalation Details
+      </h2>
+
+      <div className="overflow-x-auto border border-slate-200 rounded-md bg-white">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-800 text-white">
+            <tr>
+              <th className="py-3 px-5 text-left font-medium">
+                Business ID
+              </th>
+              <th className="py-3 px-5 text-left font-medium">
+                Notice 1
+              </th>
+              <th className="py-3 px-5 text-left font-medium">
+                Notice 2
+              </th>
+              <th className="py-3 px-5 text-left font-medium">
+                Notice 3
+              </th>
+              <th className="py-3 px-5 text-left font-medium">
+                Status
+              </th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-slate-200">
+            {violations.map((v) => (
+              <tr
+                key={v.id}
+                className="hover:bg-slate-50 transition"
+              >
+                <td className="py-3 px-5 font-medium">
+                  {v.business_id}
+                </td>
+
+                <td className="py-3 px-5 text-slate-600">
+                  {v.notice_level >= 1 ? "Sent" : "-"}
+                </td>
+
+                <td className="py-3 px-5 text-slate-600">
+                  {v.notice_level >= 2 ? "Sent" : "-"}
+                </td>
+
+                <td className="py-3 px-5 text-slate-600">
+                  {v.notice_level >= 3 ? "Sent" : "-"}
+                </td>
+
+                <td className="py-3 px-5 capitalize">
+                  <span
+                    className={`text-xs font-medium px-2 py-1 rounded ${
+                      v.status === "open"
+                        ? "bg-amber-100 text-amber-700"
+                        : v.status === "cease_desist"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {v.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
-  );
-}
+  </div>
+);}
