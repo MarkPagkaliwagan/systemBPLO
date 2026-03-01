@@ -34,7 +34,7 @@ const AgingNoticeTable = () => {
   return (
     <div
       className={`min-h-screen bg-white text-gray-900 px-6 py-10 transition-all duration-300 ${
-        isMobile ? "pt-16" : isCollapsed ? "pl-20" : "pl-80"
+        isMobile ? "pt-20" : isCollapsed ? "pl-20" : "pl-80"
       }`}
     >
       <Sidebar
