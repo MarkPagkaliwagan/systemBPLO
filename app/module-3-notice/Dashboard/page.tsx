@@ -85,12 +85,8 @@ useEffect(() => {
 
   return (
   <div
-    className={`min-h-screen bg-slate-100 text-slate-800 transition-all duration-300 ${
-      isMobile
-        ? "pt-16 px-4"
-        : isCollapsed
-        ? "pl-20 px-8 py-8"
-        : "pl-80 px-8 py-8"
+    className={`min-h-screen bg-linear-to-br from-green-50 via-white to-green-100 text-neutral-900 px-4 sm:px-6 py-8 ${
+      isMobile ? "pt-16" : isCollapsed ? "pl-20" : "pl-80"
     }`}
   >
     <Sidebar
@@ -102,103 +98,111 @@ useEffect(() => {
     />
 
     {/* Header */}
-    <div className="max-w-6xl mx-auto mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="max-w-7xl mx-auto mb-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-800">
+        <h1 className="text-3xl sm:text-4xl font-bold bg-linear-to-r from-green-700 to-green-500 bg-clip-text text-transparent">
           Compliance Notice Management
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Overview of violation escalation status.
+        <p className="mt-2 text-neutral-600 sm:text-lg">
+          Monitor violation stages and track compliance status.
         </p>
       </div>
 
       <button
         onClick={() => router.push("/module-3-notice/Aging")}
-        className="text-sm bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-md transition"
+        className="bg-green-600 hover:bg-green-700 active:scale-95 text-white font-semibold px-5 py-3 rounded-xl shadow-md hover:shadow-xl transition-all duration-300"
       >
-        View Agisdsfdng Notices
+        List of Aging Notice
       </button>
     </div>
 
     {/* Stats */}
-    <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
       {stats.map((stat, idx) => (
         <div
           key={idx}
-          className="bg-white border border-slate-200 rounded-md px-4 py-4 flex items-center gap-3 hover:bg-slate-50 transition"
+          className="group bg-white/70 backdrop-blur-md border border-green-100 rounded-2xl px-6 py-5 flex items-center gap-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
         >
-          <div className="text-slate-500">{stat.icon}</div>
+          <div className="p-4 rounded-xl bg-green-100 text-green-700 group-hover:bg-green-600 group-hover:text-white transition-all duration-300">
+            {stat.icon}
+          </div>
 
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wide">
+          <div className="flex flex-col w-full">
+            <span className="text-xs text-green-600 font-semibold uppercase tracking-wider">
               {stat.label}
-            </p>
-            <p className="text-lg font-semibold text-slate-800 mt-1">
+            </span>
+            <h2 className="text-2xl font-bold text-green-900 mt-1">
               {stat.value}
-            </p>
+            </h2>
           </div>
         </div>
       ))}
     </div>
 
-    {/* Table */}
-    <div className="max-w-6xl mx-auto mt-10">
-      <h2 className="text-lg font-semibold text-slate-700 mb-4">
+    {/* Escalation Table */}
+    <div className="max-w-7xl mx-auto mt-14">
+      <h2 className="text-2xl font-bold mb-6 text-green-800">
         Escalation Details
       </h2>
 
-      <div className="overflow-x-auto border border-slate-200 rounded-md bg-white">
+      <div className="overflow-x-auto rounded-2xl shadow-lg border border-green-100 bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-800 text-white">
+          <thead className="bg-linear-to-r from-green-700 to-green-600 text-white text-sm uppercase tracking-wider">
             <tr>
-              <th className="py-3 px-5 text-left font-medium">
-                Business ID
-              </th>
-              <th className="py-3 px-5 text-left font-medium">
-                Notice 1
-              </th>
-              <th className="py-3 px-5 text-left font-medium">
-                Notice 2
-              </th>
-              <th className="py-3 px-5 text-left font-medium">
-                Notice 3
-              </th>
-              <th className="py-3 px-5 text-left font-medium">
-                Status
-              </th>
+              <th className="py-4 px-6 text-left">Business ID</th>
+              <th className="py-4 px-6 text-left">Notice 1</th>
+              <th className="py-4 px-6 text-left">Notice 2</th>
+              <th className="py-4 px-6 text-left">Notice 3</th>
+              <th className="py-4 px-6 text-left">Status</th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-green-100">
             {violations.map((v) => (
               <tr
                 key={v.id}
-                className="hover:bg-slate-50 transition"
+                className="hover:bg-green-50 transition-colors duration-200"
               >
-                <td className="py-3 px-5 font-medium">
+                <td className="py-4 px-6 font-medium text-green-900">
                   {v.business_id}
                 </td>
 
-                <td className="py-3 px-5 text-slate-600">
-                  {v.notice_level >= 1 ? "Sent" : "-"}
+                <td className="py-4 px-6">
+                  {v.notice_level >= 1 ? (
+                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                      Sent
+                    </span>
+                  ) : (
+                    "-"
+                  )}
                 </td>
 
-                <td className="py-3 px-5 text-slate-600">
-                  {v.notice_level >= 2 ? "Sent" : "-"}
+                <td className="py-4 px-6">
+                  {v.notice_level >= 2 ? (
+                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                      Sent
+                    </span>
+                  ) : (
+                    "-"
+                  )}
                 </td>
 
-                <td className="py-3 px-5 text-slate-600">
-                  {v.notice_level >= 3 ? "Sent" : "-"}
+                <td className="py-4 px-6">
+                  {v.notice_level >= 3 ? (
+                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                      Sent
+                    </span>
+                  ) : (
+                    "-"
+                  )}
                 </td>
 
-                <td className="py-3 px-5 capitalize">
+                <td className="py-4 px-6">
                   <span
-                    className={`text-xs font-medium px-2 py-1 rounded ${
-                      v.status === "open"
-                        ? "bg-amber-100 text-amber-700"
-                        : v.status === "cease_desist"
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      v.status === "cease_desist"
                         ? "bg-red-100 text-red-700"
-                        : "bg-emerald-100 text-emerald-700"
+                        : "bg-green-100 text-green-700"
                     }`}
                   >
                     {v.status}
