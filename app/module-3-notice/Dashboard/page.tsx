@@ -33,7 +33,11 @@ export default function DashboardPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [stats, setStats] = useState<Stat[]>([
-    { label: "Total Active Violations", icon: <FiLayers size={20} />, value: 0 },
+    {
+      label: "Total Active Violations",
+      icon: <FiLayers size={20} />,
+      value: 0,
+    },
     { label: "Notice 1", icon: <FiInfo size={20} />, value: 0 },
     { label: "Notice 2", icon: <FiAlertTriangle size={20} />, value: 0 },
     { label: "Notice 3", icon: <FiShield size={20} />, value: 0 },
@@ -72,19 +76,25 @@ export default function DashboardPage() {
     const cease = data.filter((v) => v.status === "cease_desist").length;
 
     setStats([
-      { label: "Total Active Violations", icon: <FiLayers size={20} />, value: totalActive },
+      {
+        label: "Total Active Violations",
+        icon: <FiLayers size={20} />,
+        value: totalActive,
+      },
       { label: "Notice 1", icon: <FiInfo size={20} />, value: notice1 },
-      { label: "Notice 2", icon: <FiAlertTriangle size={20} />, value: notice2 },
+      {
+        label: "Notice 2",
+        icon: <FiAlertTriangle size={20} />,
+        value: notice2,
+      },
       { label: "Notice 3", icon: <FiShield size={20} />, value: notice3 },
       { label: "Cease & Desist", icon: <FiSlash size={20} />, value: cease },
     ]);
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === "open")
-      return "bg-green-100 text-green-700";
-    if (status === "cease_desist")
-      return "bg-red-100 text-red-600";
+    if (status === "open") return "bg-green-100 text-green-700";
+    if (status === "cease_desist") return "bg-red-100 text-red-600";
     return "bg-gray-100 text-gray-600";
   };
 
@@ -188,7 +198,7 @@ export default function DashboardPage() {
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                        v.status
+                        v.status,
                       )}`}
                     >
                       {v.status.replace("_", " ")}
