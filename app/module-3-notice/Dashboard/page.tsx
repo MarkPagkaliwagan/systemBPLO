@@ -14,9 +14,12 @@ import { supabase } from "@/lib/supabaseClient";
 
 interface Violation {
   id: number;
-  business_id: number;
+  business_id: number | null;
   notice_level: number;
   status: string;
+  buses: {
+    business_name: string;
+  } | null;
 }
 
 interface Stat {
@@ -58,7 +61,17 @@ export default function DashboardPage() {
   }, []);
 
   const fetchData = async () => {
-    const { data, error } = await supabase.from("violations").select("*");
+    const { data, error } = await supabase
+      .from("violations")
+      .select(`
+        id,
+        business_id,
+        notice_level,
+        status,
+        buses (
+          business_name
+        )
+      `);
 
     if (error) {
       console.error(error);
@@ -67,7 +80,7 @@ export default function DashboardPage() {
 
     if (!data) return;
 
-    setViolations(data as Violation[]);
+    setViolations(data as unknown as Violation[]);
 
     const totalActive = data.filter((v) => v.status === "open").length;
     const notice1 = data.filter((v) => v.notice_level === 1).length;
@@ -166,6 +179,7 @@ export default function DashboardPage() {
             <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
               <tr>
                 <th className="px-6 py-4">Business ID</th>
+                <th className="px-6 py-4">Business Name</th>
                 <th className="px-6 py-4">Notice 1</th>
                 <th className="px-6 py-4">Notice 2</th>
                 <th className="px-6 py-4">Notice 3</th>
@@ -183,6 +197,10 @@ export default function DashboardPage() {
                     {v.business_id}
                   </td>
 
+                  <td className="px-6 py-4 text-gray-700 font-semibold">
+                    {v.buses?.business_name ?? "No Business"}
+                  </td>
+
                   <td className="px-6 py-4 text-gray-600">
                     {v.notice_level >= 1 ? "Sent" : "-"}
                   </td>
@@ -198,7 +216,7 @@ export default function DashboardPage() {
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                        v.status,
+                        v.status
                       )}`}
                     >
                       {v.status.replace("_", " ")}
