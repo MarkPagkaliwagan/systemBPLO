@@ -58,7 +58,7 @@ const sidebarItems: SidebarItem[] = [
   },
   {
     id: "notifCompliance",
-    label: "Compliance Notification",
+    label: "Compliance Dashboard",
     icon: <FiAlertCircle className="w-5 h-5" />,
     href: "/module-3-notice/Dashboard",
   },
