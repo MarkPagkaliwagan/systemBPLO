@@ -42,19 +42,12 @@ export default function AnalyticsDashboard() {
       <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
         isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
       }`}>
-        
-        {/* Dashboard Content */}
         <div className="flex-1 p-6 md:p-10 overflow-y-auto">
-          
-          {/* Header Section */}
           <div className="mb-8">
             <h1 className="text-4xl font-extrabold text-green-800 tracking-tight">Analytics</h1>
             <p className="text-gray-500 mt-1">Real-time overview of your inspection data</p>
           </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            {/* Left: Stats Grid */}
             <div className="col-span-1 lg:col-span-7 flex flex-col gap-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <StatCard title="Active" value="10" />
@@ -62,7 +55,6 @@ export default function AnalyticsDashboard() {
                 <StatCard title="Non-Compliant" value="10" />
                 <StatCard title="For Inspection" value="10" />
               </div>
-              
               <div className="bg-green-800 rounded-3xl p-8 text-white shadow-xl shadow-green-900/20 flex flex-col items-center justify-center">
                  <h4 className="text-green-100 uppercase tracking-widest text-xs font-bold mb-2">Total of Masterlist</h4>
                  <span className="text-5xl font-black">10</span>
@@ -81,7 +73,7 @@ export default function AnalyticsDashboard() {
                   <PieChart>
                     <Pie
                       data={data}
-                      innerRadius={80} // Made it a Donut chart for a modern look
+                      innerRadius={80} 
                       outerRadius={110}
                       paddingAngle={5}
                       dataKey="value"
