@@ -55,9 +55,17 @@ export default function AnalyticsDashboard() {
                 <StatCard title="Non-Compliant" value="10" />
                 <StatCard title="For Inspection" value="10" />
               </div>
-              <div className="bg-green-800 rounded-3xl p-8 text-white shadow-xl shadow-green-900/20 flex flex-col items-center justify-center">
-                 <h4 className="text-green-100 uppercase tracking-widest text-xs font-bold mb-2">Total of Masterlist</h4>
-                 <span className="text-5xl font-black">10</span>
+              
+              {/* Fixed: Split into two separate cards for clarity */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="bg-green-800 rounded-3xl p-8 text-white shadow-xl shadow-green-900/20 flex flex-col items-center justify-center">
+                   <h4 className="text-green-100 uppercase tracking-widest text-xs font-bold mb-2">Total of Masterlist</h4>
+                   <span className="text-5xl font-black">10</span>
+                </div>
+                <div className="bg-green-700 rounded-3xl p-8 text-white shadow-xl shadow-green-900/20 flex flex-col items-center justify-center">
+                   <h4 className="text-green-100 uppercase tracking-widest text-xs font-bold mb-2">Total of Notice</h4>
+                   <span className="text-5xl font-black">10</span>
+                </div>
               </div>
             </div>
 
