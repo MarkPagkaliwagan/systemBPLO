@@ -157,12 +157,6 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => router.push("/module-3-notice/Aging")}
-          className="bg-green-700 hover:bg-green-800 active:scale-95 transition-all duration-200 text-white font-medium px-6 py-3 rounded-lg shadow-sm hover:shadow-md"
-        >
-          View Aging Notice
-        </button>
       </div>
 
       {/* STATS */}
