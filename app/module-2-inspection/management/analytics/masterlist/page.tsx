@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useRef,useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FiUpload, FiFile, FiCheck, FiClock, FiX, FiDownload, FiTrash2, FiEye } from "react-icons/fi";
-import Sidebar from "../../components/sidebar/page";
+import Sidebar from "../../../components/sidebar/page";
 
 interface CSVFile {
   id: string;
   name: string;
   uploadDate: string;
-  status: 'processing' | 'completed' | 'error';
   size: string;
   rows: number;
 }
 
 export default function CSVManager() {
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -22,7 +23,6 @@ export default function CSVManager() {
       id: '1',
       name: 'business_list_2024.csv',
       uploadDate: '2024-01-15 10:30 AM',
-      status: 'completed',
       size: '2.4 MB',
       rows: 1250
     },
@@ -30,7 +30,7 @@ export default function CSVManager() {
       id: '2', 
       name: 'violations_january.csv',
       uploadDate: '2024-01-14 3:45 PM',
-      status: 'processing',
+
       size: '1.8 MB',
       rows: 0
     },
@@ -38,7 +38,6 @@ export default function CSVManager() {
       id: '3',
       name: 'compliance_data.csv',
       uploadDate: '2024-01-13 9:15 AM',
-      status: 'error',
       size: '3.1 MB',
       rows: 0
     }
@@ -91,14 +90,12 @@ export default function CSVManager() {
       id: Date.now().toString(),
       name: file.name,
       uploadDate: new Date().toLocaleString(),
-      status: 'processing',
       size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
       rows: 0
     };
     
     setCSVFiles(prev => [newCSV, ...prev]);
     
-    // Simulate processing
     setTimeout(() => {
       setCSVFiles(prev => prev.map(f => 
         f.id === newCSV.id 
@@ -108,27 +105,8 @@ export default function CSVManager() {
     }, 3000);
   };
 
-  const getStatusIcon = (status: CSVFile['status']) => {
-    switch (status) {
-      case 'completed':
-        return <FiCheck className="w-5 h-5 text-green-600" />;
-      case 'processing':
-        return <FiClock className="w-5 h-5 text-yellow-600" />;
-      case 'error':
-        return <FiX className="w-5 h-5 text-red-600" />;
-    }
-  };
-
-  const getStatusBadge = (status: CSVFile['status']) => {
-    const baseClass = "px-3 py-1 rounded-full text-xs font-medium";
-    switch (status) {
-      case 'completed':
-        return `${baseClass} bg-green-100 text-green-800`;
-      case 'processing':
-        return `${baseClass} bg-yellow-100 text-yellow-800`;
-      case 'error':
-        return `${baseClass} bg-red-100 text-red-800`;
-    }
+  const handleRowClick = (file: CSVFile) => {
+    router.push('/module-2-inspection/management/analytics/review');
   };
 
   return (
@@ -144,13 +122,11 @@ export default function CSVManager() {
       />
       
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">CSV File Manager</h1>
             <p className="text-gray-600">Upload and manage your CSV data files</p>
         </div>
 
-        {/* Upload Area */}
         <div className="mb-8">
           <div
                 className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
@@ -189,7 +165,6 @@ export default function CSVManager() {
               </div>
         </div>
 
-        {/* Files Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">Uploaded Files</h2>
@@ -214,6 +189,9 @@ export default function CSVManager() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Calendar
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
                   </th>
@@ -221,7 +199,11 @@ export default function CSVManager() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {csvFiles.map((file) => (
-                  <tr key={file.id} className="hover:bg-gray-50">
+                  <tr 
+                    key={file.id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleRowClick(file)}
+                  >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <FiFile className="w-5 h-5 text-green-600 mr-3" />
@@ -238,12 +220,13 @@ export default function CSVManager() {
                           {file.rows.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            {getStatusIcon(file.status)}
-                            <span className={`ml-2 ${getStatusBadge(file.status)}`}>
-                              {file.status}
-                            </span>
-                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="date"
+                            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            defaultValue="2024-02-15"
+                          />
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
