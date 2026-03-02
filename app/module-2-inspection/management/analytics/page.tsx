@@ -1,14 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import StatCard from "../../components/statcard/page";
 import Sidebar from "../../components/sidebar/page";
 
+// Updated data with green-800 centric color palette
 const data = [
-  { name: "Active", value: 10, color: "#000000" },
-  { name: "Compliant", value: 10, color: "#4D4D4D" },
-  { name: "Non-Compliant", value: 10, color: "#808080" },
-  { name: "For Inspection", value: 10, color: "#B3B3B3" },
+  { name: "Active", value: 10, color: "#166534" },        // green-800
+  { name: "Compliant", value: 10, color: "#15803d" },     // green-700
+  { name: "Non-Compliant", value: 10, color: "#b91c1c" }, // red-700 (for warning)
+  { name: "For Inspection", value: 10, color: "#ca8a04" }, // yellow-600 (for attention)
 ];
 
 export default function AnalyticsDashboard() {
@@ -23,14 +24,13 @@ export default function AnalyticsDashboard() {
         setIsMobileMenuOpen(false);
       }
     };
-
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   return (
-    <div className="flex h-screen bg-[#D9D9D9]">
+    <div className="flex h-screen bg-[#f8fafc]">
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -39,44 +39,68 @@ export default function AnalyticsDashboard() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-        }`}>
-        <div className="flex-1 p-4 md:p-10 overflow-y-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 h-full">
-            <div className="col-span-1 lg:col-span-7 flex flex-col gap-4 lg:gap-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-8">
+      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+        isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
+      }`}>
+        <div className="flex-1 p-6 md:p-10 overflow-y-auto">
+          <div className="mb-8">
+            <h1 className="text-4xl font-extrabold text-green-800 tracking-tight">Analytics</h1>
+            <p className="text-gray-500 mt-1">Real-time overview of your inspection data</p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="col-span-1 lg:col-span-7 flex flex-col gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <StatCard title="Active" value="10" />
                 <StatCard title="Compliant" value="10" />
                 <StatCard title="Non-Compliant" value="10" />
                 <StatCard title="For Inspection" value="10" />
               </div>
-              <div className="flex justify-center">
-                <div className="w-full sm:w-2/3 lg:w-2/3">
-                  <StatCard title="Total of Masterlist" value="10" />
-                </div>
+              <div className="bg-green-800 rounded-3xl p-8 text-white shadow-xl shadow-green-900/20 flex flex-col items-center justify-center">
+                 <h4 className="text-green-100 uppercase tracking-widest text-xs font-bold mb-2">Total of Masterlist</h4>
+                 <span className="text-5xl font-black">10</span>
               </div>
             </div>
 
             {/* Right: Pie Chart Section */}
-            <div className="col-span-1 lg:col-span-5 bg-white rounded-[20px] lg:rounded-[50px] shadow-lg flex flex-col items-center justify-center p-4 lg:p-8 min-h-[400px] lg:min-h-[550px]">
-              <h3 className="text-gray-500 font-bold mb-4 text-sm lg:text-base">Inspection Overview</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={data}
-                    innerRadius={0}
-                    outerRadius={100}
-                    paddingAngle={0}
-                    dataKey="value"
-                  >
-                    {data.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="col-span-1 lg:col-span-5 bg-white rounded-[40px] shadow-sm border border-gray-100 flex flex-col items-center p-8">
+              <div className="w-full flex justify-between items-center mb-6">
+                <h3 className="text-gray-800 font-bold text-lg">Inspection Overview</h3>
+                <span className="bg-green-100 text-green-800 text-[10px] px-2 py-1 rounded-full font-bold uppercase">Live Data</span>
+              </div>
+
+              <div className="w-full h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data}
+                      innerRadius={80} 
+                      outerRadius={110}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {data.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Custom Legend */}
+              <div className="grid grid-cols-2 gap-4 w-full mt-4">
+                {data.map((item) => (
+                  <div key={item.name} className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-xs font-medium text-gray-600">{item.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+
           </div>
         </div>
       </main>

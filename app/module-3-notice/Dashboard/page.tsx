@@ -32,10 +32,27 @@ interface Stat {
 
 export default function DashboardPage() {
   const router = useRouter();
+<<<<<<< HEAD
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    handleResize(); // check on first load
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+=======
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+>>>>>>> 6210db3de46fbee59d7f6668a10ab6a3234907c6
   const [violations, setViolations] = useState<Violation[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
 
@@ -101,6 +118,18 @@ export default function DashboardPage() {
     ]);
   };
 
+<<<<<<< HEAD
+  return (
+    <div className={`min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
+      }`}>
+      <Sidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isMobile={isMobile}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
+=======
   // Status badge colors
   const getStatusBadge = (status: string) => {
     if (status === "open") return "bg-green-100 text-green-700";
@@ -108,6 +137,7 @@ export default function DashboardPage() {
     if (status === "resolved") return "bg-blue-100 text-blue-700";
     return "bg-gray-100 text-gray-600";
   };
+>>>>>>> 6210db3de46fbee59d7f6668a10ab6a3234907c6
 
   // Notice status badge
   const getNoticeBadge = (
