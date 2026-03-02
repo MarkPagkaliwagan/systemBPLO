@@ -10,7 +10,7 @@ import {
   FiLayers,
   FiCheckCircle,
 } from "react-icons/fi";
-import Sidebar from "../../module-2-inspection/components/sidebar/page";
+import Sidebar from "../../module-3-notice/components/sidebar/page";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Violation {
@@ -119,6 +119,7 @@ export default function DashboardPage() {
   };
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   return (
     <div className={`min-h-screen bg-neutral-50 text-neutral-900 px-6 py-10 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
       }`}>
@@ -131,6 +132,8 @@ export default function DashboardPage() {
       />
 =======
   // Status badge colors
+=======
+>>>>>>> 9dd3386174a7079727b52ea847fcf10ac4d8f333
   const getStatusBadge = (status: string) => {
     if (status === "open") return "bg-green-100 text-green-700";
     if (status === "cease_desist") return "bg-red-100 text-red-600";
@@ -139,15 +142,28 @@ export default function DashboardPage() {
   };
 >>>>>>> 6210db3de46fbee59d7f6668a10ab6a3234907c6
 
-  // Notice status badge
   const getNoticeBadge = (
     requiredLevel: number,
     currentLevel: number,
     status: string
   ) => {
-    if (status === "resolved") return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">-</span>;
-    if (currentLevel >= requiredLevel) return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Sent</span>;
-    return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
+    if (status === "resolved")
+      return (
+        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+          -
+        </span>
+      );
+    if (currentLevel >= requiredLevel)
+      return (
+        <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+          Sent
+        </span>
+      );
+    return (
+      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
+        Pending
+      </span>
+    );
   };
 
   return (
@@ -188,8 +204,7 @@ export default function DashboardPage() {
         {stats.map((stat, idx) => (
           <div
             key={idx}
-            className="bg-white border border-gray-200 rounded-xl p-6 flex items-center gap-4 
-            hover:border-green-600 hover:shadow-md transition-all duration-300 group"
+            className="bg-white border border-gray-200 rounded-xl p-6 flex items-center gap-4 hover:border-green-600 hover:shadow-md transition-all duration-300"
           >
             <div className="p-3 rounded-lg bg-green-50 text-green-700">
               {stat.icon}
@@ -206,13 +221,14 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* TABLE */}
+      {/* ESCALATION DETAILS */}
       <div className="max-w-7xl mx-auto mt-14">
         <h2 className="text-2xl font-semibold text-green-800 mb-6">
           Escalation Details
         </h2>
 
-        <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+        {/* DESKTOP TABLE */}
+        <div className="hidden md:block rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <table className="min-w-full text-sm text-left">
             <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
               <tr>
@@ -228,26 +244,21 @@ export default function DashboardPage() {
 
             <tbody className="divide-y divide-gray-200">
               {violations.map((v) => (
-                <tr
-                  key={v.id}
-                  className="hover:bg-green-50 transition duration-200"
-                >
-                  <td className="px-6 py-4 font-medium text-gray-900">
+                <tr key={v.id} className="hover:bg-green-50 transition">
+                  <td className="px-6 py-4 font-medium">
                     {v.business_id}
                   </td>
 
-                  <td className="px-6 py-4 text-gray-700 font-semibold">
+                  <td className="px-6 py-4 font-semibold text-green-800">
                     {v.buses?.business_name ?? "No Business"}
                   </td>
 
                   <td className="px-6 py-4">
                     {getNoticeBadge(1, v.notice_level, v.status)}
                   </td>
-
                   <td className="px-6 py-4">
                     {getNoticeBadge(2, v.notice_level, v.status)}
                   </td>
-
                   <td className="px-6 py-4">
                     {getNoticeBadge(3, v.notice_level, v.status)}
                   </td>
@@ -259,7 +270,7 @@ export default function DashboardPage() {
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                        v.status,
+                        v.status
                       )}`}
                     >
                       {v.status.replace("_", " ")}
@@ -269,6 +280,60 @@ export default function DashboardPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* MOBILE CARD VIEW */}
+        <div className="md:hidden space-y-4">
+          {violations.map((v) => (
+            <div
+              key={v.id}
+              className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <div>
+                  <p className="text-xs text-gray-500">Business ID</p>
+                  <p className="font-semibold">{v.business_id}</p>
+                </div>
+
+                <span
+                  className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
+                    v.status
+                  )}`}
+                >
+                  {v.status.replace("_", " ")}
+                </span>
+              </div>
+
+              <div className="mb-3">
+                <p className="text-xs text-gray-500">Business Name</p>
+                <p className="font-semibold text-green-800">
+                  {v.buses?.business_name ?? "No Business"}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Notice 1</p>
+                  {getNoticeBadge(1, v.notice_level, v.status)}
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Notice 2</p>
+                  {getNoticeBadge(2, v.notice_level, v.status)}
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Notice 3</p>
+                  {getNoticeBadge(3, v.notice_level, v.status)}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">Penalty Amount</p>
+                <p className="font-bold text-red-600">
+                  ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
