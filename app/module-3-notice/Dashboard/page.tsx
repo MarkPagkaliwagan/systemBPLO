@@ -101,11 +101,23 @@ export default function DashboardPage() {
     ]);
   };
 
+  // Status badge colors
   const getStatusBadge = (status: string) => {
     if (status === "open") return "bg-green-100 text-green-700";
     if (status === "cease_desist") return "bg-red-100 text-red-600";
     if (status === "resolved") return "bg-blue-100 text-blue-700";
     return "bg-gray-100 text-gray-600";
+  };
+
+  // Notice status badge
+  const getNoticeBadge = (
+    requiredLevel: number,
+    currentLevel: number,
+    status: string
+  ) => {
+    if (status === "resolved") return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">-</span>;
+    if (currentLevel >= requiredLevel) return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Sent</span>;
+    return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
   };
 
   return (
@@ -199,27 +211,15 @@ export default function DashboardPage() {
                   </td>
 
                   <td className="px-6 py-4">
-                    {v.status === "resolved"
-                      ? "-"
-                      : v.notice_level >= 1
-                        ? "Sent"
-                        : "Pending"}
+                    {getNoticeBadge(1, v.notice_level, v.status)}
                   </td>
 
                   <td className="px-6 py-4">
-                    {v.status === "resolved"
-                      ? "-"
-                      : v.notice_level >= 2
-                        ? "Sent"
-                        : "Pending"}
+                    {getNoticeBadge(2, v.notice_level, v.status)}
                   </td>
 
                   <td className="px-6 py-4">
-                    {v.status === "resolved"
-                      ? "-"
-                      : v.notice_level >= 3
-                        ? "Sent"
-                        : "Pending"}
+                    {getNoticeBadge(3, v.notice_level, v.status)}
                   </td>
 
                   <td className="px-6 py-4 font-semibold text-red-600">
