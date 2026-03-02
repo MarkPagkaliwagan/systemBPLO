@@ -39,7 +39,44 @@ const AgingNoticeTable = () => {
       timeStatus: "5 Days Remaining",
       status: "PENDING",
     },
+     {
+      businessId: "BUS-002",
+      violationType: "Sanitary Compliance Issue",
+      notice: "Second Notice - Warning",
+      violationDate: "2026-01-20",
+      deadline: "2026-02-05",
+      timeStatus: "Overdue by 10 Days",
+      status: "CEASE AND DESIST",
+    },
+    {
+      businessId: "BUS-003",
+      violationType: "Fire Safety Non-Compliance",
+      notice: "Final Notice",
+      violationDate: "2026-02-10",
+      deadline: "2026-02-25",
+      timeStatus: "2 Days Remaining",
+      status: "PENDING",
+    },
+    {
+      businessId: "BUS-004",
+      violationType: "Zoning Violation",
+      notice: "Resolved Notice",
+      violationDate: "2026-01-05",
+      deadline: "2026-01-20",
+      timeStatus: "Completed",
+      status: "COMPLETED",
+    },
+    {
+      businessId: "BUS-005",
+      violationType: "Unregistered Operation",
+      notice: "Immediate Compliance Required",
+      violationDate: "2026-02-18",
+      deadline: "2026-03-01",
+      timeStatus: "1 Day Remaining",
+      status: "PENDING",
+    },
   ];
+  
 
   return (
     <div className="min-h-screen bg-white text-gray-900 px-6 py-10">
