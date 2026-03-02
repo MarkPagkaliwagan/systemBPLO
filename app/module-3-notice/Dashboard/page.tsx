@@ -9,7 +9,7 @@ import {
   FiSlash,
   FiLayers,
 } from "react-icons/fi";
-import Sidebar from "../../module-2-inspection/components/sidebar/page";
+import Sidebar from "../../module-3-notice/components/sidebar/page";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Violation {
