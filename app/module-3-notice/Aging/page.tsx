@@ -39,7 +39,7 @@ const AgingNoticeTable = () => {
       timeStatus: "5 Days Remaining",
       status: "PENDING",
     },
-     {
+    {
       businessId: "BUS-002",
       violationType: "Sanitary Compliance Issue",
       notice: "Second Notice - Warning",
@@ -76,7 +76,6 @@ const AgingNoticeTable = () => {
       status: "PENDING",
     },
   ];
-  
 
   return (
     <div className="min-h-screen bg-white text-gray-900 px-6 py-10">
@@ -101,32 +100,38 @@ const AgingNoticeTable = () => {
           List of Aging Notice
         </h1>
 
-        <table className="min-w-full text-sm text-left border">
-          <thead className="bg-green-800 text-white">
-            <tr>
-              <th className="px-6 py-4">Business ID</th>
-              <th className="px-6 py-4">Violation Type</th>
-              <th className="px-6 py-4">Notice</th>
-              <th className="px-6 py-4">Violation Date</th>
-              <th className="px-6 py-4">Deadline</th>
-              <th className="px-6 py-4">Time Status</th>
-              <th className="px-6 py-4">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {notices.map((row, index) => (
-              <tr key={index}>
-                <td className="px-6 py-4">{row.businessId}</td>
-                <td className="px-6 py-4">{row.violationType}</td>
-                <td className="px-6 py-4">{row.notice}</td>
-                <td className="px-6 py-4">{row.violationDate}</td>
-                <td className="px-6 py-4">{row.deadline}</td>
-                <td className="px-6 py-4">{row.timeStatus}</td>
-                <td className="px-6 py-4">{row.status}</td>
+        {/* TABLE WITH FULL GRID LINES */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-left border border-gray-300 border-collapse">
+            <thead className="bg-green-800 text-white">
+              <tr>
+                <th className="px-6 py-4 border border-gray-300">Business ID</th>
+                <th className="px-6 py-4 border border-gray-300">Violation Type</th>
+                <th className="px-6 py-4 border border-gray-300">Notice</th>
+                <th className="px-6 py-4 border border-gray-300">Violation Date</th>
+                <th className="px-6 py-4 border border-gray-300">Deadline</th>
+                <th className="px-6 py-4 border border-gray-300">Time Status</th>
+                <th className="px-6 py-4 border border-gray-300 text-center">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {notices.map((row, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 border border-gray-300">{row.businessId}</td>
+                  <td className="px-6 py-4 border border-gray-300">{row.violationType}</td>
+                  <td className="px-6 py-4 border border-gray-300">{row.notice}</td>
+                  <td className="px-6 py-4 border border-gray-300">{row.violationDate}</td>
+                  <td className="px-6 py-4 border border-gray-300">{row.deadline}</td>
+                  <td className="px-6 py-4 border border-gray-300">{row.timeStatus}</td>
+                  <td className="px-6 py-4 border border-gray-300 text-center">
+                    {row.status}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
