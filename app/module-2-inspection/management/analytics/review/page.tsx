@@ -45,7 +45,7 @@ export default function CSVReview() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const [selectedFile, setSelectedFile] = useState<CSVFile | null>(null);
   const [csvFiles, setCSVFiles] = useState<CSVFile[]>([]);
   const [csvData, setCSVData] = useState<CSVRow[]>([]);
@@ -177,17 +177,17 @@ export default function CSVReview() {
       scheduledDate: reviewData.scheduledDate
     };
 
-    setCSVData(prev => prev.map(row => 
+    setCSVData(prev => prev.map(row =>
       row.id === selectedRow.id ? updatedRow : row
     ));
 
     // Update file status based on review progress
     const reviewedCount = csvData.filter(r => r.status === 'reviewed').length + 1;
     const newStatus = reviewedCount === csvData.length ? 'completed' : 'processing';
-    
+
     if (selectedFile) {
-      setCSVFiles(prev => prev.map(f => 
-        f.id === selectedFile.id 
+      setCSVFiles(prev => prev.map(f =>
+        f.id === selectedFile.id
           ? { ...f, status: newStatus as 'processing' | 'completed' }
           : f
       ));
@@ -214,20 +214,18 @@ export default function CSVReview() {
   const notReviewedCount = csvData.filter(row => row.status === 'not_reviewed').length;
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${
-      isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-    }`}>
-      <Sidebar 
+    <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
+      }`}>
+      <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         isMobile={isMobile}
-        isMobileMenuOpen={isMobileMenuOpen} 
+        isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-      
-      <div className={`px-6 py-10 ${
-        isMobile ? 'pt-6' : ''
-      }`}>
+
+      <div className={`px-6 py-10 ${isMobile ? 'pt-6' : ''
+        }`}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">CSV Data Review</h1>
@@ -261,7 +259,7 @@ export default function CSVReview() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Progress Bar */}
               <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
                 <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
@@ -269,13 +267,13 @@ export default function CSVReview() {
                   <span>{Math.round((reviewedCount / csvData.length) * 100)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="h-2 rounded-full bg-green-600 transition-all duration-300"
                     style={{ width: `${(reviewedCount / csvData.length) * 100}%` }}
                   />
                 </div>
               </div>
-              
+
               {/* Scrollable Table Container */}
               <div className="h-[600px] overflow-auto">
                 <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
@@ -322,12 +320,12 @@ export default function CSVReview() {
                     </thead>
                   </table>
                 </div>
-                
+
                 <table className="w-full min-w-[1400px]">
                   <tbody className="divide-y divide-gray-200">
                     {csvData.map((row, index) => (
-                      <tr 
-                        key={row.id} 
+                      <tr
+                        key={row.id}
                         className={`
                           hover:bg-gray-50 cursor-pointer transition-colors
                           ${row.status === 'reviewed' ? 'bg-green-50' : 'bg-white'}
@@ -386,11 +384,10 @@ export default function CSVReview() {
                           )}
                         </td>
                         <td className="px-3 py-3 min-w-[100px]">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            row.status === 'reviewed' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'reviewed'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                            }`}>
                             {row.status === 'reviewed' ? 'REVIEWED' : 'PENDING'}
                           </span>
                         </td>
@@ -418,7 +415,7 @@ export default function CSVReview() {
                   </tbody>
                 </table>
               </div>
-              
+
               {/* Table Footer */}
               <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between text-sm text-gray-600">
@@ -438,16 +435,15 @@ export default function CSVReview() {
                   {csvFiles.filter(f => f.status === 'processing').length} files in progress
                 </p>
               </div>
-              
+
               <div className="max-h-64 overflow-y-auto">
                 <div className="divide-y divide-gray-200">
                   {csvFiles.map((file) => (
                     <div
                       key={file.id}
                       onClick={() => handleFileSelect(file)}
-                      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                        selectedFile?.id === file.id ? 'bg-green-50 border-l-4 border-green-500' : ''
-                      }`}
+                      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedFile?.id === file.id ? 'bg-green-50 border-l-4 border-green-500' : ''
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -534,7 +530,7 @@ export default function CSVReview() {
                       <p className="text-sm text-gray-500 mt-1">Permit #{selectedRow.permitNumber}</p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div className="space-y-3">
                       <div className="flex items-center text-gray-600">
@@ -563,7 +559,7 @@ export default function CSVReview() {
 
                 {/* Review Form */}
                 <div className="lg:col-span-1">
-                  <ReviewForm 
+                  <ReviewForm
                     initialActions={selectedRow.reviewActions}
                     initialViolations={selectedRow.violations}
                     initialInspector={selectedRow.assignedInspector}
@@ -582,23 +578,23 @@ export default function CSVReview() {
 }
 
 // Review Form Component
-function ReviewForm({ 
-  initialActions, 
-  initialViolations, 
+function ReviewForm({
+  initialActions,
+  initialViolations,
   initialInspector,
   initialScheduledDate,
-  onSave, 
-  onCancel 
+  onSave,
+  onCancel
 }: {
   initialActions: string[];
   initialViolations: string[];
   initialInspector?: string;
   initialScheduledDate?: string;
-  onSave: (data: { 
-    reviewActions: string[]; 
-    violations: string[]; 
-    assignedInspector?: string; 
-    scheduledDate?: string; 
+  onSave: (data: {
+    reviewActions: string[];
+    violations: string[];
+    assignedInspector?: string;
+    scheduledDate?: string;
   }) => void;
   onCancel: () => void;
 }) {
@@ -623,15 +619,15 @@ function ReviewForm({
   const handleViolationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     setViolationText(text);
-    
+
     // Split by comma and filter empty strings
     const violationArray = text.split(',').map(v => v.trim()).filter(v => v.length > 0);
     setViolations(violationArray);
   };
 
   const handleSave = () => {
-    onSave({ 
-      reviewActions, 
+    onSave({
+      reviewActions,
       violations,
       assignedInspector: assignedInspector || undefined,
       scheduledDate: scheduledDate || undefined
@@ -648,18 +644,17 @@ function ReviewForm({
           <FiCheck className="w-5 h-5 mr-2 text-green-600" />
           Review Actions
         </h3>
-        
+
         <div className="grid grid-cols-2 gap-3">
           {availableActions.map((action) => (
             <button
               key={action}
               onClick={() => addAction(action)}
               disabled={reviewActions.includes(action)}
-              className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                reviewActions.includes(action)
-                  ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
-              }`}
+              className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 ${reviewActions.includes(action)
+                ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
+                }`}
             >
               {action}
             </button>
@@ -675,6 +670,12 @@ function ReviewForm({
                   <span key={index} className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
                     <FiCheck className="w-3 h-3 mr-1" />
                     {action}
+                    <button
+                      onClick={() => removeAction(index)}
+                      className="ml-2 text-green-600 hover:text-green-800 transition-colors"
+                    >
+                      <FiX className="w-3 h-3" />
+                    </button>
                   </span>
                 ))}
               </div>
@@ -683,94 +684,95 @@ function ReviewForm({
             )}
           </div>
         </div>
-      </div>
 
-      {/* Violations Section */}
-      <div className="bg-white rounded-xl p-6 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <FiAlertTriangle className="w-5 h-5 mr-2 text-red-600" />
-          Violations
-        </h3>
-        
-        <div className="mb-4">
-          <label htmlFor="violations" className="block text-sm font-medium text-gray-700 mb-2">
-            Violations Details
-          </label>
-          <textarea
-            id="violations"
-            rows={4}
-            value={violationText}
-            onChange={handleViolationTextChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-            placeholder="Enter violations separated by commas..."
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Separate multiple violations with commas (e.g., "Fire safety equipment missing, Improper ventilation")
-          </p>
-        </div>
-      </div>
-
-      {/* Inspector Assignment Section - Only show when "For Inspection" is selected */}
-      {showInspectorFields && (
+        {/* Violations Section */}
         <div className="bg-white rounded-xl p-6 border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <FiUser className="w-5 h-5 mr-2 text-blue-600" />
-            Inspection Assignment
+            <FiAlertTriangle className="w-5 h-5 mr-2 text-red-600" />
+            Violations
           </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="inspector" className="block text-sm font-medium text-gray-700 mb-2">
-                Assigned Inspector
-              </label>
-              <div className="relative">
-                <input
-                  id="inspector"
-                  type="text"
-                  value={assignedInspector}
-                  onChange={(e) => setAssignedInspector(e.target.value)}
-                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                  placeholder="Enter inspector name..."
-                />
-                <FiUser className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
+
+          <div className="mb-4">
+            <label htmlFor="violations" className="block text-sm font-medium text-gray-700 mb-2">
+              Violations Details
+            </label>
+            <textarea
+              id="violations"
+              rows={4}
+              value={violationText}
+              onChange={handleViolationTextChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-red-400"
+              placeholder="Enter violations separated by commas..."
+            />
+            <p className="text-xs text-gray-900 mt-1">
+              Separate multiple violations with commas (e.g., "Fire safety equipment missing, Improper ventilation")
+            </p>
+          </div>
+        </div>
+
+        {/* Inspector Assignment Section - Only show when "For Inspection" is selected */}
+        {showInspectorFields && (
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <FiUser className="w-5 h-5 mr-2 text-blue-600" />
+              Inspection Assignment
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="inspector" className="block text-sm font-medium text-gray-700 mb-2">
+                  Assigned Inspector
+                </label>
+                <div className="relative">
+                  <input
+                    id="inspector"
+                    type="text"
+                    value={assignedInspector}
+                    onChange={(e) => setAssignedInspector(e.target.value)}
+                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    placeholder="Enter inspector name..."
+                  />
+                  <FiUser className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
+                </div>
               </div>
-            </div>
-            
-            <div>
-              <label htmlFor="scheduledDate" className="block text-sm font-medium text-gray-700 mb-2">
-                Scheduled Date
-              </label>
-              <div className="relative">
-                <input
-                  id="scheduledDate"
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                />
-                <FiCalendar className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
+
+              <div>
+                <label htmlFor="scheduledDate" className="block text-sm font-medium text-gray-700 mb-2">
+                  Scheduled Date
+                </label>
+                <div className="relative">
+                  <input
+                    id="scheduledDate"
+                    type="date"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                  />
+                  <FiCalendar className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-        <button
-          onClick={onCancel}
-          className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 shadow-lg transition-all duration-200 transform hover:scale-105"
-        >
-          <FiSave className="w-4 h-4 mr-2" />
-          Save Review
-        </button>
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <button
+            onClick={onCancel}
+            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 shadow-lg transition-all duration-200 transform hover:scale-105"
+          >
+            
+            <FiSave className="w-4 h-5 ml-9" />  Save Review
+          </button>
+        </div>
       </div>
     </div>
+
   );
 }
