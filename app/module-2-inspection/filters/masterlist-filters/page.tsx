@@ -16,7 +16,7 @@ export default function MasterlistFilters({
   selectedPeriod,
   onStatusChange,
   onPeriodChange,
-  availablePeriods
+  availablePeriods = [] // Add default empty array
 }: MasterlistFiltersProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
@@ -37,7 +37,7 @@ export default function MasterlistFilters({
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
             <option value="">All Periods</option>
-            {availablePeriods.map((period) => (
+            {availablePeriods && availablePeriods.length > 0 && availablePeriods.map((period) => (
               <option key={period} value={period}>
                 {period}
               </option>
