@@ -27,8 +27,8 @@ export default function LoginPage() {
             <div className="space-y-4">
               <input
                 type="text"
-                name="username"
-                placeholder="Username"
+                name="email"
+                placeholder="email"
                 className="w-full p-4 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all duration-200"
                 onChange={handleChange}
                 required
