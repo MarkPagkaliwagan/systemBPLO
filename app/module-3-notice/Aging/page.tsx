@@ -324,7 +324,7 @@ const AgingNoticeTable = () => {
 
       {/* MODAL */}
       {selectedRecord && (
-        <div className="fixed inset-0 bg-white bg-opacity-50 flex justify-center items-center z-50 px-4">
+        <div className="fixed inset-0 bg-green-900 bg-opacity-10 flex justify-center items-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-lg max-w-lg w-full p-6 relative overflow-y-auto max-h-[90vh]">
             <button
               onClick={() => setSelectedRecord(null)}
