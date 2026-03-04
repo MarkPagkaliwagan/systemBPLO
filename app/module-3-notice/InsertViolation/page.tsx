@@ -69,7 +69,7 @@ export default function InsertViolationPage() {
     const { error } = await supabase.from("violations").insert([
       {
         business_id: selectedBusiness,
-        notice_level: 1,
+        notice_level: 0,
         status: "open",
         penalty_amount: penalty,
         last_notice_sent_at: null,
