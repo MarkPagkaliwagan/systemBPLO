@@ -147,7 +147,7 @@ export default function InsertViolationPage() {
             {/* Penalty */}
             <div>
               <label className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-2">
-                <FiDollarSign /> Penalty Amount (₱)
+                Penalty Amount (₱)
               </label>
 
               <input
