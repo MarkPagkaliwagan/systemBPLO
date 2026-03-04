@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Sidebar from "../../module-3-notice/components/sidebar/page";
+import Sidebar from "../../module-2-inspection/components/sidebar/page";
 import {
   FiFileText,
   FiAlertCircle,
@@ -36,11 +36,9 @@ interface ViolationRecord {
 const AgingNoticeTable = () => {
   const [records, setRecords] = useState<ViolationRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [selectedRecord, setSelectedRecord] =
-    useState<ViolationRecord | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<ViolationRecord | null>(null);
 
   // Fetch from DB
   const fetchRecords = async () => {
@@ -77,38 +75,26 @@ const AgingNoticeTable = () => {
 
   // Status logic
   const computeStatus = (record: ViolationRecord) => {
-    if (
-      record.penalty_amount === record.payment_amount &&
-      record.penalty_amount > 0
-    )
-      return "COMPLETED";
+    if (record.penalty_amount === record.payment_amount && record.penalty_amount > 0) return "COMPLETED";
     if (record.notice_level >= 3) return "CEASE AND DESIST";
     return "PENDING";
   };
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return "bg-green-100 text-green-800";
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-800";
-      case "CEASE AND DESIST":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case "COMPLETED": return "bg-green-100 text-green-800";
+      case "PENDING": return "bg-yellow-100 text-yellow-800";
+      case "CEASE AND DESIST": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "COMPLETED":
-        return <FiCheckCircle className="mr-1" />;
-      case "PENDING":
-        return <FiClock className="mr-1" />;
-      case "CEASE AND DESIST":
-        return <FiSlash className="mr-1" />;
-      default:
-        return <FiAlertCircle className="mr-1" />;
+      case "COMPLETED": return <FiCheckCircle className="mr-1" />;
+      case "PENDING": return <FiClock className="mr-1" />;
+      case "CEASE AND DESIST": return <FiSlash className="mr-1" />;
+      default: return <FiAlertCircle className="mr-1" />;
     }
   };
 
@@ -149,23 +135,14 @@ const AgingNoticeTable = () => {
   };
 
   return (
-    <div
-  className={`min-h-screen bg-gray-50 text-gray-800 transition-all duration-300 ${
-    isMobile
-      ? "pt-20 px-6"
-      : isCollapsed
-      ? "pl-20 pt-10"
-      : "pl-80 pt-10"
-  }`}
->
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 text-gray-800 transition-all duration-300 pt-10 px-6">
+      {/* Sidebar */}
       <Sidebar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
         isMobile={isMobile}
         isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+        setIsMobileMenuOpen={setIsMobileMenuOpen} isCollapsed={false} setIsCollapsed={function (collapsed: boolean): void {
+          throw new Error("Function not implemented.");
+        } }      />
 
       <div className="max-w-7xl mx-auto">
         {/* TITLE + BUTTONS */}
@@ -245,9 +222,7 @@ const AgingNoticeTable = () => {
                         </span>
                       </td>
                       <td className="px-4 py-2">
-                        {new Date(
-                          r.last_notice_sent_at
-                        ).toLocaleDateString()}
+                        {new Date(r.last_notice_sent_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-2">
                         {new Date(r.created_at).toLocaleDateString()}
@@ -318,13 +293,11 @@ const AgingNoticeTable = () => {
             })
           )}
         </div>
-        </div>
-</div>
-
+      </div>
 
       {/* MODAL */}
       {selectedRecord && (
-       <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex justify-center items-center z-50 px-4">
+        <div className="fixed inset-0 bg-white bg-opacity-10 flex justify-center items-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-lg max-w-lg w-full p-6 relative overflow-y-auto max-h-[90vh]">
             <button
               onClick={() => setSelectedRecord(null)}

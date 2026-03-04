@@ -10,7 +10,7 @@ import {
   FiLayers,
   FiCheckCircle,
 } from "react-icons/fi";
-import Sidebar from "../../module-3-notice/components/sidebar/page";
+import Sidebar from "../../module-2-inspection/components/sidebar/page";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Violation {
@@ -33,7 +33,6 @@ interface Stat {
 export default function DashboardPage() {
   const router = useRouter();
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [violations, setViolations] = useState<Violation[]>([]);
@@ -41,9 +40,7 @@ export default function DashboardPage() {
 
   // Responsive
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -84,17 +81,9 @@ export default function DashboardPage() {
     const resolved = typedData.filter((v) => v.status === "resolved").length;
 
     setStats([
-      {
-        label: "Total Active Violations",
-        icon: <FiLayers size={20} />,
-        value: totalActive,
-      },
+      { label: "Total Active Violations", icon: <FiLayers size={20} />, value: totalActive },
       { label: "Notice 1", icon: <FiInfo size={20} />, value: notice1 },
-      {
-        label: "Notice 2",
-        icon: <FiAlertTriangle size={20} />,
-        value: notice2,
-      },
+      { label: "Notice 2", icon: <FiAlertTriangle size={20} />, value: notice2 },
       { label: "Notice 3", icon: <FiShield size={20} />, value: notice3 },
       { label: "Cease & Desist", icon: <FiSlash size={20} />, value: cease },
       { label: "Resolved", icon: <FiCheckCircle size={20} />, value: resolved },
@@ -108,76 +97,38 @@ export default function DashboardPage() {
     return "bg-gray-100 text-gray-600";
   };
 
-  const getNoticeBadge = (
-    requiredLevel: number,
-    currentLevel: number,
-    status: string
-  ) => {
-    if (status === "resolved")
-      return (
-        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
-          -
-        </span>
-      );
-    if (currentLevel >= requiredLevel)
-      return (
-        <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-          Sent
-        </span>
-      );
-    return (
-      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
-        Pending
-      </span>
-    );
+  const getNoticeBadge = (requiredLevel: number, currentLevel: number, status: string) => {
+    if (status === "resolved") return <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">-</span>;
+    if (currentLevel >= requiredLevel) return <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">Sent</span>;
+    return <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">Pending</span>;
   };
 
   return (
-    <div
-      className={`min-h-screen bg-white text-gray-900 px-6 py-10 transition-all duration-300 ${
-        isMobile ? "pt-20" : isCollapsed
-  ? "pl-24 pt-10"
-  : "pl-[340px] pt-10"
-      }`}
-    >
+    <div className="min-h-screen bg-white text-gray-900 px-6 pt-10 transition-all duration-300">
+      {/* Sidebar */}
       <Sidebar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
         isMobile={isMobile}
         isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+        setIsMobileMenuOpen={setIsMobileMenuOpen} isCollapsed={false} setIsCollapsed={function (collapsed: boolean): void {
+          throw new Error("Function not implemented.");
+        } }      />
 
       {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-green-800">
-            Compliance Dashboard
-          </h1>
-          <p className="mt-2 text-gray-500">
-            Monitor violation stages and track compliance status.
-          </p>
+          <h1 className="text-3xl md:text-4xl font-bold text-green-800">Compliance Dashboard</h1>
+          <p className="mt-2 text-gray-500">Monitor violation stages and track compliance status.</p>
         </div>
-
       </div>
 
       {/* STATS */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((stat, idx) => (
-          <div
-            key={idx}
-            className="bg-white border border-gray-200 rounded-xl p-6 flex items-center gap-4 hover:border-green-600 hover:shadow-md transition-all duration-300"
-          >
-            <div className="p-3 rounded-lg bg-green-50 text-green-700">
-              {stat.icon}
-            </div>
+          <div key={idx} className="bg-white border border-gray-200 rounded-xl p-6 flex items-center gap-4 hover:border-green-600 hover:shadow-md transition-all duration-300">
+            <div className="p-3 rounded-lg bg-green-50 text-green-700">{stat.icon}</div>
             <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500">
-                {stat.label}
-              </p>
-              <h2 className="text-2xl font-bold text-gray-900 mt-1">
-                {stat.value}
-              </h2>
+              <p className="text-xs uppercase tracking-wider text-gray-500">{stat.label}</p>
+              <h2 className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</h2>
             </div>
           </div>
         ))}
@@ -185,9 +136,7 @@ export default function DashboardPage() {
 
       {/* ESCALATION DETAILS */}
       <div className="max-w-7xl mx-auto mt-14">
-        <h2 className="text-2xl font-semibold text-green-800 mb-6">
-          Escalation Details
-        </h2>
+        <h2 className="text-2xl font-semibold text-green-800 mb-6">Escalation Details</h2>
 
         {/* DESKTOP TABLE */}
         <div className="hidden md:block rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -207,34 +156,14 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-gray-200">
               {violations.map((v) => (
                 <tr key={v.id} className="hover:bg-green-50 transition">
-                  <td className="px-6 py-4 font-medium">
-                    {v.business_id}
-                  </td>
-
-                  <td className="px-6 py-4 font-semibold text-green-800">
-                    {v.buses?.business_name ?? "No Business"}
-                  </td>
-
+                  <td className="px-6 py-4 font-medium">{v.business_id}</td>
+                  <td className="px-6 py-4 font-semibold text-green-800">{v.buses?.business_name ?? "No Business"}</td>
+                  <td className="px-6 py-4">{getNoticeBadge(1, v.notice_level, v.status)}</td>
+                  <td className="px-6 py-4">{getNoticeBadge(2, v.notice_level, v.status)}</td>
+                  <td className="px-6 py-4">{getNoticeBadge(3, v.notice_level, v.status)}</td>
+                  <td className="px-6 py-4 font-semibold text-red-600">₱ {v.penalty_amount?.toLocaleString() ?? "0"}</td>
                   <td className="px-6 py-4">
-                    {getNoticeBadge(1, v.notice_level, v.status)}
-                  </td>
-                  <td className="px-6 py-4">
-                    {getNoticeBadge(2, v.notice_level, v.status)}
-                  </td>
-                  <td className="px-6 py-4">
-                    {getNoticeBadge(3, v.notice_level, v.status)}
-                  </td>
-
-                  <td className="px-6 py-4 font-semibold text-red-600">
-                    ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                        v.status
-                      )}`}
-                    >
+                    <span className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(v.status)}`}>
                       {v.status.replace("_", " ")}
                     </span>
                   </td>
@@ -247,30 +176,20 @@ export default function DashboardPage() {
         {/* MOBILE CARD VIEW */}
         <div className="md:hidden space-y-4">
           {violations.map((v) => (
-            <div
-              key={v.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
-            >
+            <div key={v.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
               <div className="flex justify-between items-center mb-3">
                 <div>
                   <p className="text-xs text-gray-500">Business ID</p>
                   <p className="font-semibold">{v.business_id}</p>
                 </div>
-
-                <span
-                  className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                    v.status
-                  )}`}
-                >
+                <span className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(v.status)}`}>
                   {v.status.replace("_", " ")}
                 </span>
               </div>
 
               <div className="mb-3">
                 <p className="text-xs text-gray-500">Business Name</p>
-                <p className="font-semibold text-green-800">
-                  {v.buses?.business_name ?? "No Business"}
-                </p>
+                <p className="font-semibold text-green-800">{v.buses?.business_name ?? "No Business"}</p>
               </div>
 
               <div className="grid grid-cols-3 gap-3 mb-3">
@@ -290,9 +209,7 @@ export default function DashboardPage() {
 
               <div>
                 <p className="text-xs text-gray-500">Penalty Amount</p>
-                <p className="font-bold text-red-600">
-                  ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
-                </p>
+                <p className="font-bold text-red-600">₱ {v.penalty_amount?.toLocaleString() ?? "0"}</p>
               </div>
             </div>
           ))}
