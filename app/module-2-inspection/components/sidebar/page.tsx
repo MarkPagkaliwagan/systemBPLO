@@ -206,7 +206,7 @@ export default function Sidebar({
             </div>
             <div className="flex flex-col">
               <span className="font-semibold text-gray-800 text-sm">
-                System BPLO
+                BPLO Inspection Management System
               </span>
               <span className="text-xs text-gray-500">
                 {currentPageLabel}
@@ -243,7 +243,7 @@ export default function Sidebar({
                       LOGO
                     </div>
                     <span className="font-semibold text-gray-800 text-sm">
-                      System BPLO
+                     BPLO Inspection Management System
                     </span>
                   </div>
                   <button
@@ -298,7 +298,7 @@ export default function Sidebar({
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-gray-800 text-sm">
-              System BPLO
+              BPLO Inspection Management System
             </span>
             <span className="text-xs text-gray-500">
               {currentPageLabel}
@@ -328,7 +328,7 @@ export default function Sidebar({
                     LOGO
                   </div>
                   <span className="font-semibold text-gray-800 text-sm">
-                    System BPLO
+                    BPLO Inspection Management System
                   </span>
                 </div>
               </div>
