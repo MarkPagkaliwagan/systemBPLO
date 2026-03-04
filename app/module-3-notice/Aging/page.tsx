@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Sidebar from "../../module-3-notice/components/sidebar/page";
+import Sidebar from "../../module-2-inspection/components/sidebar/page";  // Changed from module-3-notice to module-2-inspection
 import {
   FiFileText,
   FiAlertCircle,
@@ -33,14 +33,23 @@ interface ViolationRecord {
   };
 }
 
-const AgingNoticeTable = () => {
+export default function AgingNoticeTable() {
   const [records, setRecords] = useState<ViolationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [selectedRecord, setSelectedRecord] =
-    useState<ViolationRecord | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<ViolationRecord | null>(null);
+
+  // Responsive
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Fetch from DB
   const fetchRecords = async () => {
@@ -66,13 +75,6 @@ const AgingNoticeTable = () => {
 
   useEffect(() => {
     fetchRecords();
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Status logic
@@ -149,16 +151,8 @@ const AgingNoticeTable = () => {
   };
 
   return (
-    <div
-  className={`min-h-screen bg-gray-50 text-gray-800 transition-all duration-300 ${
-    isMobile
-      ? "pt-20 px-6"
-      : isCollapsed
-      ? "pl-20 pt-10"
-      : "pl-80 pt-10"
-  }`}
->
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <>
+      {/* Fixed Top Navigation */}
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -167,160 +161,161 @@ const AgingNoticeTable = () => {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <div className="max-w-7xl mx-auto">
-        {/* TITLE + BUTTONS */}
-        <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-          <div className="flex items-center gap-3">
-            <FiFileText className="text-green-800 text-3xl" />
-            <h1 className="text-2xl md:text-4xl font-bold text-green-800 tracking-wide text-center md:text-left">
-              Aging Notice Records
-            </h1>
+      {/* Main Content */}
+      <main className="min-h-screen bg-gray-50 text-gray-800 px-6 py-10 transition-all duration-300">
+        <div className="max-w-7xl mx-auto">
+          {/* TITLE + BUTTONS */}
+          <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+            <div className="flex items-center gap-3">
+              <FiFileText className="text-green-800 text-3xl" />
+              <h1 className="text-2xl md:text-4xl font-bold text-green-800 tracking-wide text-center md:text-left">
+                Aging Notice Records
+              </h1>
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-center md:justify-end">
+              <button
+                onClick={exportCSV}
+                className="flex items-center gap-2 bg-green-800 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition-transform hover:scale-105"
+              >
+                <FiDownload /> Export CSV
+              </button>
+              <button
+                onClick={fetchRecords}
+                className="flex items-center gap-2 bg-blue-800 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition-transform hover:scale-105"
+              >
+                <FiRefreshCw /> Refresh
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-            <button
-              onClick={exportCSV}
-              className="flex items-center gap-2 bg-green-800 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition-transform hover:scale-105"
-            >
-              <FiDownload /> Export CSV
-            </button>
-            <button
-              onClick={fetchRecords}
-              className="flex items-center gap-2 bg-blue-800 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition-transform hover:scale-105"
-            >
-              <FiRefreshCw /> Refresh
-            </button>
+          {/* DESKTOP TABLE */}
+          <div className="hidden md:block bg-white shadow-lg rounded-2xl border border-green-100 overflow-x-auto">
+            <table className="min-w-full text-sm text-left">
+              <thead className="bg-green-800 text-white">
+                <tr>
+                  <th className="px-4 py-2">Violation ID</th>
+                  <th className="px-4 py-2">Business ID</th>
+                  <th className="px-4 py-2">Notice Level</th>
+                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Last Notice Sent</th>
+                  <th className="px-4 py-2">Created At</th>
+                  <th className="px-4 py-2">Penalty</th>
+                  <th className="px-4 py-2">Payment</th>
+                  <th className="px-4 py-2 text-center">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-6">
+                      Loading...
+                    </td>
+                  </tr>
+                ) : records.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-6">
+                      No Records Found
+                    </td>
+                  </tr>
+                ) : (
+                  records.map((r) => {
+                    const status = computeStatus(r);
+                    return (
+                      <tr
+                        key={r.id}
+                        className="border-b hover:bg-green-50 transition"
+                      >
+                        <td className="px-4 py-2">{r.id}</td>
+                        <td className="px-4 py-2">{r.business_id}</td>
+                        <td className="px-4 py-2">{r.notice_level}</td>
+                        <td className="px-4 py-2">
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
+                              status
+                            )}`}
+                          >
+                            {getStatusIcon(status)}
+                            {status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2">
+                          {new Date(
+                            r.last_notice_sent_at
+                          ).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-2">
+                          {new Date(r.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-2">₱ {r.penalty_amount}</td>
+                        <td className="px-4 py-2">₱ {r.payment_amount}</td>
+                        <td className="px-4 py-2 text-center">
+                          <button
+                            onClick={() => setSelectedRecord(r)}
+                            className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-500"
+                          >
+                            <FiEye /> View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-        </div>
 
-        {/* DESKTOP TABLE */}
-        <div className="hidden md:block bg-white shadow-lg rounded-2xl border border-green-100 overflow-x-auto">
-          <table className="min-w-full text-sm text-left">
-            <thead className="bg-green-800 text-white">
-              <tr>
-                <th className="px-4 py-2">Violation ID</th>
-                <th className="px-4 py-2">Business ID</th>
-                <th className="px-4 py-2">Notice Level</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Last Notice Sent</th>
-                <th className="px-4 py-2">Created At</th>
-                <th className="px-4 py-2">Penalty</th>
-                <th className="px-4 py-2">Payment</th>
-                <th className="px-4 py-2 text-center">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="text-center py-6">
-                    Loading...
-                  </td>
-                </tr>
-              ) : records.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="text-center py-6">
-                    No Records Found
-                  </td>
-                </tr>
-              ) : (
-                records.map((r) => {
-                  const status = computeStatus(r);
-                  return (
-                    <tr
-                      key={r.id}
-                      className="border-b hover:bg-green-50 transition"
-                    >
-                      <td className="px-4 py-2">{r.id}</td>
-                      <td className="px-4 py-2">{r.business_id}</td>
-                      <td className="px-4 py-2">{r.notice_level}</td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
-                            status
-                          )}`}
-                        >
-                          {getStatusIcon(status)}
-                          {status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">
-                        {new Date(
-                          r.last_notice_sent_at
-                        ).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-2">
-                        {new Date(r.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-2">₱ {r.penalty_amount}</td>
-                      <td className="px-4 py-2">₱ {r.payment_amount}</td>
-                      <td className="px-4 py-2 text-center">
-                        <button
-                          onClick={() => setSelectedRecord(r)}
-                          className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-500"
-                        >
-                          <FiEye /> View
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* MOBILE CARD VIEW */}
-        <div className="md:hidden space-y-4">
-          {loading ? (
-            <div className="text-center py-6">Loading...</div>
-          ) : records.length === 0 ? (
-            <div className="text-center py-6">No Records Found</div>
-          ) : (
-            records.map((r) => {
-              const status = computeStatus(r);
-              return (
-                <div
-                  key={r.id}
-                  className="bg-white rounded-2xl shadow-md p-4 border border-green-100"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-green-800">
-                      Violation #{r.id}
-                    </h3>
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
-                        status
-                      )}`}
-                    >
-                      {getStatusIcon(status)}
-                      {status}
-                    </span>
-                  </div>
-
-                  <div className="text-sm space-y-1 text-gray-700">
-                    <p><strong>Business ID:</strong> {r.business_id}</p>
-                    <p><strong>Notice Level:</strong> {r.notice_level}</p>
-                    <p><strong>Last Notice:</strong> {new Date(r.last_notice_sent_at).toLocaleDateString()}</p>
-                    <p><strong>Created:</strong> {new Date(r.created_at).toLocaleDateString()}</p>
-                    <p><strong>Penalty:</strong> ₱ {r.penalty_amount}</p>
-                    <p><strong>Payment:</strong> ₱ {r.payment_amount}</p>
-                  </div>
-
-                  <button
-                    onClick={() => setSelectedRecord(r)}
-                    className="mt-3 w-full flex justify-center items-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-500"
+          {/* MOBILE CARD VIEW */}
+          <div className="md:hidden space-y-4">
+            {loading ? (
+              <div className="text-center py-6">Loading...</div>
+            ) : records.length === 0 ? (
+              <div className="text-center py-6">No Records Found</div>
+            ) : (
+              records.map((r) => {
+                const status = computeStatus(r);
+                return (
+                  <div
+                    key={r.id}
+                    className="bg-white rounded-2xl shadow-md p-4 border border-green-100"
                   >
-                    <FiEye /> View Details
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
-        </div>
-</div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-green-800">
+                        Violation #{r.id}
+                      </h3>
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
+                          status
+                        )}`}
+                      >
+                        {getStatusIcon(status)}
+                        {status}
+                      </span>
+                    </div>
 
+                    <div className="text-sm space-y-1 text-gray-700">
+                      <p><strong>Business ID:</strong> {r.business_id}</p>
+                      <p><strong>Notice Level:</strong> {r.notice_level}</p>
+                      <p><strong>Last Notice:</strong> {new Date(r.last_notice_sent_at).toLocaleDateString()}</p>
+                      <p><strong>Created:</strong> {new Date(r.created_at).toLocaleDateString()}</p>
+                      <p><strong>Penalty:</strong> ₱ {r.penalty_amount}</p>
+                      <p><strong>Payment:</strong> ₱ {r.payment_amount}</p>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedRecord(r)}
+                      className="mt-3 w-full flex justify-center items-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-500"
+                    >
+                      <FiEye /> View Details
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </main>
 
       {/* MODAL */}
       {selectedRecord && (
@@ -359,8 +354,6 @@ const AgingNoticeTable = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
-};
-
-export default AgingNoticeTable;
+}

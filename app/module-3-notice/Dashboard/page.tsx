@@ -10,7 +10,7 @@ import {
   FiLayers,
   FiCheckCircle,
 } from "react-icons/fi";
-import Sidebar from "../../module-3-notice/components/sidebar/page";
+import Sidebar from "../../module-2-inspection/components/sidebar/page";  // Changed from module-3-notice to module-2-inspection
 import { supabase } from "@/lib/supabaseClient";
 
 interface Violation {
@@ -133,11 +133,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div
-      className={`min-h-screen bg-white text-gray-900 px-6 py-10 transition-all duration-300 ${
-        isMobile ? "pt-20" : isCollapsed ? "pl-20" : "pl-80"
-      }`}
-    >
+    <>
+      {/* Fixed Top Navigation */}
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -146,156 +143,158 @@ export default function DashboardPage() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      {/* HEADER */}
-      <div className="max-w-7xl mx-auto mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-green-800">
-            Compliance Dashboard
-          </h1>
-          <p className="mt-2 text-gray-500">
-            Monitor violation stages and track compliance status.
-          </p>
-        </div>
-
-      </div>
-
-      {/* STATS */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {stats.map((stat, idx) => (
-          <div
-            key={idx}
-            className="bg-white border border-gray-200 rounded-xl p-6 flex items-center gap-4 hover:border-green-600 hover:shadow-md transition-all duration-300"
-          >
-            <div className="p-3 rounded-lg bg-green-50 text-green-700">
-              {stat.icon}
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500">
-                {stat.label}
-              </p>
-              <h2 className="text-2xl font-bold text-gray-900 mt-1">
-                {stat.value}
-              </h2>
-            </div>
+      {/* Main Content */}
+      <main className="min-h-screen bg-white text-gray-900 px-6 py-10 transition-all duration-300">
+        {/* HEADER */}
+        <div className="max-w-7xl mx-auto mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-green-800">
+              Compliance Dashboard
+            </h1>
+            <p className="mt-2 text-gray-500">
+              Monitor violation stages and track compliance status.
+            </p>
           </div>
-        ))}
-      </div>
-
-      {/* ESCALATION DETAILS */}
-      <div className="max-w-7xl mx-auto mt-14">
-        <h2 className="text-2xl font-semibold text-green-800 mb-6">
-          Escalation Details
-        </h2>
-
-        {/* DESKTOP TABLE */}
-        <div className="hidden md:block rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <table className="min-w-full text-sm text-left">
-            <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
-              <tr>
-                <th className="px-6 py-4">Business ID</th>
-                <th className="px-6 py-4">Business Name</th>
-                <th className="px-6 py-4">Notice 1</th>
-                <th className="px-6 py-4">Notice 2</th>
-                <th className="px-6 py-4">Notice 3</th>
-                <th className="px-6 py-4">Penalty</th>
-                <th className="px-6 py-4">Status</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-gray-200">
-              {violations.map((v) => (
-                <tr key={v.id} className="hover:bg-green-50 transition">
-                  <td className="px-6 py-4 font-medium">
-                    {v.business_id}
-                  </td>
-
-                  <td className="px-6 py-4 font-semibold text-green-800">
-                    {v.buses?.business_name ?? "No Business"}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    {getNoticeBadge(1, v.notice_level, v.status)}
-                  </td>
-                  <td className="px-6 py-4">
-                    {getNoticeBadge(2, v.notice_level, v.status)}
-                  </td>
-                  <td className="px-6 py-4">
-                    {getNoticeBadge(3, v.notice_level, v.status)}
-                  </td>
-
-                  <td className="px-6 py-4 font-semibold text-red-600">
-                    ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
-                  </td>
-
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                        v.status
-                      )}`}
-                    >
-                      {v.status.replace("_", " ")}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
 
-        {/* MOBILE CARD VIEW */}
-        <div className="md:hidden space-y-4">
-          {violations.map((v) => (
+        {/* STATS */}
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {stats.map((stat, idx) => (
             <div
-              key={v.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
+              key={idx}
+              className="bg-white border border-gray-200 rounded-xl p-6 flex items-center gap-4 hover:border-green-600 hover:shadow-md transition-all duration-300"
             >
-              <div className="flex justify-between items-center mb-3">
-                <div>
-                  <p className="text-xs text-gray-500">Business ID</p>
-                  <p className="font-semibold">{v.business_id}</p>
-                </div>
-
-                <span
-                  className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                    v.status
-                  )}`}
-                >
-                  {v.status.replace("_", " ")}
-                </span>
+              <div className="p-3 rounded-lg bg-green-50 text-green-700">
+                {stat.icon}
               </div>
-
-              <div className="mb-3">
-                <p className="text-xs text-gray-500">Business Name</p>
-                <p className="font-semibold text-green-800">
-                  {v.buses?.business_name ?? "No Business"}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Notice 1</p>
-                  {getNoticeBadge(1, v.notice_level, v.status)}
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Notice 2</p>
-                  {getNoticeBadge(2, v.notice_level, v.status)}
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Notice 3</p>
-                  {getNoticeBadge(3, v.notice_level, v.status)}
-                </div>
-              </div>
-
               <div>
-                <p className="text-xs text-gray-500">Penalty Amount</p>
-                <p className="font-bold text-red-600">
-                  ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
+                <p className="text-xs uppercase tracking-wider text-gray-500">
+                  {stat.label}
                 </p>
+                <h2 className="text-2xl font-bold text-gray-900 mt-1">
+                  {stat.value}
+                </h2>
               </div>
             </div>
           ))}
         </div>
-      </div>
-    </div>
+
+        {/* ESCALATION DETAILS */}
+        <div className="max-w-7xl mx-auto mt-14">
+          <h2 className="text-2xl font-semibold text-green-800 mb-6">
+            Escalation Details
+          </h2>
+
+          {/* DESKTOP TABLE */}
+          <div className="hidden md:block rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="min-w-full text-sm text-left">
+              <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
+                <tr>
+                  <th className="px-6 py-4">Business ID</th>
+                  <th className="px-6 py-4">Business Name</th>
+                  <th className="px-6 py-4">Notice 1</th>
+                  <th className="px-6 py-4">Notice 2</th>
+                  <th className="px-6 py-4">Notice 3</th>
+                  <th className="px-6 py-4">Penalty</th>
+                  <th className="px-6 py-4">Status</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-200">
+                {violations.map((v) => (
+                  <tr key={v.id} className="hover:bg-green-50 transition">
+                    <td className="px-6 py-4 font-medium">
+                      {v.business_id}
+                    </td>
+
+                    <td className="px-6 py-4 font-semibold text-green-800">
+                      {v.buses?.business_name ?? "No Business"}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      {getNoticeBadge(1, v.notice_level, v.status)}
+                    </td>
+                    <td className="px-6 py-4">
+                      {getNoticeBadge(2, v.notice_level, v.status)}
+                    </td>
+                    <td className="px-6 py-4">
+                      {getNoticeBadge(3, v.notice_level, v.status)}
+                    </td>
+
+                    <td className="px-6 py-4 font-semibold text-red-600">
+                      ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
+                          v.status
+                        )}`}
+                      >
+                        {v.status.replace("_", " ")}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* MOBILE CARD VIEW */}
+          <div className="md:hidden space-y-4">
+            {violations.map((v) => (
+              <div
+                key={v.id}
+                className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm"
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Business ID</p>
+                    <p className="font-semibold">{v.business_id}</p>
+                  </div>
+
+                  <span
+                    className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
+                      v.status
+                    )}`}
+                  >
+                    {v.status.replace("_", " ")}
+                  </span>
+                </div>
+
+                <div className="mb-3">
+                  <p className="text-xs text-gray-500">Business Name</p>
+                  <p className="font-semibold text-green-800">
+                    {v.buses?.business_name ?? "No Business"}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Notice 1</p>
+                    {getNoticeBadge(1, v.notice_level, v.status)}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Notice 2</p>
+                    {getNoticeBadge(2, v.notice_level, v.status)}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Notice 3</p>
+                    {getNoticeBadge(3, v.notice_level, v.status)}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500">Penalty Amount</p>
+                  <p className="font-bold text-red-600">
+                    ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+    </>
   );
 }
