@@ -21,7 +21,7 @@ export default function InsertViolationPage() {
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<number | null>(null);
-  const [penalty, setPenalty] = useState<number>(0);
+  const [penalty, setPenalty] = useState<string>(""); // <-- changed to string
   const [loading, setLoading] = useState(false);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -45,7 +45,7 @@ export default function InsertViolationPage() {
 
   const fetchBusinesses = async () => {
     const { data, error } = await supabase
-      .from("buses")
+      .from("buses") // <-- make sure your table name is correct
       .select("id, business_name");
 
     if (error) {
@@ -64,6 +64,11 @@ export default function InsertViolationPage() {
       return;
     }
 
+    if (!penalty || Number(penalty) <= 0) { // validation
+      alert("Please enter a valid penalty amount");
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.from("violations").insert([
@@ -71,7 +76,7 @@ export default function InsertViolationPage() {
         business_id: selectedBusiness,
         notice_level: 1,
         status: "open",
-        penalty_amount: penalty,
+        penalty_amount: Number(penalty), // convert to number
         last_notice_sent_at: null,
       },
     ]);
@@ -113,7 +118,6 @@ export default function InsertViolationPage() {
               Add a new compliance violation record.
             </p>
           </div>
-
         </div>
 
         {/* FORM CARD */}
@@ -149,7 +153,7 @@ export default function InsertViolationPage() {
               <input
                 type="number"
                 value={penalty}
-                onChange={(e) => setPenalty(Number(e.target.value))}
+                onChange={(e) => setPenalty(e.target.value)} // <-- string
                 placeholder="Enter penalty amount"
                 className="w-full border border-gray-300 rounded-xl p-3 text-black focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
               />
