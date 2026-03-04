@@ -194,7 +194,7 @@ const AgingNoticeTable = () => {
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="hidden md:block bg-white shadow-lg rounded-xl border border-green-100 overflow-x-auto">
+        <div className="hidden md:block bg-white shadow-lg rounded-2xl border border-green-100 overflow-x-auto">
           <table className="min-w-full text-sm text-left">
             <thead className="bg-green-800 text-white">
               <tr>
@@ -324,7 +324,7 @@ const AgingNoticeTable = () => {
 
       {/* MODAL */}
       {selectedRecord && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex justify-center items-center z-50 px-4">
+        <div className="fixed inset-0 bg-white bg-opacity-50 flex justify-center items-center z-50 px-4">
           <div className="bg-white rounded-2xl shadow-lg max-w-lg w-full p-6 relative overflow-y-auto max-h-[90vh]">
             <button
               onClick={() => setSelectedRecord(null)}
