@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   FiHome,
   FiAlertCircle,
   FiMenu,
   FiX,
   FiArrowLeft,
+  FiAlertTriangle,
 } from "react-icons/fi";
 
 interface SidebarProps {
@@ -21,14 +23,20 @@ const sidebarItems = [
   {
     id: "dashboard",
     label: "Compliance Dashboard",
-    icon: <FiHome className="w-5 h-5" />,
+    icon: FiHome,
     href: "/module-3-notice/Dashboard",
   },
   {
-    id: "aging",
+    id: "aging-notice",
     label: "Aging Notice Masterlist",
-    icon: <FiAlertCircle className="w-5 h-5" />,
+    icon: FiAlertCircle,
     href: "/module-3-notice/Aging",
+  },
+  {
+    id: "insert-violation",
+    label: "Insert Violation",
+    icon: FiAlertTriangle,
+    href: "/module-3-notice/InsertViolation",
   },
 ];
 
@@ -39,6 +47,9 @@ export default function Sidebar({
   isMobileMenuOpen,
   setIsMobileMenuOpen,
 }: SidebarProps) {
+  const pathname = usePathname();
+
+  const isActive = (href: string) => pathname === href;
 
   // ================= MOBILE =================
   if (isMobile) {
@@ -46,13 +57,13 @@ export default function Sidebar({
       <>
         {/* Mobile Header */}
         <div className="fixed top-0 left-0 right-0 h-16 bg-green-800 text-white z-50 flex items-center justify-between px-4 shadow-md">
-          <span className="font-semibold text-sm">
+          <span className="font-semibold text-sm tracking-wide">
             System BPLO
           </span>
 
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-md hover:bg-green-800 transition"
+            className="p-2 rounded-md hover:bg-green-700 transition"
           >
             {isMobileMenuOpen ? (
               <FiX className="w-5 h-5" />
@@ -74,38 +85,45 @@ export default function Sidebar({
             >
               {/* Logo */}
               <div className="p-6 border-b border-green-100 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-green-800 text-white flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-xl bg-green-800 text-white flex items-center justify-center font-bold">
                   SB
                 </div>
-                <span className="font-semibold text-green-800">
+                <span className="font-semibold text-green-800 text-lg">
                   System BPLO
                 </span>
               </div>
 
               {/* Navigation */}
-              <nav className="p-4 space-y-2 flex-1">
-                {sidebarItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-700 transition"
-                  >
-                    {item.icon}
-                    <span className="font-medium">
+              <nav className="p-4 space-y-1 flex-1">
+                {sidebarItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-medium ${
+                        active
+                          ? "bg-green-100 text-green-800"
+                          : "text-gray-600 hover:bg-green-50 hover:text-green-700"
+                      }`}
+                    >
+                      <Icon className="w-5 h-5 shrink-0" />
                       {item.label}
-                    </span>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </nav>
 
               {/* Back Button */}
               <div className="p-4 border-t border-green-100">
                 <Link
                   href="/module-2-inspection/management/analytics"
-                  className="flex items-center gap-3 p-3 rounded-lg bg-green-700 text-white hover:bg-green-700 transition"
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-green-800 text-white hover:bg-green-700 transition font-medium"
                 >
-                  <FiArrowLeft className="w-4 h-4" />
+                  <FiArrowLeft className="w-4 h-4 shrink-0" />
                   Back to Main
                 </Link>
               </div>
@@ -125,14 +143,14 @@ export default function Sidebar({
         isCollapsed ? "w-20" : "w-64"
       }`}
     >
-      {/* Logo Section */}
+      {/* Logo */}
       <div className="flex items-center gap-3 p-6 border-b border-green-100 overflow-hidden">
-        <div className="w-10 h-10 rounded-lg bg-green-800 text-white flex items-center justify-center font-bold shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-green-800 text-white flex items-center justify-center font-bold shrink-0">
           SB
         </div>
 
         <span
-          className={`whitespace-nowrap font-semibold text-green-800 transition-all duration-300 ${
+          className={`whitespace-nowrap font-semibold text-green-800 text-lg transition-all duration-300 ${
             isCollapsed
               ? "opacity-0 -translate-x-3 pointer-events-none"
               : "opacity-100 translate-x-0"
@@ -143,40 +161,51 @@ export default function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-2 flex-1">
-        {sidebarItems.map((item) => (
-          <Link
-            key={item.id}
-            href={item.href}
-            className="flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-green-50 hover:text-green-700 transition-all duration-200 group overflow-hidden"
-          >
-            <span className="group-hover:text-green-700 transition shrink-0">
-              {item.icon}
-            </span>
+      <nav className="p-4 space-y-1 flex-1">
+        {sidebarItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.href);
 
-            <span
-              className={`whitespace-nowrap font-medium transition-all duration-300 ${
-                isCollapsed
-                  ? "opacity-0 -translate-x-3 pointer-events-none"
-                  : "opacity-100 translate-x-0"
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium group overflow-hidden ${
+                active
+                  ? "bg-green-100 text-green-800 shadow-sm"
+                  : "text-gray-600 hover:bg-green-50 hover:text-green-700"
               }`}
             >
-              {item.label}
-            </span>
-          </Link>
-        ))}
+              <Icon
+                className={`w-5 h-5 shrink-0 ${
+                  active ? "text-green-800" : ""
+                }`}
+              />
+
+              <span
+                className={`whitespace-nowrap transition-all duration-300 ${
+                  isCollapsed
+                    ? "opacity-0 -translate-x-3 pointer-events-none"
+                    : "opacity-100 translate-x-0"
+                }`}
+              >
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* Back Button Bottom */}
+      {/* Back Button */}
       <div className="p-4 border-t border-green-100">
         <Link
           href="/module-2-inspection/management/analytics"
-          className="flex items-center gap-3 p-3 rounded-lg bg-green-800 text-white hover:bg-green-700 transition overflow-hidden"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-800 text-white hover:bg-green-700 transition font-medium overflow-hidden"
         >
           <FiArrowLeft className="w-4 h-4 shrink-0" />
 
           <span
-            className={`whitespace-nowrap transition-all duration-300 ${
+            className={`transition-all duration-300 ${
               isCollapsed
                 ? "opacity-0 -translate-x-3 pointer-events-none"
                 : "opacity-100 translate-x-0"
