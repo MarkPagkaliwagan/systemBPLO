@@ -59,9 +59,7 @@ export default function MasterlistFilters({
             <option value="not_reviewed">Not Reviewed</option>
             <option value="processing">Processing</option>
             <option value="completed">Completed</option>
-            <option value="error">Error</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
+            
           </select>
         </div>
       </div>

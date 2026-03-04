@@ -30,7 +30,8 @@ export default function AnalyticsDashboard() {
   }, []);
 
   return (
-    <div className="flex h-screen bg-[#f8fafc]">
+    <>
+      {/* Fixed Top Navigation */}
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -39,9 +40,8 @@ export default function AnalyticsDashboard() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <main className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
-        isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-      }`}>
+      {/* Main Content */}
+      <main className="min-h-screen bg-gray-50 pt-1">
         <div className="flex-1 p-6 md:p-10 overflow-y-auto">
           <div className="mb-8">
             <h1 className="text-4xl font-extrabold text-green-800 tracking-tight">Analytics</h1>
@@ -100,10 +100,9 @@ export default function AnalyticsDashboard() {
                 ))}
               </div>
             </div>
-
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }
