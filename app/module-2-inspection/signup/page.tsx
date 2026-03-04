@@ -8,7 +8,7 @@ export default function RegisterPage() {
     fullname: "", 
     email: "", 
     contact: "", 
-    role: "staff",
+    role: "",
     password: "",
   });
 
@@ -61,7 +61,7 @@ export default function RegisterPage() {
               <option value="admin">Admin</option>
               <option value="staff">Staff</option>
             </select>
-            
+
             <input
               type="text"
               name="contact"
