@@ -9,6 +9,7 @@ import {
   FiX,
   FiArrowLeft,
   FiAlertTriangle,
+  FiDollarSign, // ✅ Peso icon
 } from "react-icons/fi";
 
 interface SidebarProps {
@@ -37,6 +38,13 @@ const sidebarItems = [
     label: "Insert Violation",
     icon: FiAlertTriangle,
     href: "/module-3-notice/InsertViolation",
+  },
+  // ✅ NEW PAYMENT ITEM
+  {
+    id: "payment",
+    label: "Payment",
+    icon: FiDollarSign,
+    href: "/module-3-notice/Payment",
   },
 ];
 
@@ -121,9 +129,9 @@ export default function Sidebar({
               <div className="p-4 border-t border-green-100">
                 <Link
                   href="/module-2-inspection/management/analytics"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-green-800 text-white hover:bg-green-700 transition font-medium"
+                  className="flex items-center justify-center px-4 py-3 rounded-lg bg-green-800 text-white hover:bg-green-700 transition font-medium"
                 >
-                  <FiArrowLeft className="w-4 h-4 shrink-0" />
+                  <FiArrowLeft className="w-4 h-4 mr-2" />
                   Back to Main
                 </Link>
               </div>
@@ -196,22 +204,26 @@ export default function Sidebar({
         })}
       </nav>
 
-      {/* Back Button */}
+      {/* ✅ SLIM SQUARE BACK BUTTON */}
       <div className="p-4 border-t border-green-100">
         <Link
           href="/module-2-inspection/management/analytics"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-green-800 text-white hover:bg-green-700 transition font-medium overflow-hidden"
+          className={`flex items-center justify-center transition-all duration-300 bg-green-800 text-white hover:bg-green-700 ${
+            isCollapsed
+              ? "w-12 h-12 rounded-xl"
+              : "w-full h-12 rounded-xl hover:w-12"
+          }`}
         >
           <FiArrowLeft className="w-4 h-4 shrink-0" />
 
           <span
-            className={`transition-all duration-300 ${
+            className={`ml-2 transition-all duration-300 ${
               isCollapsed
-                ? "opacity-0 -translate-x-3 pointer-events-none"
-                : "opacity-100 translate-x-0"
+                ? "hidden"
+                : "group-hover:hidden"
             }`}
           >
-            Back to Main
+            {!isCollapsed && "Back to Main"}
           </span>
         </Link>
       </div>
