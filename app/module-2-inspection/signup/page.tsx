@@ -42,22 +42,14 @@ export default function RegisterPage() {
               onChange={handleChange}
               required
             />
-            <div className="grid grid-cols-2 gap-3">
-              <input
-                type="text"
-                name="contact"
-                placeholder="Contact No"
-                className="w-full p-3.5 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all duration-200"
-                onChange={handleChange}
-              />
-              <input
-                type="text"
-                name="industry"
-                placeholder="Industry"
-                className="w-full p-3.5 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all duration-200"
-                onChange={handleChange}
-              />
-            </div>
+            <input
+              type="text"
+              name="contact"
+              placeholder="Contact Number"
+              className="w-full p-3.5 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all duration-200"
+              onChange={handleChange}
+            />
+
             <input
               type="password"
               name="password"
