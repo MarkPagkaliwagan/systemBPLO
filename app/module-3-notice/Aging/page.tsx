@@ -194,7 +194,7 @@ const AgingNoticeTable = () => {
         </div>
 
         {/* DESKTOP TABLE */}
-        <div className="hidden md:block bg-white shadow-lg rounded-2xl border border-green-100 overflow-x-auto">
+        <div className="hidden md:block bg-white shadow-lg rounded-xl border border-green-100 overflow-x-auto">
           <table className="min-w-full text-sm text-left">
             <thead className="bg-green-800 text-white">
               <tr>
