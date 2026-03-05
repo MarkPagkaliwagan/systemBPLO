@@ -9,7 +9,7 @@ import {
   FiLayers,
   FiCheckCircle,
 } from "react-icons/fi";
-import Sidebar from "../../module-2-inspection/components/sidebar/page";
+import Sidebar from "../../../components/sidebar/page";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Violation {
