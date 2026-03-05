@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FiFile, FiCheck, FiClock, FiX, FiEdit } from "react-icons/fi";
 import Sidebar from "../../../components/sidebar/page";
 import ReviewModal from "../Review Modal/page";
+import ReviewFilters from "../../../filters/review-filters/page";
 
 interface CSVRow {
   id: string;
@@ -93,6 +94,7 @@ export default function CSVReview() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [selectedFile, setSelectedFile] = useState<CSVFile | null>(null);
   const [csvFiles, setCSVFiles] = useState<CSVFile[]>([]);
@@ -465,8 +467,33 @@ export default function CSVReview() {
     }
   };
 
+  // Filter data based on search term
+  const filteredCSVData = csvData.filter(row => {
+    if (!searchTerm.trim()) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    
+    // Search across all string properties of the row
+    return Object.values(row).some(value => {
+      if (Array.isArray(value)) {
+        // Handle arrays like violations and reviewActions
+        return value.some(item => 
+          typeof item === 'string' && item.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      if (typeof value === 'string') {
+        return value.toLowerCase().includes(searchLower);
+      }
+      
+      return false;
+    });
+  });
+
   const reviewedCount = csvData.filter(row => row.status === 'reviewed').length;
   const notReviewedCount = csvData.filter(row => row.status === 'not_reviewed').length;
+  const filteredReviewedCount = filteredCSVData.filter(row => row.status === 'reviewed').length;
+  const filteredNotReviewedCount = filteredCSVData.filter(row => row.status === 'not_reviewed').length;
 
   return (
     <>
@@ -484,8 +511,8 @@ export default function CSVReview() {
         <div className={`${isMobile ? 'px-4 py-6' : 'px-6 py-10'}`}>
           {/* Header */}
           <div className={`${isMobile ? 'mb-6' : 'mb-8'}`}>
-            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 mb-2`}>CSV Data Review</h1>
-            <p className="text-gray-600">Review individual CSV data entries row by row</p>
+            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 mb-2`}>Review </h1>
+            <p className="text-gray-600">Reviewing Data </p>
             {notReviewedCount > 0 && (
               <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
                 {notReviewedCount} rows pending review
@@ -533,7 +560,7 @@ export default function CSVReview() {
                 {/* Mobile Card View or Desktop Table */}
                 {isMobile ? (
                   <div className="max-h-[400px] overflow-y-auto">
-                    {csvData.map((row, index) => (
+                    {filteredCSVData.map((row, index) => (
                       <div
                         key={row.id}
                         className={`border-b border-gray-200 p-4 cursor-pointer transition-colors ${row.status === 'reviewed' ? 'bg-green-50' : 'bg-white'
@@ -676,7 +703,7 @@ export default function CSVReview() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-300">
-                        {csvData.map((row, index) => (
+                        {filteredCSVData.map((row, index) => (
                           <tr key={row.id} className={`hover:bg-gray-50 cursor-pointer transition-colors ${row.status === 'reviewed' ? 'bg-green-50' : 'bg-white'}`} onClick={() => handleRowClick(row)}>
                             <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium min-w-[50px] border-r border-gray-200">{index + 1}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[140px] border-r border-gray-200">{row.businessIdentificationNumber}</td>
@@ -785,7 +812,7 @@ export default function CSVReview() {
                 {/* Table Footer */}
                 <div className={`${isMobile ? 'px-4 py-2' : 'px-6 py-3'} border-t-2 border-gray-300 bg-gray-50`}>
                   <div className={`${isMobile ? 'flex-col space-y-1' : 'flex items-center justify-between'} text-sm text-gray-600`}>
-                    <span>Showing {csvData.length} rows</span>
+                    <span>Showing {filteredCSVData.length} of {csvData.length} rows</span>
                     <span>Click any row to review</span>
                   </div>
                 </div>
@@ -846,6 +873,12 @@ export default function CSVReview() {
                   </div>
                 </div>
               </div>
+
+              {/* Search Filters */}
+              <ReviewFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+              />
             </div>
           </div>
         </div>
