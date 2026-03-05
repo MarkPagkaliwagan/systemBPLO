@@ -47,7 +47,7 @@ const sidebarItems: SidebarItem[] = [
         id: "csv-manager",
         label: "CSV Manager",
         icon: <FiBookOpen className="w-4 h-4" />,
-        href: "/Admin/Inspection/masterlist",
+        href: "/Admin/Inspection/management/masterlist",
       },
       {
         id: "review",
