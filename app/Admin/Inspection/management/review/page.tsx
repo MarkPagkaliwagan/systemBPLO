@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiFile, FiCheck, FiClock, FiX, FiEdit } from "react-icons/fi";
+
 import Sidebar from "../../../../components/sidebar";
+
 import ReviewModal from "../Review Modal/page";
 import ReviewFilters from "../../filters/review-filters/page";
 
@@ -511,8 +513,8 @@ export default function CSVReview() {
         <div className={`${isMobile ? 'px-4 py-6' : 'px-6 py-10'}`}>
           {/* Header */}
           <div className={`${isMobile ? 'mb-6' : 'mb-8'}`}>
-            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 mb-2`}>Review </h1>
-            <p className="text-gray-600">Reviewing Data </p>
+            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 mb-2`}>Scheduling </h1>
+            <p className="text-gray-600">Reviewing and Scheduling </p>
             {notReviewedCount > 0 && (
               <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
                 {notReviewedCount} rows pending review
@@ -629,19 +631,9 @@ export default function CSVReview() {
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[50px] border-r border-gray-300">#</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Business Identification Number</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[180px] border-r border-gray-300">Business Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Trade Name</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Business Nature</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Business Line</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Business Type</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Transmittal Number</th>
-                          
-                          {/* Incharge Information */}
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Incharge First Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Incharge Middle Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Incharge Last Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Incharge Extension</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Sex</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Citizenship</th>
+
+                        
                           
                           {/* Office Information */}
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[200px] border-r border-gray-300">Office Street</th>
@@ -662,36 +654,9 @@ export default function CSVReview() {
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Transaction Type</th>
 
                           {/* Requestor Information */}
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Requestor First Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Requestor Middle Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Requestor Last Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Requestor Extension</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[180px] border-r border-gray-300">Requestor Email</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Mobile No.</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Sex</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Civil Status</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[200px] border-r border-gray-300">Requestor Street</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Requestor Municipality</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Requestor Barangay</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[90px] border-r border-gray-300">Zipcode</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Transaction ID</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Reference No.</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Brgy. Clearance</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">SITE Transaction</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[150px] border-r border-gray-300">Core Transaction</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">SOA No.</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Annual Amount</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Term</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Amount Paid</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Balance</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Payment Type</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Payment Date</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">O.R No.</th>
+                          
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Permit No.</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Business Plate No.</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Closure Date</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Retirement Reason</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Source Type</th>
+                
 
                           {/* Review Information */}
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[200px] border-r border-gray-300">Violations</th>
@@ -708,20 +673,9 @@ export default function CSVReview() {
                             <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium min-w-[50px] border-r border-gray-200">{index + 1}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[140px] border-r border-gray-200">{row.businessIdentificationNumber}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[180px] border-r border-gray-200">{row.businessName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.tradeName}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.businessNature}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.businessLine}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.businessType}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.transmittalNumber}</td>
-                            
-                            {/* Incharge Information */}
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.inchargeFirstName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.inchargeMiddleName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.inchargeLastName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.inchargeExtensionName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.inchargeSex}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.citizenship}</td>
-                            
+        
+         
                             {/* Office Information */}
                             <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] max-w-[250px] truncate border-r border-gray-200" title={row.officeStreet}>{row.officeStreet}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.officeRegion}</td>
@@ -741,36 +695,8 @@ export default function CSVReview() {
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.transactionType}</td>
 
                             {/* Requestor Information */}
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.requestorFirstName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.requestorMiddleName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.requestorLastName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.requestorExtensionName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[180px] max-w-[220px] truncate border-r border-gray-200" title={row.requestorEmail}>{row.requestorEmail}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.requestorMobileNo}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.requestorSex}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.civilStatus}</td>
-                            <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] max-w-[250px] truncate border-r border-gray-200" title={row.requestorStreet}>{row.requestorStreet}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.requestorMunicipality}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.requestorBarangay}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[90px] border-r border-gray-200">{row.requestorZipcode}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.transactionId}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.referenceNo}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.brgyClearanceStatus}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.siteTransactionId}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[150px] border-r border-gray-200">{row.coreTransactionStatus}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.soaNo}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.annualAmount}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.term}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.amountPaid}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.balance}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.paymentType}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.paymentDate}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.orNo}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.permitNo}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.businessPlateNo}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.actualClosureDate}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.retirementReason}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.sourceType}</td>
+                
 
                             {/* Review Information */}
                             <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] border-r border-gray-200">
