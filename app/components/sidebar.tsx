@@ -193,12 +193,14 @@ export default function Sidebar({
       <>
         <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-5 shadow-sm">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">
-              SB
-            </div>
+<Link href="/Admin/Inspection/management/analytics">
+  <div className="w-12 h-9 bg-green-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer">
+    BPLO
+  </div>
+</Link>
             <div className="flex flex-col leading-tight">
               <span className="font-semibold text-gray-800 text-sm tracking-wide">
-                System BPLO
+                Inspection Management System
               </span>
               <span className="text-xs text-gray-500">{currentPageLabel}</span>
             </div>
@@ -260,12 +262,14 @@ export default function Sidebar({
     <>
       <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center space-x-4">
-          <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">
-            SB
-          </div>
+<Link href="/Admin/Inspection/management/analytics">
+  <div className="w-12 h-9 bg-green-700 hover:bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer">
+    BPLO
+  </div>
+</Link>
           <div className="flex flex-col leading-tight">
             <span className="font-semibold text-gray-800 text-sm tracking-wide">
-              System BPLO
+                Inspection Management System
             </span>
             <span className="text-xs text-gray-500">{currentPageLabel}</span>
           </div>
