@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiFile, FiCheck, FiClock, FiX, FiEdit } from "react-icons/fi";
-import Sidebar from "../../../../components/sidebar/page";
+import Sidebar from "../../../../components/sidebar";
 import ReviewModal from "../Review Modal/page";
 import ReviewFilters from "../../filters/review-filters/page";
 

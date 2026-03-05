@@ -18,7 +18,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 sm:p-6 font-sans text-gray-900">
-      <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-sm sm:max-w-md min-h-[600px] sm:min-h-[620px] flex flex-col justify-between">
+      <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-sm sm:max-w-md min-h-150 sm:min-h-[620px] flex flex-col justify-between">
         <div>
           <div className="flex justify-center mb-4 sm:mb-6">
             <img 

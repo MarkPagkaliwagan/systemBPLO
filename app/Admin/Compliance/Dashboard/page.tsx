@@ -7,7 +7,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
-import Sidebar from "../../../components/sidebar/page";
+import Sidebar from "../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Violation {
