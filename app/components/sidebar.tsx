@@ -57,15 +57,11 @@ const sidebarItems: SidebarItem[] = [
       },
     ],
   },
-  {
-    id: "notifCompliance",
-    label: "Compliance Notice",
-    icon: <FiAlertCircle className="w-5 h-5" />,
-    children: [
+
       {
         id: "compliance-dashboard",
-        label: "Dashboard",
-        icon: <FiBookOpen className="w-4 h-4" />,
+    label: "Compliance Notice",
+    icon: <FiAlertCircle className="w-5 h-5" />,
         href: "/Admin/Compliance/Dashboard",
       },
       {
@@ -74,8 +70,7 @@ const sidebarItems: SidebarItem[] = [
         icon: <FiBookOpen className="w-4 h-4" />,
         href: "/Admin/Compliance/Aging",
       },
-    ],
-  },
+
   {
     id: "settings",
     label: "Settings",
