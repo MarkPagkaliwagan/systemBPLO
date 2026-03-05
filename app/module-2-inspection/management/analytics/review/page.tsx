@@ -1,28 +1,76 @@
-// app/module-2-inspection/management/analytics/review/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiFile, FiCheck, FiClock, FiX, FiEdit, FiSave, FiAlertTriangle, FiCalendar, FiUser, FiMapPin, FiPhone, FiMail, FiBriefcase } from "react-icons/fi";
+import { FiFile, FiCheck, FiClock, FiX, FiEdit } from "react-icons/fi";
 import Sidebar from "../../../components/sidebar/page";
+import ReviewModal from "../Review Modal/page";
 
 interface CSVRow {
   id: string;
+  // Business Information
+  businessIdentificationNumber: string;
   businessName: string;
-  address: string;
-  permitNumber: string;
-  inspectionDate: string;
-  violations: string[];
-  ownerName: string;
-  contactNumber: string;
-  email: string;
+  tradeName: string;
+  businessNature: string;
+  businessLine: string;
   businessType: string;
-  employees: number;
-  annualRevenue: string;
-  licenseExpiry: string;
-  lastInspection: string;
-  riskLevel: string;
-  complianceScore: number;
+  transmittalNumber: string;
+  inchargeFirstName: string;
+  inchargeMiddleName: string;
+  inchargeLastName: string;
+  inchargeExtensionName: string;
+  inchargeSex: string;
+  citizenship: string;
+  officeStreet: string;
+  officeRegion: string;
+  officeProvince: string;
+  officeMunicipality: string;
+  officeBarangay: string;
+  officeZipcode: string;
+  year: string;
+  capital: string;
+  grossAmount: string;
+  grossAmountEssential: string;
+  grossAmountNonEssential: string;
+  rejectRemarks: string;
+  moduleType: string;
+  transactionType: string;
+
+  // Requestor Information
+  requestorFirstName: string;
+  requestorMiddleName: string;
+  requestorLastName: string;
+  requestorExtensionName: string;
+  requestorEmail: string;
+  requestorMobileNo: string;
+  requestorSex: string;
+  civilStatus: string;
+  requestorStreet: string;
+  requestorMunicipality: string;
+  requestorBarangay: string;
+  requestorZipcode: string;
+  transactionId: string;
+  referenceNo: string;
+  brgyClearanceStatus: string;
+  siteTransactionId: string;
+  coreTransactionStatus: string;
+  soaNo: string;
+  annualAmount: string;
+  term: string;
+  amountPaid: string;
+  balance: string;
+  paymentType: string;
+  paymentDate: string;
+  orNo: string;
+  permitNo: string;
+  businessPlateNo: string;
+  actualClosureDate: string;
+  retirementReason: string;
+  sourceType: string;
+
+  // Review Information
+  violations: string[];
   reviewActions: string[];
   reviewedDate?: string;
   reviewedBy?: string;
@@ -65,8 +113,39 @@ export default function CSVReview() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mock data for demonstration
+  // Mock data for demonstration - commented out for backend integration
   useEffect(() => {
+    /*
+    // Dynamic mock data generation - commented out
+    const mockCSVFiles: CSVFile[] = [
+      {
+        id: '1',
+        name: 'business_list_2024.csv',
+        uploadDate: '2024-01-15 10:30 AM',
+        size: '2.4 MB',
+        rows: 50,
+        status: 'processing'
+      },
+      {
+        id: '2',
+        name: 'violations_january.csv',
+        uploadDate: '2024-01-14 3:45 PM',
+        size: '1.8 MB',
+        rows: 30,
+        status: 'completed'
+      },
+      {
+        id: '3',
+        name: 'compliance_data.csv',
+        uploadDate: '2024-01-13 9:15 AM',
+        size: '3.1 MB',
+        rows: 25,
+        status: 'processing'
+      }
+    ];
+    */
+
+    // Hardcoded sample files for reference
     const mockCSVFiles: CSVFile[] = [
       {
         id: '1',
@@ -101,49 +180,225 @@ export default function CSVReview() {
   }, []);
 
   const loadCSVData = (fileId: string) => {
-    // Mock CSV data with some already reviewed rows
-    const mockCSVData: CSVRow[] = Array.from({ length: 50 }, (_, index) => ({
-      id: (index + 1).toString(),
-      businessName: `Business ${fileId}-${index + 1}`,
-      address: `${100 + index} Main St, City`,
-      permitNumber: `PERM-2024-${String(index + 1).padStart(3, '0')}`,
-      inspectionDate: `2024-01-${String(15 + (index % 15)).padStart(2, '0')}`,
-      violations: [],
-      ownerName: `Owner ${index + 1}`,
-      contactNumber: `555-${String(100 + index).padStart(4, '0')}`,
-      email: `business${index + 1}@email.com`,
-      businessType: index % 4 === 0 ? 'Restaurant' : index % 4 === 1 ? 'Retail' : index % 4 === 2 ? 'Service' : 'Manufacturing',
-      employees: 5 + (index * 3),
-      annualRevenue: `$${(50000 + index * 10000).toLocaleString()}`,
-      licenseExpiry: `2024-${String(12 - (index % 12)).padStart(2, '0')}-15`,
-      lastInspection: `2023-${String(12 - (index % 12)).padStart(2, '0')}-01`,
-      riskLevel: index % 3 === 0 ? 'High' : index % 3 === 1 ? 'Medium' : 'Low',
-      complianceScore: 60 + (index % 40),
-      reviewActions: [],
-      status: 'not_reviewed'
-    }));
 
-    // Mark some rows as already reviewed (for demonstration)
-    if (fileId === '1') {
-      mockCSVData[0] = {
-        ...mockCSVData[0],
-        reviewActions: ['Active'],
+    // Hardcoded sample data for reference
+    const mockCSVData: CSVRow[] = [
+      {
+        id: '1',
+
+        // Business Information
+        businessIdentificationNumber: 'BIN-202400001',
+        businessName: 'ABC Trading 1',
+        tradeName: 'Quick Shop',
+        businessNature: 'Retail',
+        businessLine: 'Food & Beverage',
+        businessType: 'Sole Proprietorship',
+        transmittalNumber: 'TRANS-2024001',
+        inchargeFirstName: 'Juan',
+        inchargeMiddleName: 'Santos',
+        inchargeLastName: 'Dela Cruz',
+        inchargeExtensionName: 'Jr.',
+        inchargeSex: 'Male',
+        citizenship: 'Filipino',
+        officeStreet: '100 Main St',
+        officeRegion: 'NCR',
+        officeProvince: 'Metro Manila',
+        officeMunicipality: 'Quezon City',
+        officeBarangay: 'Barangay 1',
+        officeZipcode: '1001',
+        year: '2024',
+        capital: '₱50,000',
+        grossAmount: '₱100,000',
+        grossAmountEssential: '₱60,000',
+        grossAmountNonEssential: '₱40,000',
+        rejectRemarks: '',
+        moduleType: 'Business Permit',
+        transactionType: 'New',
+
+        // Requestor Information
+        requestorFirstName: 'John',
+        requestorMiddleName: 'Doe',
+        requestorLastName: 'Smith',
+        requestorExtensionName: 'Sr.',
+        requestorEmail: 'requestor1@email.com',
+        requestorMobileNo: '09100000001',
+        requestorSex: 'Male',
+        civilStatus: 'Single',
+        requestorStreet: '200 Oak Ave',
+        requestorMunicipality: 'Quezon City',
+        requestorBarangay: 'Barangay A',
+        requestorZipcode: '1101',
+        transactionId: 'TXN-202400001',
+        referenceNo: 'REF-2024001',
+        brgyClearanceStatus: 'Cleared',
+        siteTransactionId: 'SITE-100001',
+        coreTransactionStatus: 'Completed',
+        soaNo: 'SOA-2024001',
+        annualAmount: '₱3,000',
+        term: '1 Year',
+        amountPaid: '₱3,000',
+        balance: '₱0',
+        paymentType: 'Cash',
+        paymentDate: '2024-01-15',
+        orNo: 'OR-202400001',
+        permitNo: 'PERMIT-2024001',
+        businessPlateNo: 'BP-1001',
+        actualClosureDate: '',
+        retirementReason: '',
+        sourceType: 'Online Application',
+
+        // Review Information
         violations: [],
+        reviewActions: ['Active'],
         reviewedDate: '2024-01-16 09:15 AM',
         reviewedBy: 'Admin User',
         status: 'reviewed'
-      };
-      mockCSVData[2] = {
-        ...mockCSVData[2],
-        reviewActions: ['For Inspection'],
+      },
+      {
+        id: '2',
+
+        // Business Information
+        businessIdentificationNumber: 'BIN-202400002',
+        businessName: 'XYZ Corp 2',
+        tradeName: 'Fast Service',
+        businessNature: 'Service',
+        businessLine: 'Electronics',
+        businessType: 'Corporation',
+        transmittalNumber: 'TRANS-2024002',
+        inchargeFirstName: 'Maria',
+        inchargeMiddleName: 'Reyes',
+        inchargeLastName: 'Gonzales',
+        inchargeExtensionName: '',
+        inchargeSex: 'Female',
+        citizenship: 'Filipino',
+        officeStreet: '101 Main St',
+        officeRegion: 'NCR',
+        officeProvince: 'Metro Manila',
+        officeMunicipality: 'Manila',
+        officeBarangay: 'Barangay 2',
+        officeZipcode: '1002',
+        year: '2024',
+        capital: '₱60,000',
+        grossAmount: '₱120,000',
+        grossAmountEssential: '₱70,000',
+        grossAmountNonEssential: '₱50,000',
+        rejectRemarks: '',
+        moduleType: 'Business Permit',
+        transactionType: 'Renewal',
+
+        // Requestor Information
+        requestorFirstName: 'Jane',
+        requestorMiddleName: 'Smith',
+        requestorLastName: 'Johnson',
+        requestorExtensionName: '',
+        requestorEmail: 'requestor2@email.com',
+        requestorMobileNo: '09100000002',
+        requestorSex: 'Female',
+        civilStatus: 'Married',
+        requestorStreet: '201 Oak Ave',
+        requestorMunicipality: 'Manila',
+        requestorBarangay: 'Barangay B',
+        requestorZipcode: '1102',
+        transactionId: 'TXN-202400002',
+        referenceNo: 'REF-2024002',
+        brgyClearanceStatus: 'Cleared',
+        siteTransactionId: 'SITE-100002',
+        coreTransactionStatus: 'Completed',
+        soaNo: 'SOA-2024002',
+        annualAmount: '₱3,500',
+        term: '1 Year',
+        amountPaid: '₱3,500',
+        balance: '₱0',
+        paymentType: 'Check',
+        paymentDate: '2024-01-16',
+        orNo: 'OR-202400002',
+        permitNo: 'PERMIT-2024002',
+        businessPlateNo: 'BP-1002',
+        actualClosureDate: '',
+        retirementReason: '',
+        sourceType: 'Online Application',
+
+        // Review Information
         violations: ['Fire safety equipment missing'],
+        reviewActions: ['For Inspection'],
         reviewedDate: '2024-01-16 10:30 AM',
         reviewedBy: 'Admin User',
         status: 'reviewed',
         assignedInspector: 'Inspector Smith',
         scheduledDate: '2024-02-15'
-      };
-    }
+      },
+      {
+        id: '3',
+
+        // Business Information
+        businessIdentificationNumber: 'BIN-202400003',
+        businessName: 'Quick Mart 3',
+        tradeName: 'Quality Goods',
+        businessNature: 'Manufacturing',
+        businessLine: 'Clothing',
+        businessType: 'Partnership',
+        transmittalNumber: 'TRANS-2024003',
+        inchargeFirstName: 'Jose',
+        inchargeMiddleName: 'Cruz',
+        inchargeLastName: 'Reyes',
+        inchargeExtensionName: '',
+        inchargeSex: 'Male',
+        citizenship: 'Filipino',
+        officeStreet: '102 Main St',
+        officeRegion: 'NCR',
+        officeProvince: 'Metro Manila',
+        officeMunicipality: 'Makati',
+        officeBarangay: 'Barangay 3',
+        officeZipcode: '1003',
+        year: '2024',
+        capital: '₱70,000',
+        grossAmount: '₱140,000',
+        grossAmountEssential: '₱80,000',
+        grossAmountNonEssential: '₱60,000',
+        rejectRemarks: '',
+        moduleType: 'Business Permit',
+        transactionType: 'Amendment',
+
+        // Requestor Information
+        requestorFirstName: 'Michael',
+        requestorMiddleName: 'Johnson',
+        requestorLastName: 'Williams',
+        requestorExtensionName: '',
+        requestorEmail: 'requestor3@email.com',
+        requestorMobileNo: '09100000003',
+        requestorSex: 'Male',
+        civilStatus: 'Widowed',
+        requestorStreet: '202 Oak Ave',
+        requestorMunicipality: 'Makati',
+        requestorBarangay: 'Barangay C',
+        requestorZipcode: '1103',
+        transactionId: 'TXN-202400003',
+        referenceNo: 'REF-2024003',
+        brgyClearanceStatus: 'Cleared',
+        siteTransactionId: 'SITE-100003',
+        coreTransactionStatus: 'Completed',
+        soaNo: 'SOA-2024003',
+        annualAmount: '₱4,000',
+        term: '1 Year',
+        amountPaid: '₱4,000',
+        balance: '₱0',
+        paymentType: 'Online',
+        paymentDate: '2024-01-17',
+        orNo: 'OR-202400003',
+        permitNo: 'PERMIT-2024003',
+        businessPlateNo: 'BP-1003',
+        actualClosureDate: '',
+        retirementReason: '',
+        sourceType: 'Online Application',
+
+        // Review Information
+        violations: [],
+        reviewActions: [],
+        reviewedDate: undefined,
+        reviewedBy: undefined,
+        status: 'not_reviewed'
+      }
+    ];
 
     setCSVData(mockCSVData);
   };
@@ -214,8 +469,8 @@ export default function CSVReview() {
   const notReviewedCount = csvData.filter(row => row.status === 'not_reviewed').length;
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${isMobile ? 'pt-16' : (isCollapsed ? 'pl-20' : 'pl-80')
-      }`}>
+    <>
+      {/* Fixed Top Navigation */}
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -224,182 +479,106 @@ export default function CSVReview() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <div className={`px-6 py-10 ${isMobile ? 'pt-6' : ''
-        }`}>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">CSV Data Review</h1>
-          <p className="text-gray-600">Review individual CSV data entries row by row</p>
-          {notReviewedCount > 0 && (
-            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
-              {notReviewedCount} rows pending review
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-6">
-          {/* Left Side - CSV Data Display */}
-          <div className="w-2/3">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* File Info Header */}
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      {selectedFile ? selectedFile.name : 'No file selected'}
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {selectedFile ? `${reviewedCount}/${selectedFile.rows} rows reviewed • ${selectedFile.size}` : ''}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={getStatusBadge(selectedFile?.status || 'processing')}>
-                      {selectedFile?.status?.toUpperCase() || 'PROCESSING'}
-                    </span>
-                  </div>
-                </div>
+      {/* Main Content */}
+      <div className="min-h-screen bg-gray-50 pt-1">
+        <div className={`${isMobile ? 'px-4 py-6' : 'px-6 py-10'}`}>
+          {/* Header */}
+          <div className={`${isMobile ? 'mb-6' : 'mb-8'}`}>
+            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 mb-2`}>CSV Data Review</h1>
+            <p className="text-gray-600">Review individual CSV data entries row by row</p>
+            {notReviewedCount > 0 && (
+              <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                {notReviewedCount} rows pending review
               </div>
+            )}
+          </div>
 
-              {/* Progress Bar */}
-              <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                  <span>Review Progress</span>
-                  <span>{Math.round((reviewedCount / csvData.length) * 100)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full bg-green-600 transition-all duration-300"
-                    style={{ width: `${(reviewedCount / csvData.length) * 100}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Scrollable Table Container */}
-              <div className="h-[600px] overflow-auto">
-                <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
-                  <table className="w-full min-w-[1400px]">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[50px]">
-                          #
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px]">
-                          Business Name
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[150px]">
-                          Address
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px]">
-                          Permit Number
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px]">
-                          Owner Name
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px]">
-                          Review Actions
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px]">
-                          Violations
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px]">
-                          Assigned Inspector
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px]">
-                          Scheduled Date
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px]">
-                          Status
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px]">
-                          Reviewed Date
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px]">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                  </table>
+          <div className={`${isMobile ? 'flex-col space-y-4' : 'flex gap-6'}`}>
+            {/* Left Side - CSV Data Display */}
+            <div className={`${isMobile ? 'w-full' : 'w-2/3'}`}>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                {/* File Info Header */}
+                <div className={`${isMobile ? 'px-4 py-3' : 'px-6 py-4'} border-b border-gray-200 bg-gray-50`}>
+                  <div className={`${isMobile ? 'flex-col items-start space-y-2' : 'flex items-center justify-between'}`}>
+                    <div className={isMobile ? 'w-full' : ''}>
+                      <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>
+                        {selectedFile ? selectedFile.name : 'No file selected'}
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {selectedFile ? `${reviewedCount}/${selectedFile.rows} rows reviewed • ${selectedFile.size}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={getStatusBadge(selectedFile?.status || 'processing')}>
+                        {selectedFile?.status?.toUpperCase() || 'PROCESSING'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <table className="w-full min-w-[1400px]">
-                  <tbody className="divide-y divide-gray-200">
+                {/* Progress Bar */}
+                <div className={`${isMobile ? 'px-4 py-2' : 'px-6 py-3'} bg-gray-50 border-b border-gray-200`}>
+                  <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                    <span>Review Progress</span>
+                    <span>{Math.round((reviewedCount / csvData.length) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-green-600 transition-all duration-300"
+                      style={{ width: `${(reviewedCount / csvData.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Mobile Card View or Desktop Table */}
+                {isMobile ? (
+                  <div className="max-h-[400px] overflow-y-auto">
                     {csvData.map((row, index) => (
-                      <tr
+                      <div
                         key={row.id}
-                        className={`
-                          hover:bg-gray-50 cursor-pointer transition-colors
-                          ${row.status === 'reviewed' ? 'bg-green-50' : 'bg-white'}
-                        `}
+                        className={`border-b border-gray-200 p-4 cursor-pointer transition-colors ${row.status === 'reviewed' ? 'bg-green-50' : 'bg-white'
+                          }`}
                         onClick={() => handleRowClick(row)}
                       >
-                        <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-500 font-medium min-w-[50px]">
-                          {index + 1}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[120px]">
-                          {row.businessName}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[150px]">
-                          {row.address}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[100px]">
-                          {row.permitNumber}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[100px]">
-                          {row.ownerName}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[120px]">
-                          {row.reviewActions.length > 0 ? (
-                            <div className="space-y-1">
-                              {row.reviewActions.map((action, idx) => (
-                                <div key={idx} className="text-xs text-green-600">
-                                  ✓ {action}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">No actions</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[120px]">
-                          {row.violations.length > 0 ? (
-                            <div className="space-y-1">
-                              {row.violations.map((violation, idx) => (
-                                <div key={idx} className="text-xs text-red-600">
-                                  ⚠ {violation}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-green-600">No violations</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[120px]">
-                          {row.assignedInspector || (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[120px]">
-                          {row.scheduledDate || (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 min-w-[100px]">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900 text-sm">{row.businessName}</h4>
+                            <p className="text-xs text-gray-500">{row.officeStreet}</p>
+                          </div>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'reviewed'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-yellow-100 text-yellow-800'
                             }`}>
                             {row.status === 'reviewed' ? 'REVIEWED' : 'PENDING'}
                           </span>
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[120px]">
-                          {row.reviewedDate || (
-                            <span className="text-gray-400 flex items-center">
-                              <FiClock className="w-3 h-3 mr-1" />
-                              Not reviewed
-                            </span>
+                        </div>
+
+                        <div className="space-y-1 text-xs">
+                          {row.reviewActions.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {row.reviewActions.map((action, idx) => (
+                                <span key={idx} className="text-green-600">
+                                  ✓ {action}
+                                </span>
+                              ))}
+                            </div>
                           )}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-500 min-w-[80px]">
+                          {row.violations.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {row.violations.map((violation, idx) => (
+                                <span key={idx} className="text-red-600">
+                                  ⚠ {violation}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex justify-between items-center mt-2">
+                          <p className="text-xs text-gray-400 flex items-center">
+                            <FiClock className="w-3 h-3 mr-1" />
+                            {row.reviewedDate || 'Not reviewed'}
+                          </p>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -409,87 +588,262 @@ export default function CSVReview() {
                           >
                             <FiEdit className="w-4 h-4" />
                           </button>
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                ) : (
+                  /* Desktop Table View - Single Table Structure */
+                  <div className="h-[600px] overflow-auto">
+                    <table className="w-full min-w-[1800px] border-collapse">
+                      <thead className="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                          {/* Business Information */}
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[50px] border-r border-gray-300">#</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Business Identification Number</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[180px] border-r border-gray-300">Business Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Trade Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Business Nature</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Business Line</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Business Type</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Transmittal Number</th>
+                          
+                          {/* Incharge Information */}
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Incharge First Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Incharge Middle Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Incharge Last Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Incharge Extension</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Sex</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Citizenship</th>
+                          
+                          {/* Office Information */}
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[200px] border-r border-gray-300">Office Street</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Region</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Province</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Municipality</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Barangay</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[90px] border-r border-gray-300">Zipcode</th>
+                          
+                          {/* Financial Information */}
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[70px] border-r border-gray-300">Year</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Capital</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Gross Amount</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[150px] border-r border-gray-300">Gross Essential</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[150px] border-r border-gray-300">Gross Non-Essential</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Reject Remarks</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Module Type</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Transaction Type</th>
 
-              {/* Table Footer */}
-              <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Showing {csvData.length} rows</span>
-                  <span>Click any row to review</span>
+                          {/* Requestor Information */}
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Requestor First Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Requestor Middle Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Requestor Last Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Requestor Extension</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[180px] border-r border-gray-300">Requestor Email</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Mobile No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Sex</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Civil Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[200px] border-r border-gray-300">Requestor Street</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Requestor Municipality</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Requestor Barangay</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[90px] border-r border-gray-300">Zipcode</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Transaction ID</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Reference No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Brgy. Clearance</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">SITE Transaction</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[150px] border-r border-gray-300">Core Transaction</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">SOA No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Annual Amount</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Term</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Amount Paid</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Balance</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Payment Type</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Payment Date</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">O.R No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Permit No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Business Plate No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Closure Date</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Retirement Reason</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Source Type</th>
+
+                          {/* Review Information */}
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[200px] border-r border-gray-300">Violations</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Assigned Inspector</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Scheduled Date</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Reviewed Date</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-300">
+                        {csvData.map((row, index) => (
+                          <tr key={row.id} className={`hover:bg-gray-50 cursor-pointer transition-colors ${row.status === 'reviewed' ? 'bg-green-50' : 'bg-white'}`} onClick={() => handleRowClick(row)}>
+                            <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium min-w-[50px] border-r border-gray-200">{index + 1}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[140px] border-r border-gray-200">{row.businessIdentificationNumber}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[180px] border-r border-gray-200">{row.businessName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.tradeName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.businessNature}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.businessLine}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.businessType}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.transmittalNumber}</td>
+                            
+                            {/* Incharge Information */}
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.inchargeFirstName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.inchargeMiddleName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.inchargeLastName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.inchargeExtensionName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.inchargeSex}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.citizenship}</td>
+                            
+                            {/* Office Information */}
+                            <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] max-w-[250px] truncate border-r border-gray-200" title={row.officeStreet}>{row.officeStreet}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.officeRegion}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.officeProvince}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.officeMunicipality}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.officeBarangay}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[90px] border-r border-gray-200">{row.officeZipcode}</td>
+                            
+                            {/* Financial Information */}
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[70px] border-r border-gray-200">{row.year}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.capital}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.grossAmount}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[150px] border-r border-gray-200">{row.grossAmountEssential}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[150px] border-r border-gray-200">{row.grossAmountNonEssential}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.rejectRemarks}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.moduleType}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.transactionType}</td>
+
+                            {/* Requestor Information */}
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.requestorFirstName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.requestorMiddleName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.requestorLastName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.requestorExtensionName}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[180px] max-w-[220px] truncate border-r border-gray-200" title={row.requestorEmail}>{row.requestorEmail}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.requestorMobileNo}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.requestorSex}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.civilStatus}</td>
+                            <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] max-w-[250px] truncate border-r border-gray-200" title={row.requestorStreet}>{row.requestorStreet}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.requestorMunicipality}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.requestorBarangay}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[90px] border-r border-gray-200">{row.requestorZipcode}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.transactionId}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.referenceNo}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.brgyClearanceStatus}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.siteTransactionId}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[150px] border-r border-gray-200">{row.coreTransactionStatus}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.soaNo}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.annualAmount}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.term}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.amountPaid}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.balance}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.paymentType}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.paymentDate}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.orNo}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.permitNo}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.businessPlateNo}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.actualClosureDate}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.retirementReason}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.sourceType}</td>
+
+                            {/* Review Information */}
+                            <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] border-r border-gray-200">
+                              {row.violations.length > 0 ? (
+                                <div className="space-y-1">
+                                  {row.violations.map((violation, idx) => (
+                                    <div key={idx} className="text-xs text-red-600 break-words">⚠ {violation}</div>
+                                  ))}
+                                </div>
+                              ) : <span className="text-green-600">No violations</span>}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.assignedInspector || <span className="text-gray-400">-</span>}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.scheduledDate || <span className="text-gray-400">-</span>}</td>
+                            <td className="px-3 py-3 min-w-[100px] border-r border-gray-200">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'reviewed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                {row.status === 'reviewed' ? 'REVIEWED' : 'PENDING'}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">
+                              {row.reviewedDate || (
+                                <span className="text-gray-400 flex items-center">
+                                  <FiClock className="w-3 h-3 mr-1" />
+                                  Not reviewed
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">
+                              <button onClick={(e) => { e.stopPropagation(); handleRowClick(row); }} className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors">
+                                <FiEdit className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Table Footer */}
+                <div className={`${isMobile ? 'px-4 py-2' : 'px-6 py-3'} border-t-2 border-gray-300 bg-gray-50`}>
+                  <div className={`${isMobile ? 'flex-col space-y-1' : 'flex items-center justify-between'} text-sm text-gray-600`}>
+                    <span>Showing {csvData.length} rows</span>
+                    <span>Click any row to review</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Side - File List */}
-          <div className="w-1/3 space-y-3">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-semibold text-gray-900">Files for Review</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {csvFiles.filter(f => f.status === 'processing').length} files in progress
-                </p>
-              </div>
+            {/* Right Side - File List */}
+            <div className={`${isMobile ? 'w-full' : 'w-1/3'} space-y-3`}>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className={`${isMobile ? 'px-4 py-3' : 'px-6 py-4'} border-b border-gray-200 bg-gray-50`}>
+                  <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>Files for Review</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {csvFiles.filter(f => f.status === 'processing').length} files in progress
+                  </p>
+                </div>
 
-              <div className="max-h-64 overflow-y-auto">
-                <div className="divide-y divide-gray-200">
-                  {csvFiles.map((file) => (
-                    <div
-                      key={file.id}
-                      onClick={() => handleFileSelect(file)}
-                      className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedFile?.id === file.id ? 'bg-green-50 border-l-4 border-green-500' : ''
-                        }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <FiFile className="w-5 h-5 text-green-600" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {file.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {file.uploadDate} • {file.size} • {file.rows} rows
-                            </p>
+                <div className={`${isMobile ? 'max-h-48' : 'max-h-64'} overflow-y-auto`}>
+                  <div className="divide-y divide-gray-200">
+                    {csvFiles.map((file) => (
+                      <div key={file.id} onClick={() => handleFileSelect(file)} className={`${isMobile ? 'p-3' : 'p-4'} hover:bg-gray-50 cursor-pointer transition-colors ${selectedFile?.id === file.id ? 'bg-green-50 border-l-4 border-green-500' : ''}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <FiFile className="w-5 h-5 text-green-600" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                              <p className="text-xs text-gray-500">{file.uploadDate} • {file.size} • {file.rows} rows</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className={getStatusBadge(file.status)}>{file.status.toUpperCase()}</span>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <span className={getStatusBadge(file.status)}>
-                            {file.status.toUpperCase()}
-                          </span>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Statistics */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Statistics</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Total Rows</span>
-                  <span className="text-sm font-medium text-gray-900">{csvData.length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Reviewed</span>
-                  <span className="text-sm font-medium text-green-600">{reviewedCount}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Pending</span>
-                  <span className="text-sm font-medium text-yellow-600">{notReviewedCount}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Progress</span>
-                  <span className="text-sm font-medium text-blue-600">
-                    {Math.round((reviewedCount / csvData.length) * 100)}%
-                  </span>
+              {/* Statistics */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-4`}>Review Statistics</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Total Rows</span>
+                    <span className="text-sm font-medium text-gray-900">{csvData.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Reviewed</span>
+                    <span className="text-sm font-medium text-green-600">{reviewedCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Pending</span>
+                    <span className="text-sm font-medium text-yellow-600">{notReviewedCount}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Progress</span>
+                    <span className="text-sm font-medium text-blue-600">{Math.round((reviewedCount / csvData.length) * 100)}%</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -497,282 +851,14 @@ export default function CSVReview() {
         </div>
       </div>
 
-      {/* Review Modal */}
-      {showReviewModal && selectedRow && (
-        <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-t-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">Review Business</h2>
-                  <p className="text-green-100 text-sm mt-1">{selectedRow.businessName}</p>
-                </div>
-                <button
-                  onClick={() => setShowReviewModal(false)}
-                  className="text-white hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-white/20"
-                >
-                  <FiX className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Business Information Card */}
-                <div className="lg:col-span-2 bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mr-4">
-                      <FiBriefcase className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">Business Information</h3>
-                      <p className="text-sm text-gray-500 mt-1">Permit #{selectedRow.permitNumber}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div className="space-y-3">
-                      <div className="flex items-center text-gray-600">
-                        <FiMapPin className="w-4 h-4 mr-2 text-gray-400" />
-                        <span className="font-medium">{selectedRow.address}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <FiUser className="w-4 h-4 mr-2 text-gray-400" />
-                        <span className="font-medium">{selectedRow.ownerName}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <FiPhone className="w-4 h-4 mr-2 text-gray-400" />
-                        <span className="font-medium">{selectedRow.contactNumber}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <FiMail className="w-4 h-4 mr-2 text-gray-400" />
-                        <span className="font-medium">{selectedRow.email}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <FiBriefcase className="w-4 h-4 mr-2 text-gray-400" />
-                        <span className="font-medium">{selectedRow.businessType}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Review Form */}
-                <div className="lg:col-span-1">
-                  <ReviewForm
-                    initialActions={selectedRow.reviewActions}
-                    initialViolations={selectedRow.violations}
-                    initialInspector={selectedRow.assignedInspector}
-                    initialScheduledDate={selectedRow.scheduledDate}
-                    onSave={handleSaveReview}
-                    onCancel={() => setShowReviewModal(false)}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Review Form Component
-function ReviewForm({
-  initialActions,
-  initialViolations,
-  initialInspector,
-  initialScheduledDate,
-  onSave,
-  onCancel
-}: {
-  initialActions: string[];
-  initialViolations: string[];
-  initialInspector?: string;
-  initialScheduledDate?: string;
-  onSave: (data: {
-    reviewActions: string[];
-    violations: string[];
-    assignedInspector?: string;
-    scheduledDate?: string;
-  }) => void;
-  onCancel: () => void;
-}) {
-  const [reviewActions, setReviewActions] = useState<string[]>(initialActions);
-  const [violations, setViolations] = useState<string[]>(initialViolations);
-  const [violationText, setViolationText] = useState<string>(initialViolations.join(', '));
-  const [assignedInspector, setAssignedInspector] = useState<string>(initialInspector || '');
-  const [scheduledDate, setScheduledDate] = useState<string>(initialScheduledDate || '');
-
-  const availableActions = ['Active', 'Compliant', 'Non-Compliant', 'For Inspection'];
-
-  const addAction = (action: string) => {
-    if (!reviewActions.includes(action)) {
-      setReviewActions([...reviewActions, action]);
-    }
-  };
-
-  const removeAction = (index: number) => {
-    setReviewActions(reviewActions.filter((_, i) => i !== index));
-  };
-
-  const handleViolationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value;
-    setViolationText(text);
-
-    // Split by comma and filter empty strings
-    const violationArray = text.split(',').map(v => v.trim()).filter(v => v.length > 0);
-    setViolations(violationArray);
-  };
-
-  const handleSave = () => {
-    onSave({
-      reviewActions,
-      violations,
-      assignedInspector: assignedInspector || undefined,
-      scheduledDate: scheduledDate || undefined
-    });
-  };
-
-  const showInspectorFields = reviewActions.includes('For Inspection');
-
-  return (
-    <div className="space-y-6">
-      {/* Review Actions Section */}
-      <div className="bg-white rounded-xl p-6 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <FiCheck className="w-5 h-5 mr-2 text-green-600" />
-          Review Actions
-        </h3>
-
-        <div className="grid grid-cols-2 gap-3">
-          {availableActions.map((action) => (
-            <button
-              key={action}
-              onClick={() => addAction(action)}
-              disabled={reviewActions.includes(action)}
-              className={`px-4 py-3 rounded-lg font-medium transition-all duration-200 ${reviewActions.includes(action)
-                ? 'bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
-                }`}
-            >
-              {action}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Selected Actions</label>
-          <div className="min-h-[80px] p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            {reviewActions.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {reviewActions.map((action, index) => (
-                  <span key={index} className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    <FiCheck className="w-3 h-3 mr-1" />
-                    {action}
-                    <button
-                      onClick={() => removeAction(index)}
-                      className="ml-2 text-green-600 hover:text-green-800 transition-colors"
-                    >
-                      <FiX className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-400 text-sm">No actions selected</p>
-            )}
-          </div>
-        </div>
-
-        {/* Violations Section */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <FiAlertTriangle className="w-5 h-5 mr-2 text-red-600" />
-            Violations
-          </h3>
-
-          <div className="mb-4">
-            <label htmlFor="violations" className="block text-sm font-medium text-gray-700 mb-2">
-              Violations Details
-            </label>
-            <textarea
-              id="violations"
-              rows={4}
-              value={violationText}
-              onChange={handleViolationTextChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-red-400"
-              placeholder="Enter violations separated by commas..."
-            />
-            <p className="text-xs text-gray-900 mt-1">
-              Separate multiple violations with commas (e.g., "Fire safety equipment missing, Improper ventilation")
-            </p>
-          </div>
-        </div>
-
-        {/* Inspector Assignment Section - Only show when "For Inspection" is selected */}
-        {showInspectorFields && (
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <FiUser className="w-5 h-5 mr-2 text-blue-600" />
-              Inspection Assignment
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="inspector" className="block text-sm font-medium text-gray-700 mb-2">
-                  Assigned Inspector
-                </label>
-                <div className="relative">
-                  <input
-                    id="inspector"
-                    type="text"
-                    value={assignedInspector}
-                    onChange={(e) => setAssignedInspector(e.target.value)}
-                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                    placeholder="Enter inspector name..."
-                  />
-                  <FiUser className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="scheduledDate" className="block text-sm font-medium text-gray-700 mb-2">
-                  Scheduled Date
-                </label>
-                <div className="relative">
-                  <input
-                    id="scheduledDate"
-                    type="date"
-                    value={scheduledDate}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
-                  />
-                  <FiCalendar className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-          <button
-            onClick={onCancel}
-            className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 shadow-lg transition-all duration-200 transform hover:scale-105"
-          >
-            
-            <FiSave className="w-4 h-5 ml-9" />  Save Review
-          </button>
-        </div>
-      </div>
-    </div>
-
+      {/* Review Modal - Using the new component */}
+      <ReviewModal
+        selectedRow={selectedRow}
+        showReviewModal={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        onSave={handleSaveReview}
+        isMobile={isMobile}
+      />
+    </>
   );
 }
