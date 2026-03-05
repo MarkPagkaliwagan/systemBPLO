@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   FiChevronDown,
@@ -6,9 +7,12 @@ import {
   FiSearch,
   FiChevronLeft,
   FiChevronRight,
+  FiRefreshCw,
 } from "react-icons/fi";
 import Sidebar from "../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
+
+import Calendar from "../Calendar";
 
 interface Violation {
   id: number;
@@ -16,18 +20,23 @@ interface Violation {
   notice_level: number;
   status: string;
   penalty_amount: number | null;
+  payment_amount: number | null; // numeric type
   buses: {
     business_name: string | null;
   } | null;
 }
 
-type SortKey = "id" | "business_name" | "notice_level" | "penalty_amount" | "status";
+type SortKey =
+  | "id"
+  | "business_name"
+  | "notice_level"
+  | "penalty_amount"
+  | "status"
+  | "payment_amount";
 
 export default function DashboardPage() {
   const [violations, setViolations] = useState<Violation[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-
-  // UI state
   const [query, setQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
     key: "id",
@@ -42,33 +51,41 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     setLoading(true);
+
     const { data, error } = await supabase.from("violations").select(`
       id,
       business_id,
       notice_level,
       status,
       penalty_amount,
+      payment_amount,
       buses (
         business_name
       )
     `);
 
     setLoading(false);
+
     if (error) {
       console.error("Error fetching violations:", error);
       return;
     }
-    if (!data) return;
 
-    const typedData = data as unknown as Violation[];
-    setViolations(typedData);
+    setViolations(data as unknown as Violation[]);
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === "open") return "bg-green-100 text-green-700";
-    if (status === "cease_desist") return "bg-red-100 text-red-600";
-    if (status === "resolved") return "bg-blue-100 text-blue-700";
+    if (status === "open") return "bg-yellow-100 text-yellow-800";
+    if (status === "cease_desist") return "bg-red-100 text-red-700";
+    if (status === "resolved") return "bg-green-100 text-green-700";
     return "bg-gray-100 text-gray-600";
+  };
+
+  const prettyStatus = (s: string) => {
+    if (s === "open") return "Active Case";
+    if (s === "cease_desist") return "Cease & Desist";
+    if (s === "resolved") return "Resolved";
+    return s;
   };
 
   const getNoticeBadge = (
@@ -78,48 +95,62 @@ export default function DashboardPage() {
   ) => {
     if (status === "resolved")
       return (
-        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+        <span className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
           -
         </span>
       );
 
     if (currentLevel >= requiredLevel)
       return (
-        <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+        <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
           Sent
         </span>
       );
 
     return (
-      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
+      <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
         Pending
       </span>
     );
   };
 
-  // Derived data: search -> sort -> paginate
+  const renderSortIcon = (key: SortKey) => {
+    if (sortBy.key !== key)
+      return <FiChevronDown className="inline ml-1 opacity-40" />;
+
+    return sortBy.dir === "asc" ? (
+      <FiChevronUp className="inline ml-1" />
+    ) : (
+      <FiChevronDown className="inline ml-1" />
+    );
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+
     if (!q) return violations;
 
     return violations.filter((v) => {
       const name = v.buses?.business_name ?? "";
       const id = String(v.business_id ?? v.id ?? "");
       const status = v.status ?? "";
-      const penalty = v.penalty_amount ? String(v.penalty_amount) : "";
+      const payment_amount = String(v.payment_amount ?? "0");
+
       return (
         name.toLowerCase().includes(q) ||
         id.toLowerCase().includes(q) ||
         status.toLowerCase().includes(q) ||
-        penalty.includes(q)
+        payment_amount.toLowerCase().includes(q)
       );
     });
   }, [violations, query]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
+
     arr.sort((a, b) => {
       const key = sortBy.key;
+
       let av: any;
       let bv: any;
 
@@ -136,11 +167,14 @@ export default function DashboardPage() {
           av = a.penalty_amount ?? 0;
           bv = b.penalty_amount ?? 0;
           break;
+        case "payment_amount":
+          av = a.payment_amount ?? 0;
+          bv = b.payment_amount ?? 0;
+          break;
         case "status":
           av = (a.status ?? "").toLowerCase();
           bv = (b.status ?? "").toLowerCase();
           break;
-        case "id":
         default:
           av = a.business_id ?? a.id ?? 0;
           bv = b.business_id ?? b.id ?? 0;
@@ -150,6 +184,7 @@ export default function DashboardPage() {
       if (av > bv) return sortBy.dir === "asc" ? 1 : -1;
       return 0;
     });
+
     return arr;
   }, [filtered, sortBy]);
 
@@ -162,7 +197,6 @@ export default function DashboardPage() {
     return sorted.slice(start, start + perPage);
   }, [sorted, pageSafe, perPage]);
 
-  // Helpers
   const toggleSort = (key: SortKey) => {
     setPage(1);
     setSortBy((prev) => {
@@ -176,11 +210,8 @@ export default function DashboardPage() {
   const formatMoney = (n?: number | null) =>
     `₱ ${Number(n ?? 0).toLocaleString()}`;
 
-  const prettyStatus = (s: string) => s.replace("_", " ");
-
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
       <Sidebar
         isMobile={false}
         isMobileMenuOpen={false}
@@ -189,229 +220,212 @@ export default function DashboardPage() {
         setIsCollapsed={() => {}}
       />
 
-      {/* Main content */}
-      <div className="flex-1 pt-32 p-6 lg:p-10">
-        <div className="max-w-full mx-auto">
-          {/* Header controls */}
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h1 className="text-2xl font-semibold text-green-800">Violations</h1>
-
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              {/* Search */}
-              <div className="relative flex-1 sm:flex-none">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiSearch className="text-gray-400" />
-                </span>
-                <input
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setPage(1);
-                  }}
-                  className="pl-9 pr-3 py-2 rounded-md border border-gray-200 shadow-sm w-full sm:w-72 focus:outline-none focus:ring-1 focus:ring-green-500"
-                  placeholder="Search business, id, status, or penalty..."
-                />
-              </div>
-
-              {/* Per page */}
-              <select
-                value={perPage}
-                onChange={(e) => {
-                  setPerPage(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="px-3 py-2 rounded-md border border-gray-200 shadow-sm bg-white"
-                aria-label="Rows per page"
-              >
-                <option value={5}>5 / page</option>
-                <option value={10}>10 / page</option>
-                <option value={20}>20 / page</option>
-                <option value={50}>50 / page</option>
-              </select>
+      <div className="max-w-7xl mx-auto mt-20 p-2">
+          {/* Calendar Section */}
+  <div className="mb-8">
+    <Calendar />
+  </div>
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">
+                Violations Monitoring
+              </h1>
+              <p className="text-gray-500 text-sm">
+                View and manage business violations
+              </p>
             </div>
+            <button
+              onClick={fetchData}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <FiRefreshCw /> Refresh
+            </button>
           </div>
 
-          {/* Table card */}
-          <div className="rounded-xl border border-gray-200 shadow-sm overflow-hidden bg-white">
-            {/* Controls inside card (keeps distance from navbar and gives padding) */}
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Showing <span className="font-semibold">{paginated.length}</span> of{" "}
-                <span className="font-semibold">{total}</span> results
-              </div>
-
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <div>Sort:</div>
-                <button
-                  onClick={() => toggleSort("id")}
-                  className={`px-2 py-1 rounded ${sortBy.key === "id" ? "bg-green-50" : "hover:bg-gray-50"}`}
-                >
-                  ID{" "}
-                  {sortBy.key === "id" ? (
-                    sortBy.dir === "asc" ? (
-                      <FiChevronUp className="inline-block ml-1" />
-                    ) : (
-                      <FiChevronDown className="inline-block ml-1" />
-                    )
-                  ) : null}
-                </button>
-
-                <button
-                  onClick={() => toggleSort("business_name")}
-                  className={`px-2 py-1 rounded ${sortBy.key === "business_name" ? "bg-green-50" : "hover:bg-gray-50"}`}
-                >
-                  Business{" "}
-                  {sortBy.key === "business_name" ? (
-                    sortBy.dir === "asc" ? (
-                      <FiChevronUp className="inline-block ml-1" />
-                    ) : (
-                      <FiChevronDown className="inline-block ml-1" />
-                    )
-                  ) : null}
-                </button>
-
-                <button
-                  onClick={() => toggleSort("notice_level")}
-                  className={`px-2 py-1 rounded ${sortBy.key === "notice_level" ? "bg-green-50" : "hover:bg-gray-50"}`}
-                >
-                  Notice{" "}
-                  {sortBy.key === "notice_level" ? (
-                    sortBy.dir === "asc" ? (
-                      <FiChevronUp className="inline-block ml-1" />
-                    ) : (
-                      <FiChevronDown className="inline-block ml-1" />
-                    )
-                  ) : null}
-                </button>
-
-                <button
-                  onClick={() => toggleSort("penalty_amount")}
-                  className={`px-2 py-1 rounded ${sortBy.key === "penalty_amount" ? "bg-green-50" : "hover:bg-gray-50"}`}
-                >
-                  Penalty{" "}
-                  {sortBy.key === "penalty_amount" ? (
-                    sortBy.dir === "asc" ? (
-                      <FiChevronUp className="inline-block ml-1" />
-                    ) : (
-                      <FiChevronDown className="inline-block ml-1" />
-                    )
-                  ) : null}
-                </button>
-
-                <button
-                  onClick={() => toggleSort("status")}
-                  className={`px-2 py-1 rounded ${sortBy.key === "status" ? "bg-green-50" : "hover:bg-gray-50"}`}
-                >
-                  Status{" "}
-                  {sortBy.key === "status" ? (
-                    sortBy.dir === "asc" ? (
-                      <FiChevronUp className="inline-block ml-1" />
-                    ) : (
-                      <FiChevronDown className="inline-block ml-1" />
-                    )
-                  ) : null}
-                </button>
-              </div>
+          {/* Search and perPage */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div className="relative w-full md:w-80">
+              <FiSearch className="absolute top-3 left-3 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10 pr-4 py-3 w-full border border-gray-200 rounded-lg text-black focus:ring-2 focus:ring-green-600 outline-none"
+                placeholder="Search business name, ID or Payment..."
+              />
             </div>
 
-            {/* Table */}
+            <select
+              value={perPage}
+              onChange={(e) => {
+                setPerPage(Number(e.target.value));
+                setPage(1);
+              }}
+              className="px-4 py-3 border border-gray-200 rounded-lg bg-white text-black"
+            >
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+              <option value={50}>50 per page</option>
+            </select>
+          </div>
+
+          {/* Table Desktop */}
+          <div className="hidden md:block bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b text-sm text-gray-600">
+              Showing <b>{paginated.length}</b> of <b>{total}</b> records
+            </div>
+
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm text-left">
-                <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
+              <table className="min-w-full text-base">
+                <thead className="bg-green-800 text-white sticky top-0">
                   <tr>
-                    <th className="px-6 py-4">Business ID</th>
-                    <th className="px-6 py-4">Business Name</th>
-                    <th className="px-6 py-4">Notice 1</th>
-                    <th className="px-6 py-4">Notice 2</th>
-                    <th className="px-6 py-4">Notice 3</th>
-                    <th className="px-6 py-4">Penalty</th>
-                    <th className="px-6 py-4">Status</th>
+                    <th
+                      onClick={() => toggleSort("id")}
+                      className="px-6 py-5 cursor-pointer hover:bg-green-700"
+                    >
+                      Business ID {renderSortIcon("id")}
+                    </th>
+                    <th
+                      onClick={() => toggleSort("business_name")}
+                      className="px-6 py-5 cursor-pointer hover:bg-green-700"
+                    >
+                      Business Name {renderSortIcon("business_name")}
+                    </th>
+                    <th className="px-6 py-5">Notice 1</th>
+                    <th className="px-6 py-5">Notice 2</th>
+                    <th className="px-6 py-5">Notice 3</th>
+                    <th
+                      onClick={() => toggleSort("penalty_amount")}
+                      className="px-6 py-5 cursor-pointer hover:bg-green-700"
+                    >
+                      Penalty {renderSortIcon("penalty_amount")}
+                    </th>
+                    <th
+                      onClick={() => toggleSort("payment_amount")}
+                      className="px-6 py-5 cursor-pointer hover:bg-green-700"
+                    >
+                      Payment {renderSortIcon("payment_amount")}
+                    </th>
+                    <th
+                      onClick={() => toggleSort("status")}
+                      className="px-6 py-5 cursor-pointer hover:bg-green-700"
+                    >
+                      Status {renderSortIcon("status")}
+                    </th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {loading ? (
+                <tbody className="divide-y">
+                  {loading && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-6 text-center text-gray-500">
-                        Loading...
+                      <td colSpan={8} className="text-center py-8">
+                        Loading data...
                       </td>
                     </tr>
-                  ) : paginated.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-6 text-center text-gray-500">
-                        No results found.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginated.map((v) => (
-                      <tr key={v.id} className="hover:bg-green-50 transition">
-                        <td className="px-6 py-4 font-medium">{v.business_id ?? v.id}</td>
-
-                        <td className="px-6 py-4 font-semibold text-green-800">
-                          {v.buses?.business_name ?? "No Business"}
-                        </td>
-
-                        <td className="px-6 py-4">
-                          {getNoticeBadge(1, v.notice_level, v.status)}
-                        </td>
-
-                        <td className="px-6 py-4">
-                          {getNoticeBadge(2, v.notice_level, v.status)}
-                        </td>
-
-                        <td className="px-6 py-4">
-                          {getNoticeBadge(3, v.notice_level, v.status)}
-                        </td>
-
-                        <td className="px-6 py-4 font-semibold text-red-600">
-                          {formatMoney(v.penalty_amount)}
-                        </td>
-
-                        <td className="px-6 py-4">
-                          <span
-                            className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                              v.status
-                            )}`}
-                          >
-                            {prettyStatus(v.status)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
                   )}
+
+                  {!loading && paginated.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="text-center py-8 text-gray-500">
+                        No violations found
+                      </td>
+                    </tr>
+                  )}
+
+                  {paginated.map((v) => (
+                    <tr key={v.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-5 font-medium text-black">
+                        {v.business_id ?? v.id}
+                      </td>
+                      <td className="px-6 py-5 font-bold text-black">
+                        {v.buses?.business_name ?? "No Business"}
+                      </td>
+                      <td className="px-6 py-5">{getNoticeBadge(1, v.notice_level, v.status)}</td>
+                      <td className="px-6 py-5">{getNoticeBadge(2, v.notice_level, v.status)}</td>
+                      <td className="px-6 py-5">{getNoticeBadge(3, v.notice_level, v.status)}</td>
+                      <td className="px-6 py-5 font-semibold text-red-600">{formatMoney(v.penalty_amount)}</td>
+                      <td className="px-6 py-5 text-black">{formatMoney(v.payment_amount)}</td>
+                      <td className="px-6 py-5">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(v.status)}`}>
+                          {prettyStatus(v.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
 
             {/* Pagination */}
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
+            <div className="flex items-center justify-between px-6 py-4 border-t">
               <div className="text-sm text-gray-600">
                 Page {pageSafe} of {totalPages}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={pageSafe === 1}
-                  className="px-3 py-1 rounded border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="px-3 py-2 border rounded-md bg-green-900 hover:bg-yellow-400 disabled:opacity-80"
                 >
                   <FiChevronLeft />
                 </button>
 
-                <div className="text-sm text-gray-700">
-                  {Math.min((pageSafe - 1) * perPage + 1, total)} -{" "}
-                  {Math.min(pageSafe * perPage, total)} of {total}
-                </div>
-
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={pageSafe === totalPages}
-                  className="px-3 py-1 rounded border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  className="px-3 py-2 border rounded-md bg-green-900 hover:bg-yellow-400 disabled:opacity-80"
                 >
                   <FiChevronRight />
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden text-gray-600 space-y-4">
+            {loading && <p className="text-center py-4">Loading data...</p>}
+            {!loading && paginated.length === 0 && <p className="text-center py-4 text-gray-500">No violations found</p>}
+            {paginated.map((v) => (
+              <div key={v.id} className="bg-white p-4 rounded-xl shadow-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-black">ID:</span>
+                  <span className="text-black">{v.business_id ?? v.id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold text-black">Business:</span>
+                  <span className="text-black">{v.buses?.business_name ?? "-"}</span>
+                </div>
+                <div className="flex justify-between space-x-2">
+                  <div>
+                    <span className="font-semibold">Notice 1:</span> {getNoticeBadge(1, v.notice_level, v.status)}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Notice 2:</span> {getNoticeBadge(2, v.notice_level, v.status)}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Notice 3:</span> {getNoticeBadge(3, v.notice_level, v.status)}
+                  </div>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Penalty:</span>
+                  <span className="text-red-600 font-semibold">{formatMoney(v.penalty_amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Payment:</span>
+                  <span className="text-black">{formatMoney(v.payment_amount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Status:</span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(v.status)}`}>
+                    {prettyStatus(v.status)}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

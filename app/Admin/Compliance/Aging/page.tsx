@@ -125,6 +125,7 @@ const AgingNoticeTable = () => {
         isCollapsed={false}
         setIsCollapsed={() => {}}
       />
+      
 
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
