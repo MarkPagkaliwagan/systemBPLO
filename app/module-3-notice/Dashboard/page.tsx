@@ -1,367 +1,309 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { JSX, useEffect, useState } from "react";
 import {
-  FiHome,
-  FiAlertCircle,
-  FiUser,
-  FiMenu,
-  FiX,
-  FiBookOpen,
-  FiSettings,
-  FiChevronDown,
-  FiChevronRight,
+  FiAlertTriangle,
+  FiInfo,
+  FiShield,
+  FiSlash,
+  FiLayers,
+  FiCheckCircle,
 } from "react-icons/fi";
+import Sidebar from "../../module-2-inspection/components/sidebar/page";
+import { supabase } from "@/lib/supabaseClient";
 
-interface SidebarItem {
-  id: string;
+interface Violation {
+  id: number;
+  business_id: number | null;
+  notice_level: number;
+  status: string;
+  penalty_amount: number;
+  buses: {
+    business_name: string;
+  } | null;
+}
+
+interface Stat {
   label: string;
-  icon: React.ReactNode;
-  href?: string;
-  children?: SidebarItem[];
+  icon: JSX.Element;
+  value: number;
 }
 
-interface SidebarProps {
-  isCollapsed: boolean;
-  setIsCollapsed: (collapsed: boolean) => void;
-  isMobile: boolean;
-  isMobileMenuOpen: boolean;
-  setIsMobileMenuOpen: (open: boolean) => void;
-}
+export default function DashboardPage() {
+  const router = useRouter();
 
-const sidebarItems: SidebarItem[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: <FiHome className="w-4 h-4" />,
-    href: "/module-2-inspection/management/analytics",
-  },
-  {
-    id: "masterlist",
-    label: "Masterlist",
-    icon: <FiBookOpen className="w-4 h-4" />,
-    children: [
-      {
-        id: "csv-manager",
-        label: "CSV Manager",
-        icon: <FiBookOpen className="w-3 h-3" />,
-        href: "/module-2-inspection/management/analytics/masterlist",
-      },
-      {
-        id: "review",
-        label: "Review",
-        icon: <FiBookOpen className="w-3 h-3" />,
-        href: "/module-2-inspection/management/analytics/review",
-      },
-    ],
-  },
-  {
-    id: "notifCompliance",
-    label: "Compliance Notice",
-    icon: <FiAlertCircle className="w-4 h-4" />,
-    children: [
-      {
-        id: "compliance-dashboard",
-        label: "Dashboard",
-        icon: <FiBookOpen className="w-3 h-3" />,
-        href: "/module-2-inspection/dashboard",
-      },
-      {
-        id: "compliance-aging",
-        label: "Aging",
-        icon: <FiBookOpen className="w-3 h-3" />,
-        href: "/module-2-inspection/aging",
-      },
-    ],
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <FiSettings className="w-4 h-4" />,
-    href: "/module-2-inspection/notifCompliance",
-  },
-];
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [violations, setViolations] = useState<Violation[]>([]);
+  const [stats, setStats] = useState<Stat[]>([]);
 
-// Helper function to find current page label
-const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => {
-  for (const item of items) {
-    if (item.href === pathname) {
-      return item.label;
-    }
-    if (item.children) {
-      for (const child of item.children) {
-        if (child.href === pathname) {
-          return child.label;
-        }
-      }
-    }
-  }
-  return "Dashboard"; // Default fallback
-};
-
-export default function Sidebar({
-  isCollapsed,
-  setIsCollapsed,
-  setIsMobileMenuOpen,
-  isMobile,
-  isMobileMenuOpen,
-}: SidebarProps) {
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
-  const pathname = usePathname();
-  const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
-
-  // Update current page label when pathname changes
+  // Responsive
   useEffect(() => {
-    setCurrentPageLabel(getCurrentPageLabel(pathname, sidebarItems));
-  }, [pathname]);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  // Auto-expand parent items if child is active
   useEffect(() => {
-    const activeParent = sidebarItems.find(item => 
-      item.children?.some(child => child.href === pathname)
-    );
-    if (activeParent && !expandedItems.includes(activeParent.id)) {
-      setExpandedItems(prev => [...prev, activeParent.id]);
-    }
-  }, [pathname]);
+    fetchData();
+  }, []);
 
-  const toggleExpanded = (itemId: string) => {
-    setExpandedItems(prev =>
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
+  const fetchData = async () => {
+    const { data, error } = await supabase.from("violations").select(`
+        id,
+        business_id,
+        notice_level,
+        status,
+        penalty_amount,
+        buses (
+          business_name
+        )
+      `);
+
+    if (error) {
+      console.error("Error fetching violations:", error);
+      return;
+    }
+
+    if (!data) return;
+
+    const typedData = data as unknown as Violation[];
+    setViolations(typedData);
+
+    // Stats Computation
+    const totalActive = typedData.filter((v) => v.status === "open").length;
+    const notice1 = typedData.filter((v) => v.notice_level === 1).length;
+    const notice2 = typedData.filter((v) => v.notice_level === 2).length;
+    const notice3 = typedData.filter((v) => v.notice_level === 3).length;
+    const cease = typedData.filter((v) => v.status === "cease_desist").length;
+    const resolved = typedData.filter((v) => v.status === "resolved").length;
+
+    setStats([
+      {
+        label: "Total Active Violations",
+        icon: <FiLayers size={20} />,
+        value: totalActive,
+      },
+      { label: "Notice 1", icon: <FiInfo size={20} />, value: notice1 },
+      {
+        label: "Notice 2",
+        icon: <FiAlertTriangle size={20} />,
+        value: notice2,
+      },
+      { label: "Notice 3", icon: <FiShield size={20} />, value: notice3 },
+      { label: "Cease & Desist", icon: <FiSlash size={20} />, value: cease },
+      { label: "Resolved", icon: <FiCheckCircle size={20} />, value: resolved },
+    ]);
   };
 
-  const renderNavItem = (item: SidebarItem, level: number = 0) => {
-    const hasChildren = item.children && item.children.length > 0;
-    const isExpanded = expandedItems.includes(item.id);
-    const isActive = item.href === pathname;
-    const hasActiveChild = item.children?.some(child => child.href === pathname);
-
-    return (
-      <div key={item.id} className="relative">
-        <Link
-          href={item.href || '#'}
-          onClick={(e) => {
-            if (hasChildren) {
-              e.preventDefault();
-              toggleExpanded(item.id);
-            } else {
-              // Close menu when navigating
-              if (isMobile) {
-                setIsMobileMenuOpen(false);
-              } else {
-                setIsDesktopMenuOpen(false);
-              }
-            }
-          }}
-          className={`flex items-center px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all duration-200 hover:bg-green-50 group cursor-pointer ${
-            level > 0 ? 'ml-3 sm:ml-4' : ''
-          } ${isActive || hasActiveChild ? 'bg-green-50 border-l-3 sm:border-l-4 border-green-500' : ''}`}
-        >
-          <span className={`transition-colors shrink-0 ${
-            isActive || hasActiveChild ? 'text-green-600' : 'text-gray-600 group-hover:text-green-600'
-          }`}>
-            {item.icon}
-          </span>
-          <span className={`ml-2 sm:ml-3 text-gray-700 font-medium transition-colors text-sm sm:text-base ${
-            isActive || hasActiveChild ? 'text-green-600' : 'group-hover:text-green-600'
-          }`}>
-            {item.label}
-          </span>
-          {hasChildren && (
-            <span className="ml-auto">
-              {isExpanded ? (
-                <FiChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-              ) : (
-                <FiChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-              )}
-            </span>
-          )}
-        </Link>
-
-        {/* Sub-items */}
-        {hasChildren && isExpanded && (
-          <div className="ml-3 sm:ml-4 mt-1 space-y-1">
-            {item.children?.map(child => renderNavItem(child, level + 1))}
-          </div>
-        )}
-      </div>
-    );
+  const getStatusBadge = (status: string) => {
+    if (status === "open") return "bg-green-100 text-green-700";
+    if (status === "cease_desist") return "bg-red-100 text-red-600";
+    if (status === "resolved") return "bg-blue-100 text-blue-700";
+    return "bg-gray-100 text-gray-600";
   };
 
-  if (isMobile) {
+  const getNoticeBadge = (
+    requiredLevel: number,
+    currentLevel: number,
+    status: string
+  ) => {
+    if (status === "resolved")
+      return (
+        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+          -
+        </span>
+      );
+    if (currentLevel >= requiredLevel)
+      return (
+        <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+          Sent
+        </span>
+      );
     return (
-      <>
-        {/* Mobile Header */}
-        <div className="fixed top-0 left-0 right-0 h-14 sm:h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-3 sm:px-4">
-          {/* Left side - Logo and Current Page */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm">
-              LOGO
-            </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-gray-800 text-xs sm:text-sm">
-                System BPLO
-              </span>
-              <span className="text-xs text-gray-500 hidden sm:block">
-                {currentPageLabel}
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-1.5 sm:p-2 rounded-lg bg-green-500 hover:bg-green-600 transition-colors"
-          >
-            {isMobileMenuOpen ? (
-              <FiX className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            ) : (
-              <FiMenu className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            )}
-          </button>
-        </div>
-
-        {/* Mobile Menu Overlay */}
-        {isMobileMenuOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <div
-              className="fixed right-0 top-0 h-full w-72 sm:w-80 bg-white shadow-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-3 sm:p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm">
-                      LOGO
-                    </div>
-                    <span className="font-semibold text-gray-800 text-sm sm:text-base">
-                      System BPLO
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <FiX className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                </div>
-              </div>
-
-              <nav className="p-3 sm:p-4">
-                <ul className="space-y-1 sm:space-y-2">
-                  {sidebarItems.map((item) => (
-                    <li key={item.id}>
-                      {renderNavItem(item)}
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-
-              {/* User Info at Bottom */}
-              <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 border-t border-gray-200">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                    <FiUser className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-xs font-medium text-gray-800">User Name</p>
-                    <p className="text-xs text-gray-500 hidden sm:block">user@example.com</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Add top padding to prevent content from being hidden under the fixed header */}
-        <div className="h-14 sm:h-16"></div>
-      </>
+      <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
+        Pending
+      </span>
     );
-  }
+  };
 
   return (
-    <>
-      {/* Desktop Top Navigation Bar */}
-      <div className="fixed top-0 left-0 right-0 h-14 sm:h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-3 sm:px-4 shadow-sm">
-        {/* Left side - Logo and Current Page */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm">
-            LOGO
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-gray-800 text-xs sm:text-sm">
-              System BPLO
-            </span>
-            <span className="text-xs text-gray-500 hidden sm:block">
-              {currentPageLabel}
-            </span>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isMobile={isMobile}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
 
-        {/* Right side - Hamburger Menu */}
-        <div className="relative">
-          <button
-            onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
-            className="p-1.5 sm:p-2 rounded-lg bg-green-500 hover:bg-green-600 transition-colors"
-          >
-            {isDesktopMenuOpen ? (
-              <FiX className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            ) : (
-              <FiMenu className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            )}
-          </button>
-
-          {/* Desktop Dropdown Menu */}
-          {isDesktopMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 sm:w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-              <div className="p-3 sm:p-4 border-b border-gray-200">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm">
-                    LOGO
-                  </div>
-                  <span className="font-semibold text-gray-800 text-sm sm:text-base">
-                    System BPLO
-                  </span>
-                </div>
-              </div>
-
-              <nav className="p-3 sm:p-4">
-                <ul className="space-y-1 sm:space-y-2">
-                  {sidebarItems.map((item) => (
-                    <li key={item.id}>
-                      {renderNavItem(item)}
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-
-              {/* User Info at Bottom */}
-              <div className="p-3 sm:p-4 border-t border-gray-200">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                    <FiUser className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-xs font-medium text-gray-800">User Name</p>
-                    <p className="text-xs text-gray-500 hidden sm:block">user@example.com</p>
-                  </div>
-                </div>
+      {/* Main Content */}
+      <main className={`transition-all duration-300 ${
+        isMobile ? "pt-16" : isCollapsed ? "ml-20" : "ml-80"
+      }`}>
+        <div className="p-4 md:p-6 lg:p-10">
+          {/* HEADER */}
+          <div className="mb-8 md:mb-12">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
+              <div>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-green-800">
+                  Compliance Dashboard
+                </h1>
+                <p className="mt-2 text-gray-600 text-sm md:text-base">
+                  Monitor violation stages and track compliance status.
+                </p>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* Add top padding to prevent content from being hidden under the fixed header */}
-      <div className="h-14 sm:h-16"></div>
-    </>
+          {/* STATS */}
+          <div className="mb-8 md:mb-14">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {stats.map((stat, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white border border-gray-200 rounded-xl p-4 md:p-6 flex items-center gap-3 md:gap-4 hover:border-green-600 hover:shadow-md transition-all duration-300"
+                >
+                  <div className="p-2 md:p-3 rounded-lg bg-green-50 text-green-700 flex-shrink-0">
+                    {stat.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs uppercase tracking-wider text-gray-500">
+                      {stat.label}
+                    </p>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 mt-1">
+                      {stat.value}
+                    </h2>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ESCALATION DETAILS */}
+          <div>
+            <h2 className="text-xl md:text-2xl font-semibold text-green-800 mb-4 md:mb-6">
+              Escalation Details
+            </h2>
+
+            {/* DESKTOP TABLE */}
+            <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm text-left">
+                  <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
+                    <tr>
+                      <th className="px-4 md:px-6 py-3 md:py-4">Business ID</th>
+                      <th className="px-4 md:px-6 py-3 md:py-4">Business Name</th>
+                      <th className="px-4 md:px-6 py-3 md:py-4">Notice 1</th>
+                      <th className="px-4 md:px-6 py-3 md:py-4">Notice 2</th>
+                      <th className="px-4 md:px-6 py-3 md:py-4">Notice 3</th>
+                      <th className="px-4 md:px-6 py-3 md:py-4">Penalty</th>
+                      <th className="px-4 md:px-6 py-3 md:py-4">Status</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-gray-200">
+                    {violations.map((v) => (
+                      <tr key={v.id} className="hover:bg-green-50 transition">
+                        <td className="px-4 md:px-6 py-3 md:py-4 font-medium">
+                          {v.business_id}
+                        </td>
+
+                        <td className="px-4 md:px-6 py-3 md:py-4 font-semibold text-green-800">
+                          {v.buses?.business_name ?? "No Business"}
+                        </td>
+
+                        <td className="px-4 md:px-6 py-3 md:py-4">
+                          {getNoticeBadge(1, v.notice_level, v.status)}
+                        </td>
+                        <td className="px-4 md:px-6 py-3 md:py-4">
+                          {getNoticeBadge(2, v.notice_level, v.status)}
+                        </td>
+                        <td className="px-4 md:px-6 py-3 md:py-4">
+                          {getNoticeBadge(3, v.notice_level, v.status)}
+                        </td>
+
+                        <td className="px-4 md:px-6 py-3 md:py-4 font-semibold text-red-600">
+                          ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
+                        </td>
+
+                        <td className="px-4 md:px-6 py-3 md:py-4">
+                          <span
+                            className={`px-2 md:px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
+                              v.status
+                            )}`}
+                          >
+                            {v.status.replace("_", " ")}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* MOBILE CARD VIEW */}
+            <div className="md:hidden space-y-3 md:space-y-4">
+              {violations.map((v) => (
+                <div
+                  key={v.id}
+                  className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-500 mb-1">Business ID</p>
+                      <p className="font-semibold text-sm truncate">{v.business_id}</p>
+                    </div>
+
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full font-medium flex-shrink-0 ${getStatusBadge(
+                        v.status
+                      )}`}
+                    >
+                      {v.status.replace("_", " ")}
+                    </span>
+                  </div>
+
+                  <div className="mb-3">
+                    <p className="text-xs text-gray-500 mb-1">Business Name</p>
+                    <p className="font-semibold text-green-800 text-sm">
+                      {v.buses?.business_name ?? "No Business"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Notice 1</p>
+                      {getNoticeBadge(1, v.notice_level, v.status)}
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Notice 2</p>
+                      {getNoticeBadge(2, v.notice_level, v.status)}
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Notice 3</p>
+                      {getNoticeBadge(3, v.notice_level, v.status)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Penalty Amount</p>
+                    <p className="font-bold text-red-600 text-sm">
+                      ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
