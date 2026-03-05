@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiUpload, FiFile, FiCheck, FiClock, FiX, FiDownload, FiTrash2, FiEye, FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import Sidebar from "../../../../components/sidebar/page";
+import Sidebar from "../../../../components/sidebar/Sidebar";
 import MasterlistFilters from "../../filters/masterlist-filters/page";
 
 interface CSVFile {
