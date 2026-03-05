@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Sidebar from "../../../components/sidebar/page";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Violation {
@@ -13,7 +14,7 @@ interface Violation {
   } | null;
 }
 
-export default function TablePage() {
+export default function DashboardPage() {
   const [violations, setViolations] = useState<Violation[]>([]);
 
   useEffect(() => {
@@ -77,59 +78,72 @@ export default function TablePage() {
   };
 
   return (
-    <div className="p-10 bg-white min-h-screen">
-      <div className="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <table className="min-w-full text-sm text-left">
-          <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
-            <tr>
-              <th className="px-6 py-4">Business ID</th>
-              <th className="px-6 py-4">Business Name</th>
-              <th className="px-6 py-4">Notice 1</th>
-              <th className="px-6 py-4">Notice 2</th>
-              <th className="px-6 py-4">Notice 3</th>
-              <th className="px-6 py-4">Penalty</th>
-              <th className="px-6 py-4">Status</th>
-            </tr>
-          </thead>
+    <div className="flex min-h-screen bg-white">
+      
+      {/* Sidebar */}
+      <Sidebar
+        isMobile={false}
+        isMobileMenuOpen={false}
+        setIsMobileMenuOpen={() => {}}
+        isCollapsed={false}
+        setIsCollapsed={() => {}}
+      />
 
-          <tbody className="divide-y divide-gray-200">
-            {violations.map((v) => (
-              <tr key={v.id} className="hover:bg-green-50 transition">
-                <td className="px-6 py-4 font-medium">{v.business_id}</td>
-
-                <td className="px-6 py-4 font-semibold text-green-800">
-                  {v.buses?.business_name ?? "No Business"}
-                </td>
-
-                <td className="px-6 py-4">
-                  {getNoticeBadge(1, v.notice_level, v.status)}
-                </td>
-
-                <td className="px-6 py-4">
-                  {getNoticeBadge(2, v.notice_level, v.status)}
-                </td>
-
-                <td className="px-6 py-4">
-                  {getNoticeBadge(3, v.notice_level, v.status)}
-                </td>
-
-                <td className="px-6 py-4 font-semibold text-red-600">
-                  ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
-                </td>
-
-                <td className="px-6 py-4">
-                  <span
-                    className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
-                      v.status
-                    )}`}
-                  >
-                    {v.status.replace("_", " ")}
-                  </span>
-                </td>
+      {/* Table */}
+      <div className="flex-1 p-10">
+        <div className="rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <table className="min-w-full text-sm text-left">
+            <thead className="bg-green-800 text-white uppercase text-xs tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Business ID</th>
+                <th className="px-6 py-4">Business Name</th>
+                <th className="px-6 py-4">Notice 1</th>
+                <th className="px-6 py-4">Notice 2</th>
+                <th className="px-6 py-4">Notice 3</th>
+                <th className="px-6 py-4">Penalty</th>
+                <th className="px-6 py-4">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody className="divide-y divide-gray-200">
+              {violations.map((v) => (
+                <tr key={v.id} className="hover:bg-green-50 transition">
+                  <td className="px-6 py-4 font-medium">{v.business_id}</td>
+
+                  <td className="px-6 py-4 font-semibold text-green-800">
+                    {v.buses?.business_name ?? "No Business"}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {getNoticeBadge(1, v.notice_level, v.status)}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {getNoticeBadge(2, v.notice_level, v.status)}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {getNoticeBadge(3, v.notice_level, v.status)}
+                  </td>
+
+                  <td className="px-6 py-4 font-semibold text-red-600">
+                    ₱ {v.penalty_amount?.toLocaleString() ?? "0"}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <span
+                      className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusBadge(
+                        v.status
+                      )}`}
+                    >
+                      {v.status.replace("_", " ")}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
