@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Sidebar from "../../../components/sidebar/Sidebar";
+import Sidebar from "../../../components/sidebar/sidebar";
 import {
   FiFileText,
   FiAlertCircle,

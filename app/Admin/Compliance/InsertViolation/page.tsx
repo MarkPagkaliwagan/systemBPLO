@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import Sidebar from "../../../components/sidebar/Sidebar";
+import Sidebar from "../../../components/sidebar/sidebar";
 import {
   FiPlusCircle,
   FiDollarSign,
