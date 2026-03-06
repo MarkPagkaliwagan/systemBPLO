@@ -16,7 +16,7 @@ export default function DetailsFerBusesForm({ violation, onClose }: DetailsFerBu
   );
 
   return (
-    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-200 relative p-6">
+    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[90vw] max-h-[70vh] overflow-y-auto border border-gray-200 relative p-6 flex flex-col">
       
       {/* Top Close Button */}
       <div className="flex justify-end mb-4 sticky top-0 bg-white z-10">
@@ -28,44 +28,48 @@ export default function DetailsFerBusesForm({ violation, onClose }: DetailsFerBu
         </button>
       </div>
 
-      {/* Section 1: Business Information */}
-      <section className="mb-6">
-        <h2 className="bg-gradient-to-r from-green-600 to-green-400 text-white text-center py-2 rounded-xl font-bold text-lg mb-4 shadow-sm">
-          Business Information
-        </h2>
-        <div className="space-y-2 px-2">
-          <InfoRow label="Business ID" value={violation.business_id ?? violation.id} />
-          <InfoRow label="Business Name" value={violation.buses?.business_name} />
-          <InfoRow label="Violation Type" value="Fire Safety" />
-          <InfoRow label="Violation Date" value="March 4, 2026" />
-          <InfoRow label="Deadline" value="February 28, 2026" />
-          <InfoRow label="Status" value={violation.status} />
-          <InfoRow label="Days Remaining" value="0" />
-        </div>
-      </section>
+      {/* Main Content in Landscape (2-column layout) */}
+      <div className="flex flex-row gap-6">
+        {/* Left Column: Business Info */}
+        <section className="flex-1">
+          <h2 className="bg-gradient-to-r from-green-600 to-green-400 text-white text-center py-2 rounded-xl font-bold text-lg mb-4 shadow-sm">
+            Business Information
+          </h2>
+          <div className="space-y-2 px-2">
+            <InfoRow label="Business ID" value={violation.business_id ?? violation.id} />
+            <InfoRow label="Business Name" value={violation.buses?.business_name} />
+            <InfoRow label="Violation Type" value="Fire Safety" />
+            <InfoRow label="Violation Date" value="March 4, 2026" />
+            <InfoRow label="Deadline" value="February 28, 2026" />
+            <InfoRow label="Status" value={violation.status} />
+            <InfoRow label="Days Remaining" value="0" />
+          </div>
+        </section>
 
-      {/* Section 2: Notice Timeline */}
-      <section className="mb-6">
-        <h2 className="bg-gradient-to-r from-green-600 to-green-400 text-white text-center py-2 rounded-xl font-bold text-lg mb-4 shadow-sm">
-          Notice Timeline
-        </h2>
-        <div className="space-y-2 px-2">
-          <InfoRow label="Notice 1" value="Sent March 4, 2026" />
-          <InfoRow label="Notice 2" value="Sent March 2, 2026" />
-          <InfoRow label="Notice 3" value="Sent March 7, 2026" />
-        </div>
-      </section>
+        {/* Right Column: Timeline + Countdown */}
+        <section className="flex-1 flex flex-col gap-6">
+          <div>
+            <h2 className="bg-gradient-to-r from-green-600 to-green-400 text-white text-center py-2 rounded-xl font-bold text-lg mb-4 shadow-sm">
+              Notice Timeline
+            </h2>
+            <div className="space-y-2 px-2">
+              <InfoRow label="Notice 1" value="Sent March 4, 2026" />
+              <InfoRow label="Notice 2" value="Sent March 2, 2026" />
+              <InfoRow label="Notice 3" value="Sent March 7, 2026" />
+            </div>
+          </div>
 
-      {/* Section 3: Countdown Timer */}
-      <section>
-        <h2 className="bg-gradient-to-r from-green-600 to-green-400 text-white text-center py-2 rounded-xl font-bold text-lg mb-4 shadow-sm">
-          Countdown Timer
-        </h2>
-        <div className="space-y-2 px-2">
-          <InfoRow label="Overall Deadline" value="March 10, 2026" />
-          <InfoRow label="Days Remaining" value="0" />
-        </div>
-      </section>
+          <div>
+            <h2 className="bg-gradient-to-r from-green-600 to-green-400 text-white text-center py-2 rounded-xl font-bold text-lg mb-4 shadow-sm">
+              Countdown Timer
+            </h2>
+            <div className="space-y-2 px-2">
+              <InfoRow label="Overall Deadline" value="March 10, 2026" />
+              <InfoRow label="Days Remaining" value="0" />
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
