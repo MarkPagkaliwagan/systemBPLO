@@ -10,22 +10,51 @@ export default function LoginPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: form.username, 
+          password: form.password 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store custom session and redirect
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('sessionToken', data.sessionToken);
+        localStorage.setItem('sessionExpiry', Date.now() + data.expiresIn);
+        window.location.href = '/SuperAdmin/users';
+      } else {
+        alert(data.error || 'Login failed');
+      }
+    } catch (error) {
+      alert('Login error');
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 sm:p-6 font-sans text-gray-900">
-      <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-sm sm:max-w-md min-h-150 sm:min-h-155 flex flex-col justify-between">
+      <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-xs sm:max-w-sm min-h-[600px] sm:min-h-[620px] flex flex-col justify-between">
         <div>
           <div className="flex justify-center mb-4 sm:mb-6">
             <img 
               src="/bplo-logo.png?v=2" 
               alt="BPLO Logo" 
-              className="w-20 h-20 sm:w-24 sm:h-24 lg:w-30 lg:h-30 object-contain rounded-full"
+              className="w-40 h-40 sm:w-40 sm:h-40 lg:w-40 lg:h-40 object-contain rounded-full"
             />
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 text-center mb-2">Welcome Back</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 text-center mb-2">BPLO Inspection Management System</h2>
           <p className="text-gray-400 text-center mb-6 sm:mb-10 text-xs sm:text-sm">Please enter your details to sign in</p>
 
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4 sm:space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             <div className="space-y-3 sm:space-y-4">
               <input
                 type="text"
@@ -56,9 +85,6 @@ export default function LoginPage() {
 
         <div className="mt-auto pt-6 sm:pt-8">
           <div className="flex flex-col items-center space-y-3 sm:space-y-4">
-            <Link href="/module-2-inspection/signup" className="text-gray-500 hover:text-green-800 font-medium transition-colors text-xs sm:text-sm">
-              Don't have an account? <span className="text-green-800 underline underline-offset-4">Sign Up</span>
-            </Link>
             <a href="#" className="text-xs text-gray-400 hover:underline">Forgot your password?</a>
           </div>
         </div>
@@ -66,3 +92,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+
