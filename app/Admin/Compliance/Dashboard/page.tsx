@@ -308,7 +308,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* MODALS */}
+      {/* MODAL */}
       {selectedRecord && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-[400px] p-6 relative">
@@ -320,7 +320,7 @@ export default function DashboardPage() {
             </button>
 
             <h2 className="text-xl font-bold mb-4 text-green-800">
-              Violation Details
+              Violations Detail
             </h2>
 
             <div className="space-y-2 text-sm">
