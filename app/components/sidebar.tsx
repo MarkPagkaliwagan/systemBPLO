@@ -40,18 +40,18 @@ const sidebarItems: SidebarItem[] = [
   },
   {
     id: "masterlist",
-    label: "Masterlist",
+    label: "Business Registry",
     icon: <FiBookOpen className="w-5 h-5" />,
     children: [
       {
         id: "csv-manager",
-        label: "CSV Manager",
+        label: "Masterlist",
         icon: <FiBookOpen className="w-4 h-4" />,
         href: "/Admin/Inspection/management/masterlist",
       },
       {
         id: "review",
-        label: "Review",
+        label: "Scheduling",
         icon: <FiBookOpen className="w-4 h-4" />,
         href: "/Admin/Inspection/management/review",
       },
@@ -202,7 +202,7 @@ export default function Sidebar({
               <span className="font-semibold text-gray-800 text-sm tracking-wide">
                 Inspection Management System
               </span>
-              <span className="text-xs text-gray-500">{currentPageLabel}</span>
+              <span className="text-xs text-gray-800">{currentPageLabel}</span>
             </div>
           </div>
 
@@ -271,7 +271,7 @@ export default function Sidebar({
             <span className="font-semibold text-gray-800 text-sm tracking-wide">
                 Inspection Management System
             </span>
-            <span className="text-xs text-gray-500">{currentPageLabel}</span>
+            <span className="text-xs text-gray-800">{currentPageLabel}</span>
           </div>
         </div>
 
