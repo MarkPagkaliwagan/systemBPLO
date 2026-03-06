@@ -3,83 +3,132 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiFile, FiCheck, FiClock, FiX, FiEdit } from "react-icons/fi";
+import { supabase } from "@/lib/supabaseClient";
 
 import Sidebar from "../../../../components/sidebar";
-
 import ReviewModal from "../Review Modal/page";
 import ReviewFilters from "../../filters/review-filters/page";
 
+// =====================================================
+// Types mapped to your SQL schema
+// =====================================================
+
+interface BusinessNature {
+  business_nature_id: string;
+  nature_name: string;
+}
+
+interface BusinessLine {
+  business_line_id: string;
+  line_name: string;
+}
+
+interface BusinessType {
+  business_type_id: string;
+  type_name: string;
+}
+
+interface Address {
+  address_id: string;
+  street: string | null;
+  region: string | null;
+  province: string | null;
+  municipality: string | null;
+  barangay: string | null;
+  zipcode: string | null;
+}
+
+interface Owner {
+  owner_id: string;
+  business_id: string;
+  incharge_firstname: string;
+  incharge_middlename: string | null;
+  incharge_lastname: string;
+  incharge_extension_name: string | null;
+  incharge_sex: string | null;
+  incharge_citizenship: string | null;
+  incharge_birth_date: string | null;
+  incharge_contact_no: string | null;
+  incharge_email: string | null;
+  owner_address_id: string | null;
+}
+
+interface Requestor {
+  requestor_id: string;
+  requester_firstname: string;
+  requester_middlename: string | null;
+  requester_lastname: string;
+  requester_extension_name: string | null;
+  requester_email: string | null;
+  requester_mobile_no: string | null;
+  requester_sex: string | null;
+  requester_civil_status: string | null;
+  requester_birth_date: string | null;
+  address_id: string | null;
+}
+
+interface Transaction {
+  transaction_id: string;
+  business_id: string;
+  requestor_id: string | null;
+  module_type: string | null;
+  transaction_type: string | null;
+  transaction_date: string | null;
+  site_status: string | null;
+  core_status: string | null;
+  brgy_clearance_status: string | null;  
+  site_transaction_status: string | null; 
+  reference_no: string | null; 
+  soa_no: string | null;
+  annual_amount: number | null;
+  term: string | null;
+  amount_paid: number | null;
+  balance: number | null;
+  payment_type: string | null;
+  payment_date: string | null;
+  or_no: string | null;
+  brgy_clearance_no: string | null;
+  or_date: string | null;
+  permit_no: string | null;
+  business_plate_no: string | null;
+  actual_closure_date: string | null;
+  retirement_reason: string | null;
+  source_type: string | null;
+}
+
+type ReviewAction = 'active' | 'compliant' | 'non-compliant' | 'for inspection';
+type ReviewStatus = 'not reviewed' | 'reviewed';
+
+interface ReviewInfo {
+  review_id: string;
+  business_id: string;
+  violation: string | null;
+  review_action: ReviewAction | null;
+  review_date: string | null;
+  reviewed_by: string | null;
+  status: ReviewStatus;
+  assigned_inspector: string | null;
+  scheduled_date: string | null;
+}
+
 interface CSVRow {
-  id: string;
-  // Business Information
-  businessIdentificationNumber: string;
-  businessName: string;
-  tradeName: string;
-  businessNature: string;
-  businessLine: string;
-  businessType: string;
-  transmittalNumber: string;
-  inchargeFirstName: string;
-  inchargeMiddleName: string;
-  inchargeLastName: string;
-  inchargeExtensionName: string;
-  inchargeSex: string;
-  citizenship: string;
-  officeStreet: string;
-  officeRegion: string;
-  officeProvince: string;
-  officeMunicipality: string;
-  officeBarangay: string;
-  officeZipcode: string;
-  year: string;
-  capital: string;
-  grossAmount: string;
-  grossAmountEssential: string;
-  grossAmountNonEssential: string;
-  rejectRemarks: string;
-  moduleType: string;
-  transactionType: string;
-
-  // Requestor Information
-  requestorFirstName: string;
-  requestorMiddleName: string;
-  requestorLastName: string;
-  requestorExtensionName: string;
-  requestorEmail: string;
-  requestorMobileNo: string;
-  requestorSex: string;
-  civilStatus: string;
-  requestorStreet: string;
-  requestorMunicipality: string;
-  requestorBarangay: string;
-  requestorZipcode: string;
-  transactionId: string;
-  referenceNo: string;
-  brgyClearanceStatus: string;
-  siteTransactionId: string;
-  coreTransactionStatus: string;
-  soaNo: string;
-  annualAmount: string;
-  term: string;
-  amountPaid: string;
-  balance: string;
-  paymentType: string;
-  paymentDate: string;
-  orNo: string;
-  permitNo: string;
-  businessPlateNo: string;
-  actualClosureDate: string;
-  retirementReason: string;
-  sourceType: string;
-
-  // Review Information
-  violations: string[];
-  reviewActions: string[];
-  reviewedDate?: string;
-  reviewedBy?: string;
-  status: 'not_reviewed' | 'reviewed';
-  assignedInspector?: string;
-  scheduledDate?: string;
+  business_id: string;
+  business_identification_no: string;
+  business_name: string;
+  trade_name: string | null;
+  year_established: number | null;
+  capital: number | null;
+  gross_amount: number | null;
+  gross_amount_essential: number | null;
+  gross_amount_non_essential: number | null;
+  reject_remarks: string | null;
+  business_nature: BusinessNature | null;
+  business_line: BusinessLine | null;
+  business_type: BusinessType | null;
+  address: Address | null;
+  owner: Owner | null;
+  transaction: (Transaction & { requestor: Requestor | null }) | null;
+  review_info: ReviewInfo | null;
 }
 
 interface CSVFile {
@@ -117,307 +166,180 @@ export default function CSVReview() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mock data for demonstration - commented out for backend integration
-  useEffect(() => {
-    /*
-    // Dynamic mock data generation - commented out
-    const mockCSVFiles: CSVFile[] = [
-      {
-        id: '1',
-        name: 'business_list_2024.csv',
-        uploadDate: '2024-01-15 10:30 AM',
-        size: '2.4 MB',
-        rows: 50,
-        status: 'processing'
-      },
-      {
-        id: '2',
-        name: 'violations_january.csv',
-        uploadDate: '2024-01-14 3:45 PM',
-        size: '1.8 MB',
-        rows: 30,
-        status: 'completed'
-      },
-      {
-        id: '3',
-        name: 'compliance_data.csv',
-        uploadDate: '2024-01-13 9:15 AM',
-        size: '3.1 MB',
-        rows: 25,
-        status: 'processing'
-      }
-    ];
-    */
+    useEffect(() => {
+    console.log('🔍 [DEBUG] Starting fetchFiles...');
+    console.log('🔍 [DEBUG] Supabase client:', supabase);
+    console.log('🔍 [DEBUG] Environment variables:', {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET'
+    });
 
-    // Hardcoded sample files for reference
-    const mockCSVFiles: CSVFile[] = [
-      {
-        id: '1',
-        name: 'business_list_2024.csv',
-        uploadDate: '2024-01-15 10:30 AM',
-        size: '2.4 MB',
-        rows: 50,
-        status: 'processing'
-      },
-      {
-        id: '2',
-        name: 'violations_january.csv',
-        uploadDate: '2024-01-14 3:45 PM',
-        size: '1.8 MB',
-        rows: 30,
-        status: 'completed'
-      },
-      {
-        id: '3',
-        name: 'compliance_data.csv',
-        uploadDate: '2024-01-13 9:15 AM',
-        size: '3.1 MB',
-        rows: 25,
-        status: 'processing'
-      }
-    ];
-    setCSVFiles(mockCSVFiles);
+    const fetchFiles = async () => {
+      try {
+        console.log('🔍 [DEBUG] Executing Supabase query...');
+        const { data, error } = await supabase
+          .from('transaction')
+          .select(`
+            transaction_id, 
+            transaction_date, 
+            business_id, 
+            review_info (
+              status
+            )
+          `)
+          .order('transaction_date', { ascending: false });
 
-    // Select first file by default
-    setSelectedFile(mockCSVFiles[0]);
-    loadCSVData(mockCSVFiles[0].id);
+        console.log('🔍 [DEBUG] Supabase query result:', { data, error });
+
+        if (error) { 
+          console.error('❌ [ERROR] Supabase query error:', error);
+          console.error('❌ [ERROR] Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          return; 
+        }
+
+        console.log('✅ [SUCCESS] Raw data from Supabase:', data);
+        console.log('✅ [SUCCESS] Data length:', data?.length);
+
+        const grouped = (data ?? []).reduce(
+          (acc: Record<string, { id: string; name: string; uploadDate: string; rows: number; reviewed: number }>, tx) => {
+            console.log('🔍 [DEBUG] Processing transaction:', tx);
+            const key = tx.transaction_date ?? 'Unknown';
+            if (!acc[key]) {
+              acc[key] = { id: key, name: `Batch - ${key}`, uploadDate: key, rows: 0, reviewed: 0 };
+            }
+            acc[key].rows++;
+            // Check if review_info exists and has status 'reviewed'
+            if (tx.review_info && tx.review_info.length > 0 && tx.review_info[0]?.status === 'reviewed') {
+              acc[key].reviewed++;
+              console.log('🔍 [DEBUG] Found reviewed transaction:', tx);
+            }
+            return acc;
+          }, {}
+        );
+
+        console.log('🔍 [DEBUG] Grouped data:', grouped);
+
+        const files: CSVFile[] = Object.values(grouped).map(g => ({
+          id: g.id,
+          name: g.name,
+          uploadDate: g.uploadDate,
+          size: '-',
+          rows: g.rows,
+          status: g.reviewed === g.rows ? 'completed' : 'processing',
+        }));
+
+        console.log('✅ [SUCCESS] Processed files:', files);
+        console.log('✅ [SUCCESS] Files length:', files.length);
+
+        setCSVFiles(files);
+        if (files.length > 0) {
+          console.log('🔍 [DEBUG] Selecting first file:', files[0]);
+          setSelectedFile(files[0]);
+          loadCSVData(files[0].id);
+        } else {
+          console.log('⚠️ [WARNING] No files found');
+        }
+      } catch (err) {
+        console.error('❌ [ERROR] Exception in fetchFiles:', err);
+      }
+    };
+
+    fetchFiles();
   }, []);
 
-  const loadCSVData = (fileId: string) => {
+  const loadCSVData = async (fileId: string) => {
+    console.log('🔍 [DEBUG] Loading CSV data for file:', fileId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('business')
+        .select(`
+          business_id,
+          business_identification_no,
+          business_name,
+          trade_name,
+          year_established,
+          capital,
+          gross_amount,
+          gross_amount_essential,
+          gross_amount_non_essential,
+          reject_remarks,
+          business_nature ( business_nature_id, nature_name ),
+          business_line ( business_line_id, line_name ),
+          business_type ( business_type_id, type_name ),
+          address:business_address_id (
+            address_id, street, region, province,
+            municipality, barangay, zipcode
+          ),
+          owner (
+            owner_id, incharge_firstname, incharge_middlename,
+            incharge_lastname, incharge_extension_name,
+            incharge_sex, incharge_citizenship, incharge_contact_no, incharge_email
+          ),
+          transaction (
+            transaction_id, module_type, transaction_type,
+            transaction_date, site_status, core_status, site_transaction_status,
+            soa_no, annual_amount, term, amount_paid, balance,
+            payment_type, payment_date, or_no, brgy_clearance_no, or_date,
+            permit_no, business_plate_no, actual_closure_date,
+            retirement_reason, source_type,
+            requestor (
+              requestor_id, requester_firstname, requester_middlename,
+              requester_lastname, requester_extension_name,
+              requester_email, requester_mobile_no,
+              requester_sex, requester_civil_status
+            )
+          ),
+          review_info (
+            review_id, violation, review_action,
+            review_date, reviewed_by, status,
+            assigned_inspector, scheduled_date
+          )
+        `);
 
-    // Hardcoded sample data for reference
-    const mockCSVData: CSVRow[] = [
-      {
-        id: '1',
+      console.log('🔍 [DEBUG] CSV data query result:', { data, error });
 
-        // Business Information
-        businessIdentificationNumber: 'BIN-202400001',
-        businessName: 'ABC Trading 1',
-        tradeName: 'Quick Shop',
-        businessNature: 'Retail',
-        businessLine: 'Food & Beverage',
-        businessType: 'Sole Proprietorship',
-        transmittalNumber: 'TRANS-2024001',
-        inchargeFirstName: 'Juan',
-        inchargeMiddleName: 'Santos',
-        inchargeLastName: 'Dela Cruz',
-        inchargeExtensionName: 'Jr.',
-        inchargeSex: 'Male',
-        citizenship: 'Filipino',
-        officeStreet: '100 Main St',
-        officeRegion: 'NCR',
-        officeProvince: 'Metro Manila',
-        officeMunicipality: 'Quezon City',
-        officeBarangay: 'Barangay 1',
-        officeZipcode: '1001',
-        year: '2024',
-        capital: '₱50,000',
-        grossAmount: '₱100,000',
-        grossAmountEssential: '₱60,000',
-        grossAmountNonEssential: '₱40,000',
-        rejectRemarks: '',
-        moduleType: 'Business Permit',
-        transactionType: 'New',
-
-        // Requestor Information
-        requestorFirstName: 'John',
-        requestorMiddleName: 'Doe',
-        requestorLastName: 'Smith',
-        requestorExtensionName: 'Sr.',
-        requestorEmail: 'requestor1@email.com',
-        requestorMobileNo: '09100000001',
-        requestorSex: 'Male',
-        civilStatus: 'Single',
-        requestorStreet: '200 Oak Ave',
-        requestorMunicipality: 'Quezon City',
-        requestorBarangay: 'Barangay A',
-        requestorZipcode: '1101',
-        transactionId: 'TXN-202400001',
-        referenceNo: 'REF-2024001',
-        brgyClearanceStatus: 'Cleared',
-        siteTransactionId: 'SITE-100001',
-        coreTransactionStatus: 'Completed',
-        soaNo: 'SOA-2024001',
-        annualAmount: '₱3,000',
-        term: '1 Year',
-        amountPaid: '₱3,000',
-        balance: '₱0',
-        paymentType: 'Cash',
-        paymentDate: '2024-01-15',
-        orNo: 'OR-202400001',
-        permitNo: 'PERMIT-2024001',
-        businessPlateNo: 'BP-1001',
-        actualClosureDate: '',
-        retirementReason: '',
-        sourceType: 'Online Application',
-
-        // Review Information
-        violations: [],
-        reviewActions: ['Active'],
-        reviewedDate: '2024-01-16 09:15 AM',
-        reviewedBy: 'Admin User',
-        status: 'reviewed'
-      },
-      {
-        id: '2',
-
-        // Business Information
-        businessIdentificationNumber: 'BIN-202400002',
-        businessName: 'XYZ Corp 2',
-        tradeName: 'Fast Service',
-        businessNature: 'Service',
-        businessLine: 'Electronics',
-        businessType: 'Corporation',
-        transmittalNumber: 'TRANS-2024002',
-        inchargeFirstName: 'Maria',
-        inchargeMiddleName: 'Reyes',
-        inchargeLastName: 'Gonzales',
-        inchargeExtensionName: '',
-        inchargeSex: 'Female',
-        citizenship: 'Filipino',
-        officeStreet: '101 Main St',
-        officeRegion: 'NCR',
-        officeProvince: 'Metro Manila',
-        officeMunicipality: 'Manila',
-        officeBarangay: 'Barangay 2',
-        officeZipcode: '1002',
-        year: '2024',
-        capital: '₱60,000',
-        grossAmount: '₱120,000',
-        grossAmountEssential: '₱70,000',
-        grossAmountNonEssential: '₱50,000',
-        rejectRemarks: '',
-        moduleType: 'Business Permit',
-        transactionType: 'Renewal',
-
-        // Requestor Information
-        requestorFirstName: 'Jane',
-        requestorMiddleName: 'Smith',
-        requestorLastName: 'Johnson',
-        requestorExtensionName: '',
-        requestorEmail: 'requestor2@email.com',
-        requestorMobileNo: '09100000002',
-        requestorSex: 'Female',
-        civilStatus: 'Married',
-        requestorStreet: '201 Oak Ave',
-        requestorMunicipality: 'Manila',
-        requestorBarangay: 'Barangay B',
-        requestorZipcode: '1102',
-        transactionId: 'TXN-202400002',
-        referenceNo: 'REF-2024002',
-        brgyClearanceStatus: 'Cleared',
-        siteTransactionId: 'SITE-100002',
-        coreTransactionStatus: 'Completed',
-        soaNo: 'SOA-2024002',
-        annualAmount: '₱3,500',
-        term: '1 Year',
-        amountPaid: '₱3,500',
-        balance: '₱0',
-        paymentType: 'Check',
-        paymentDate: '2024-01-16',
-        orNo: 'OR-202400002',
-        permitNo: 'PERMIT-2024002',
-        businessPlateNo: 'BP-1002',
-        actualClosureDate: '',
-        retirementReason: '',
-        sourceType: 'Online Application',
-
-        // Review Information
-        violations: ['Fire safety equipment missing'],
-        reviewActions: ['For Inspection'],
-        reviewedDate: '2024-01-16 10:30 AM',
-        reviewedBy: 'Admin User',
-        status: 'reviewed',
-        assignedInspector: 'Inspector Smith',
-        scheduledDate: '2024-02-15'
-      },
-      {
-        id: '3',
-
-        // Business Information
-        businessIdentificationNumber: 'BIN-202400003',
-        businessName: 'Quick Mart 3',
-        tradeName: 'Quality Goods',
-        businessNature: 'Manufacturing',
-        businessLine: 'Clothing',
-        businessType: 'Partnership',
-        transmittalNumber: 'TRANS-2024003',
-        inchargeFirstName: 'Jose',
-        inchargeMiddleName: 'Cruz',
-        inchargeLastName: 'Reyes',
-        inchargeExtensionName: '',
-        inchargeSex: 'Male',
-        citizenship: 'Filipino',
-        officeStreet: '102 Main St',
-        officeRegion: 'NCR',
-        officeProvince: 'Metro Manila',
-        officeMunicipality: 'Makati',
-        officeBarangay: 'Barangay 3',
-        officeZipcode: '1003',
-        year: '2024',
-        capital: '₱70,000',
-        grossAmount: '₱140,000',
-        grossAmountEssential: '₱80,000',
-        grossAmountNonEssential: '₱60,000',
-        rejectRemarks: '',
-        moduleType: 'Business Permit',
-        transactionType: 'Amendment',
-
-        // Requestor Information
-        requestorFirstName: 'Michael',
-        requestorMiddleName: 'Johnson',
-        requestorLastName: 'Williams',
-        requestorExtensionName: '',
-        requestorEmail: 'requestor3@email.com',
-        requestorMobileNo: '09100000003',
-        requestorSex: 'Male',
-        civilStatus: 'Widowed',
-        requestorStreet: '202 Oak Ave',
-        requestorMunicipality: 'Makati',
-        requestorBarangay: 'Barangay C',
-        requestorZipcode: '1103',
-        transactionId: 'TXN-202400003',
-        referenceNo: 'REF-2024003',
-        brgyClearanceStatus: 'Cleared',
-        siteTransactionId: 'SITE-100003',
-        coreTransactionStatus: 'Completed',
-        soaNo: 'SOA-2024003',
-        annualAmount: '₱4,000',
-        term: '1 Year',
-        amountPaid: '₱4,000',
-        balance: '₱0',
-        paymentType: 'Online',
-        paymentDate: '2024-01-17',
-        orNo: 'OR-202400003',
-        permitNo: 'PERMIT-2024003',
-        businessPlateNo: 'BP-1003',
-        actualClosureDate: '',
-        retirementReason: '',
-        sourceType: 'Online Application',
-
-        // Review Information
-        violations: [],
-        reviewActions: [],
-        reviewedDate: undefined,
-        reviewedBy: undefined,
-        status: 'not_reviewed'
+      if (error) { 
+        console.error('❌ [ERROR] CSV data query error:', error);
+        console.error('❌ [ERROR] Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        return; 
       }
-    ];
 
-    setCSVData(mockCSVData);
+      console.log('✅ [SUCCESS] Raw CSV data:', data);
+      console.log('✅ [SUCCESS] CSV data length:', data?.length);
+      
+      const processedData = (data as unknown as CSVRow[]) ?? [];
+      console.log('✅ [SUCCESS] Processed CSV data:', processedData);
+      
+      setCSVData(processedData);
+    } catch (err) {
+      console.error('❌ [ERROR] Exception in loadCSVData:', err);
+    }
   };
 
   const handleFileSelect = (file: CSVFile) => {
+    console.log('🔍 [DEBUG] File selected:', file);
     setSelectedFile(file);
     loadCSVData(file.id);
   };
 
   const handleRowClick = (row: CSVRow) => {
+    console.log('🔍 [DEBUG] Row clicked:', row);
     setSelectedRow(row);
     setShowReviewModal(true);
   };
 
-  const handleSaveReview = (reviewData: {
+  const handleSaveReview = async (reviewData: {
     reviewActions: string[];
     violations: string[];
     assignedInspector?: string;
@@ -425,36 +347,82 @@ export default function CSVReview() {
   }) => {
     if (!selectedRow) return;
 
-    const updatedRow: CSVRow = {
-      ...selectedRow,
-      reviewActions: reviewData.reviewActions,
-      violations: reviewData.violations,
-      reviewedDate: new Date().toLocaleString(),
-      reviewedBy: 'Current User',
-      status: 'reviewed',
-      assignedInspector: reviewData.assignedInspector,
-      scheduledDate: reviewData.scheduledDate
+    console.log('🔍 [DEBUG] Saving review:', reviewData);
+
+    const actionMap: Record<string, ReviewAction> = {
+      'Active': 'active',
+      'Compliant': 'compliant',
+      'Non-Compliant': 'non-compliant',
+      'For Inspection': 'for inspection',
     };
 
-    setCSVData(prev => prev.map(row =>
-      row.id === selectedRow.id ? updatedRow : row
-    ));
+    const dbAction: ReviewAction = actionMap[reviewData.reviewActions[0]] ?? 'active';
 
-    // Update file status based on review progress
-    const reviewedCount = csvData.filter(r => r.status === 'reviewed').length + 1;
-    const newStatus = reviewedCount === csvData.length ? 'completed' : 'processing';
+    try {
+      const { error } = await supabase
+        .from('review_info')
+        .upsert({
+          business_id: selectedRow.business_id,
+          violation: reviewData.violations.join(', ') || null,
+          review_action: dbAction,
+          review_date: new Date().toISOString().split('T')[0],
+          reviewed_by: null, // TODO: replace with real user id from your auth context
+          status: 'reviewed' as ReviewStatus,
+          assigned_inspector: reviewData.assignedInspector ?? null,
+          scheduled_date: reviewData.scheduledDate ?? null,
+        }, { onConflict: 'business_id' });
 
-    if (selectedFile) {
-      setCSVFiles(prev => prev.map(f =>
-        f.id === selectedFile.id
-          ? { ...f, status: newStatus as 'processing' | 'completed' }
-          : f
+      console.log('🔍 [DEBUG] Save review result:', { error });
+
+      if (error) { 
+        console.error('❌ [ERROR] Save review error:', error);
+        console.error('❌ [ERROR] Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        return; 
+      }
+
+      const updatedRow: CSVRow = {
+        ...selectedRow,
+        review_info: {
+          review_id: selectedRow.review_info?.review_id ?? crypto.randomUUID(),
+          business_id: selectedRow.business_id,
+          violation: reviewData.violations.join(', ') || null,
+          review_action: dbAction,
+          review_date: new Date().toISOString().split('T')[0],
+          reviewed_by: null,
+          status: 'reviewed',
+          assigned_inspector: reviewData.assignedInspector ?? null,
+          scheduled_date: reviewData.scheduledDate ?? null,
+        }
+      };
+
+      console.log('✅ [SUCCESS] Updated row:', updatedRow);
+
+      setCSVData(prev => prev.map(row =>
+        row.business_id === selectedRow.business_id ? updatedRow : row
       ));
-      setSelectedFile({ ...selectedFile, status: newStatus });
-    }
 
-    setShowReviewModal(false);
-    setSelectedRow(null);
+      const reviewedCount = csvData.filter(r => r.review_info?.status === 'reviewed').length + 1;
+      const newStatus = reviewedCount === csvData.length ? 'completed' : 'processing';
+
+      if (selectedFile) {
+        setCSVFiles(prev => prev.map(f =>
+          f.id === selectedFile.id
+            ? { ...f, status: newStatus as 'processing' | 'completed' }
+            : f
+        ));
+        setSelectedFile({ ...selectedFile, status: newStatus });
+      }
+
+      setShowReviewModal(false);
+      setSelectedRow(null);
+    } catch (err) {
+      console.error('❌ [ERROR] Exception in handleSaveReview:', err);
+    }
   };
 
   const getStatusBadge = (status: CSVFile['status']) => {
@@ -469,33 +437,56 @@ export default function CSVReview() {
     }
   };
 
-  // Filter data based on search term
   const filteredCSVData = csvData.filter(row => {
     if (!searchTerm.trim()) return true;
-    
+
     const searchLower = searchTerm.toLowerCase();
-    
-    // Search across all string properties of the row
-    return Object.values(row).some(value => {
-      if (Array.isArray(value)) {
-        // Handle arrays like violations and reviewActions
-        return value.some(item => 
-          typeof item === 'string' && item.toLowerCase().includes(searchLower)
-        );
-      }
-      
-      if (typeof value === 'string') {
-        return value.toLowerCase().includes(searchLower);
-      }
-      
-      return false;
-    });
+
+    const searchableStrings = [
+      row.business_identification_no,
+      row.business_name,
+      row.trade_name,
+      row.business_nature?.nature_name,
+      row.business_line?.line_name,
+      row.business_type?.type_name,
+      row.address?.street,
+      row.address?.region,
+      row.address?.province,
+      row.address?.municipality,
+      row.address?.barangay,
+      row.address?.zipcode,
+      row.owner?.incharge_firstname,
+      row.owner?.incharge_lastname,
+      row.owner?.incharge_contact_no,
+      row.owner?.incharge_email,
+      row.transaction?.module_type,
+      row.transaction?.transaction_type,
+      row.transaction?.site_status,
+      row.transaction?.core_status,
+      row.transaction?.site_transaction_status,
+      row.transaction?.permit_no,
+      row.review_info?.violation,
+      row.review_info?.review_action,
+      row.review_info?.status,
+    ];
+
+    return searchableStrings.some(val =>
+      val?.toLowerCase().includes(searchLower)
+    );
   });
 
-  const reviewedCount = csvData.filter(row => row.status === 'reviewed').length;
-  const notReviewedCount = csvData.filter(row => row.status === 'not_reviewed').length;
-  const filteredReviewedCount = filteredCSVData.filter(row => row.status === 'reviewed').length;
-  const filteredNotReviewedCount = filteredCSVData.filter(row => row.status === 'not_reviewed').length;
+  const reviewedCount = csvData.filter(row => row.review_info?.status === 'reviewed').length;
+  const notReviewedCount = csvData.filter(row => row.review_info?.status === 'not reviewed').length;
+  const filteredReviewedCount = filteredCSVData.filter(row => row.review_info?.status === 'reviewed').length;
+  const filteredNotReviewedCount = filteredCSVData.filter(row => row.review_info?.status === 'not reviewed').length;
+
+  console.log('🔍 [DEBUG] Component state:', {
+    csvFilesLength: csvFiles.length,
+    csvDataLength: csvData.length,
+    reviewedCount,
+    notReviewedCount,
+    selectedFile: selectedFile?.name
+  });
 
   return (
     <>
@@ -549,12 +540,12 @@ export default function CSVReview() {
                 <div className={`${isMobile ? 'px-4 py-2' : 'px-6 py-3'} bg-gray-50 border-b border-gray-200`}>
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
                     <span>Review Progress</span>
-                    <span>{Math.round((reviewedCount / csvData.length) * 100)}%</span>
+                    <span>{csvData.length > 0 ? Math.round((reviewedCount / csvData.length) * 100) : 0}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="h-2 rounded-full bg-green-600 transition-all duration-300"
-                      style={{ width: `${(reviewedCount / csvData.length) * 100}%` }}
+                      style={{ width: `${csvData.length > 0 ? (reviewedCount / csvData.length) * 100 : 0}%` }}
                     />
                   </div>
                 </div>
@@ -564,41 +555,38 @@ export default function CSVReview() {
                   <div className="max-h-[400px] overflow-y-auto">
                     {filteredCSVData.map((row, index) => (
                       <div
-                        key={row.id}
-                        className={`border-b border-gray-200 p-4 cursor-pointer transition-colors ${row.status === 'reviewed' ? 'bg-green-50' : 'bg-white'
+                        key={row.business_id}
+                        className={`border-b border-gray-200 p-4 cursor-pointer transition-colors ${row.review_info?.status === 'reviewed' ? 'bg-green-50' : 'bg-white'
                           }`}
                         onClick={() => handleRowClick(row)}
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 text-sm">{row.businessName}</h4>
-                            <p className="text-xs text-gray-500">{row.officeStreet}</p>
+                            <h4 className="font-medium text-gray-900 text-sm">{row.business_name}</h4>
+                            <p className="text-xs text-gray-500">{row.address?.street}</p>
                           </div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'reviewed'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.review_info?.status === 'reviewed'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
                             }`}>
-                            {row.status === 'reviewed' ? 'REVIEWED' : 'PENDING'}
+                            {row.review_info?.status === 'reviewed' ? 'REVIEWED' : 'PENDING'}
                           </span>
                         </div>
 
                         <div className="space-y-1 text-xs">
-                          {row.reviewActions.length > 0 && (
+                          {row.review_info?.review_action && (
                             <div className="flex flex-wrap gap-1">
-                              {row.reviewActions.map((action, idx) => (
-                                <span key={idx} className="text-green-600">
-                                  ✓ {action}
-                                </span>
-                              ))}
+                              <span className="text-green-600">✓ {row.review_info.review_action}</span>
                             </div>
                           )}
-                          {row.violations.length > 0 && (
+                          {row.review_info?.violation && (
                             <div className="flex flex-wrap gap-1">
-                              {row.violations.map((violation, idx) => (
-                                <span key={idx} className="text-red-600">
-                                  ⚠ {violation}
-                                </span>
-                              ))}
+                              <span className="text-red-600">⚠ {row.review_info.violation}</span>
+                            </div>
+                          )}
+                          {row.transaction?.site_transaction_status && (
+                            <div className="flex flex-wrap gap-1">
+                              <span className="text-blue-600">📋 {row.transaction.site_transaction_status}</span>
                             </div>
                           )}
                         </div>
@@ -606,7 +594,7 @@ export default function CSVReview() {
                         <div className="flex justify-between items-center mt-2">
                           <p className="text-xs text-gray-400 flex items-center">
                             <FiClock className="w-3 h-3 mr-1" />
-                            {row.reviewedDate || 'Not reviewed'}
+                            {row.review_info?.review_date || 'Not reviewed'}
                           </p>
                           <button
                             onClick={(e) => {
@@ -624,26 +612,19 @@ export default function CSVReview() {
                 ) : (
                   /* Desktop Table View - Single Table Structure */
                   <div className="h-[600px] overflow-auto">
-                    <table className="w-full min-w-[1800px] border-collapse">
+                    <table className="w-full min-w-[2000px] border-collapse">
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
-                          {/* Business Information */}
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[50px] border-r border-gray-300">#</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Business Identification Number</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[180px] border-r border-gray-300">Business Name</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Business Nature</th>
-
-                        
-                          
-                          {/* Office Information */}
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[200px] border-r border-gray-300">Office Street</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[80px] border-r border-gray-300">Region</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Province</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Municipality</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Barangay</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[90px] border-r border-gray-300">Zipcode</th>
-                          
-                          {/* Financial Information */}
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[70px] border-r border-gray-300">Year</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Capital</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[130px] border-r border-gray-300">Gross Amount</th>
@@ -652,13 +633,10 @@ export default function CSVReview() {
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Reject Remarks</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Module Type</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Transaction Type</th>
-
-                          {/* Requestor Information */}
-                          
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">SITE Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Core Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">SITE Transaction Status</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[100px] border-r border-gray-300">Permit No.</th>
-                
-
-                          {/* Review Information */}
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[200px] border-r border-gray-300">Violations</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[140px] border-r border-gray-300">Assigned Inspector</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider sticky top-0 bg-gray-50 min-w-[120px] border-r border-gray-300">Scheduled Date</th>
@@ -669,54 +647,45 @@ export default function CSVReview() {
                       </thead>
                       <tbody className="divide-y divide-gray-300">
                         {filteredCSVData.map((row, index) => (
-                          <tr key={row.id} className={`hover:bg-gray-50 cursor-pointer transition-colors ${row.status === 'reviewed' ? 'bg-green-50' : 'bg-white'}`} onClick={() => handleRowClick(row)}>
+                          <tr key={row.business_id} className={`hover:bg-gray-50 cursor-pointer transition-colors ${row.review_info?.status === 'reviewed' ? 'bg-green-50' : 'bg-white'}`} onClick={() => handleRowClick(row)}>
                             <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium min-w-[50px] border-r border-gray-200">{index + 1}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[140px] border-r border-gray-200">{row.businessIdentificationNumber}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[180px] border-r border-gray-200">{row.businessName}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.businessNature}</td>
-        
-         
-                            {/* Office Information */}
-                            <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] max-w-[250px] truncate border-r border-gray-200" title={row.officeStreet}>{row.officeStreet}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.officeRegion}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.officeProvince}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.officeMunicipality}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.officeBarangay}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[90px] border-r border-gray-200">{row.officeZipcode}</td>
-                            
-                            {/* Financial Information */}
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[70px] border-r border-gray-200">{row.year}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.capital}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.grossAmount}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[150px] border-r border-gray-200">{row.grossAmountEssential}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[150px] border-r border-gray-200">{row.grossAmountNonEssential}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.rejectRemarks}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.moduleType}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.transactionType}</td>
-
-                            {/* Requestor Information */}
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.permitNo}</td>
-                
-
-                            {/* Review Information */}
+                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[140px] border-r border-gray-200">{row.business_identification_no}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 min-w-[180px] border-r border-gray-200">{row.business_name}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.business_nature?.nature_name ?? '-'}</td>
+                            <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] max-w-[250px] truncate border-r border-gray-200" title={row.address?.street ?? ''}>{row.address?.street ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[80px] border-r border-gray-200">{row.address?.region ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.address?.province ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.address?.municipality ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.address?.barangay ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[90px] border-r border-gray-200">{row.address?.zipcode ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[70px] border-r border-gray-200">{row.year_established ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.capital != null ? `₱${row.capital.toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[130px] border-r border-gray-200">{row.gross_amount != null ? `₱${row.gross_amount.toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[150px] border-r border-gray-200">{row.gross_amount_essential != null ? `₱${row.gross_amount_essential.toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[150px] border-r border-gray-200">{row.gross_amount_non_essential != null ? `₱${row.gross_amount_non_essential.toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.reject_remarks ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.transaction?.module_type ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.transaction?.transaction_type ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.transaction?.site_status ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.transaction?.core_status ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.transaction?.site_transaction_status ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[100px] border-r border-gray-200">{row.transaction?.permit_no ?? '-'}</td>
                             <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] border-r border-gray-200">
-                              {row.violations.length > 0 ? (
+                              {row.review_info?.violation ? (
                                 <div className="space-y-1">
-                                  {row.violations.map((violation, idx) => (
-                                    <div key={idx} className="text-xs text-red-600 break-words">⚠ {violation}</div>
-                                  ))}
+                                  <div className="text-xs text-red-600 break-words">⚠ {row.review_info.violation}</div>
                                 </div>
                               ) : <span className="text-green-600">No violations</span>}
                             </td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.assignedInspector || <span className="text-gray-400">-</span>}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.scheduledDate || <span className="text-gray-400">-</span>}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">{row.review_info?.assigned_inspector || <span className="text-gray-400">-</span>}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[120px] border-r border-gray-200">{row.review_info?.scheduled_date || <span className="text-gray-400">-</span>}</td>
                             <td className="px-3 py-3 min-w-[100px] border-r border-gray-200">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'reviewed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                {row.status === 'reviewed' ? 'REVIEWED' : 'PENDING'}
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.review_info?.status === 'reviewed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                {row.review_info?.status === 'reviewed' ? 'REVIEWED' : 'PENDING'}
                               </span>
                             </td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 min-w-[140px] border-r border-gray-200">
-                              {row.reviewedDate || (
+                              {row.review_info?.review_date || (
                                 <span className="text-gray-400 flex items-center">
                                   <FiClock className="w-3 h-3 mr-1" />
                                   Not reviewed
@@ -795,7 +764,7 @@ export default function CSVReview() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Progress</span>
-                    <span className="text-sm font-medium text-blue-600">{Math.round((reviewedCount / csvData.length) * 100)}%</span>
+                    <span className="text-sm font-medium text-blue-600">{csvData.length > 0 ? Math.round((reviewedCount / csvData.length) * 100) : 0}%</span>
                   </div>
                 </div>
               </div>
