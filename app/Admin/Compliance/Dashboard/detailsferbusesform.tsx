@@ -9,19 +9,20 @@ interface DetailsFerBusesFormProps {
 
 export default function DetailsFerBusesForm({ violation, onClose }: DetailsFerBusesFormProps) {
   
-  // Custom row component to mimic the screenshot's "Label : Value" alignment
   const InfoRow = ({ label, value, isStatus = false }: { label: string; value: any; isStatus?: boolean }) => (
-    <div className="flex justify-between items-center py-1.5 text-[14px]">
-      <span className="text-gray-400 font-normal">{label}</span>
-      <div className="flex items-center gap-3">
-        <span className="text-gray-400">:</span>
+    <div className="flex justify-between items-center py-2 text-[14px] group">
+      <span className="text-gray-500 font-medium tracking-tight">{label}</span>
+      <div className="flex items-center">
+        <span className="text-gray-300 mr-4">:</span>
         {isStatus ? (
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-300"></span>
-            <span className="text-gray-700">{value ?? "Pending"}</span>
+          <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-emerald-700 font-semibold text-xs uppercase tracking-wider">
+              {value ?? "Pending"}
+            </span>
           </div>
         ) : (
-          <span className="text-gray-700 font-normal min-w-[120px] text-right">
+          <span className="text-gray-800 font-semibold text-right tabular-nums">
             {value ?? "-"}
           </span>
         )}
@@ -30,27 +31,29 @@ export default function DetailsFerBusesForm({ violation, onClose }: DetailsFerBu
   );
 
   const SectionHeader = ({ title }: { title: string }) => (
-    <div className="mt-4 mb-2 border-b border-gray-100 pb-2">
-      <h3 className="text-gray-400 font-medium text-base">{title}</h3>
+    <div className="mt-8 mb-4 border-b border-gray-100 pb-2">
+      <h3 className="text-gray-400 font-bold text-xs uppercase tracking-[0.1em]">{title}</h3>
     </div>
   );
 
   return (
-    <div className="bg-white rounded-lg shadow-2xl w-full max-w-[850px] overflow-hidden border border-gray-100 relative p-8 font-sans">
+    <div className="bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] w-full max-w-[900px] overflow-hidden border border-gray-100 relative p-10 font-sans animate-in fade-in zoom-in duration-300">
       
-      {/* Top Close Button - Minimalist Style */}
+      {/* Top Close Button - Elevated & Accessible */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-gray-300 hover:text-gray-500 transition-colors"
+        className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 hover:bg-gray-50 p-2 rounded-full transition-all duration-200"
+        aria-label="Close details"
       >
         <IoClose size={24} />
       </button>
 
-      {/* Landscape Grid: 2 Columns */}
-      <div className="grid grid-cols-2 gap-x-12">
+      {/* Landscape Grid: 2 Columns with Divider */}
+      <div className="grid grid-cols-2 gap-x-16 divide-x divide-gray-100">
         
         {/* Left Column: Primary Details */}
         <div className="flex flex-col space-y-1">
+          <SectionHeader title="Business Information" />
           <InfoRow label="Business ID" value={violation.business_id ?? "6"} />
           <InfoRow label="Business Name" value={violation.buses?.business_name ?? "IJKL Company"} />
           <InfoRow label="Violation Type" value="Fire Safety" />
@@ -61,7 +64,7 @@ export default function DetailsFerBusesForm({ violation, onClose }: DetailsFerBu
         </div>
 
         {/* Right Column: Timeline & Countdown */}
-        <div className="flex flex-col">
+        <div className="flex flex-col pl-16">
           <SectionHeader title="Notice Timeline" />
           <div className="space-y-1">
             <InfoRow label="Notice 1" value="Sent March 4, 2026" />
@@ -80,4 +83,3 @@ export default function DetailsFerBusesForm({ violation, onClose }: DetailsFerBu
     </div>
   );
 }
-             
