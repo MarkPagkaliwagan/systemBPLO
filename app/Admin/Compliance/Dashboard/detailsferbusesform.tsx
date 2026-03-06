@@ -31,8 +31,8 @@ export default function DetailsFerBusesForm({ violation, onClose }: DetailsFerBu
   );
 
   const SectionHeader = ({ title }: { title: string }) => (
-    <div className="mt-8 mb-4 border-b border-gray-100 pb-2">
-      <h3 className="text-gray-400 font-bold text-xs uppercase tracking-[0.1em]">{title}</h3>
+    <div className="mt-8 mb-4 border-b border-green-700 pb-2">
+      <h3 className="text-green-700 font-bold text-xs uppercase tracking-[0.1em]">{title}</h3>
     </div>
   );
 
