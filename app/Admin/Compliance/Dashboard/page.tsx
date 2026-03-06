@@ -12,7 +12,6 @@ import {
 import Sidebar from "../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import DetailsFerBusesForm from "./detailsferbusesform";
-
 import Calendar from "../Calendar";
 
 interface Violation {
@@ -21,7 +20,7 @@ interface Violation {
   notice_level: number;
   status: string;
   penalty_amount: number | null;
-  payment_amount: number | null; // numeric type
+  payment_amount: number | null;
   buses: {
     business_name: string | null;
   } | null;
@@ -53,7 +52,6 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     setLoading(true);
-
     const { data, error } = await supabase.from("violations").select(`
       id,
       business_id,
@@ -67,7 +65,6 @@ export default function DashboardPage() {
     `);
 
     setLoading(false);
-
     if (error) {
       console.error("Error fetching violations:", error);
       return;
@@ -129,7 +126,6 @@ export default function DashboardPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-
     if (!q) return violations;
 
     return violations.filter((v) => {
@@ -149,14 +145,10 @@ export default function DashboardPage() {
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
-
     arr.sort((a, b) => {
-      const key = sortBy.key;
-
       let av: any;
       let bv: any;
-
-      switch (key) {
+      switch (sortBy.key) {
         case "business_name":
           av = (a.buses?.business_name ?? "").toLowerCase();
           bv = (b.buses?.business_name ?? "").toLowerCase();
@@ -181,12 +173,10 @@ export default function DashboardPage() {
           av = a.business_id ?? a.id ?? 0;
           bv = b.business_id ?? b.id ?? 0;
       }
-
       if (av < bv) return sortBy.dir === "asc" ? -1 : 1;
       if (av > bv) return sortBy.dir === "asc" ? 1 : -1;
       return 0;
     });
-
     return arr;
   }, [filtered, sortBy]);
 
@@ -223,10 +213,10 @@ export default function DashboardPage() {
       />
 
       <div className="max-w-7xl mx-auto mt-20 p-2">
-          {/* Calendar Section */}
-  <div className="mb-8">
-    <Calendar />
-  </div>
+        <div className="mb-8">
+          <Calendar />
+        </div>
+
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -245,7 +235,7 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Search and perPage */}
+          {/* Search & PerPage */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div className="relative w-full md:w-80">
               <FiSearch className="absolute top-3 left-3 text-gray-400" />
@@ -274,7 +264,7 @@ export default function DashboardPage() {
             </select>
           </div>
 
-          {/* Table Desktop */}
+          {/* Desktop Table */}
           <div className="hidden md:block bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b text-sm text-gray-600">
               Showing <b>{paginated.length}</b> of <b>{total}</b> records
@@ -330,7 +320,6 @@ export default function DashboardPage() {
                   )}
 
                   {!loading && paginated.length === 0 && (
-                    
                     <tr>
                       <td colSpan={8} className="text-center py-8 text-gray-500">
                         No violations found
@@ -338,27 +327,45 @@ export default function DashboardPage() {
                     </tr>
                   )}
 
-                  {paginated.map((v) => (
-                    <tr key={v.id} onClick={() => setSelectedViolation(v)}
-                    className="hover:bg-gray-50">
-                      <td className="px-6 py-5 font-medium text-black">
-                        {v.business_id ?? v.id}
-                      </td>
-                      <td className="px-6 py-5 font-bold text-black">
-                        {v.buses?.business_name ?? "No Business"}
-                      </td>
-                      <td className="px-6 py-5">{getNoticeBadge(1, v.notice_level, v.status)}</td>
-                      <td className="px-6 py-5">{getNoticeBadge(2, v.notice_level, v.status)}</td>
-                      <td className="px-6 py-5">{getNoticeBadge(3, v.notice_level, v.status)}</td>
-                      <td className="px-6 py-5 font-semibold text-red-600">{formatMoney(v.penalty_amount)}</td>
-                      <td className="px-6 py-5 text-black">{formatMoney(v.payment_amount)}</td>
-                      <td className="px-6 py-5">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(v.status)}`}>
-                          {prettyStatus(v.status)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {!loading &&
+                    paginated.map((v) => (
+                      <tr
+                        key={v.id}
+                        onClick={() => setSelectedViolation(v)}
+                        className="hover:bg-gray-50 cursor-pointer"
+                      >
+                        <td className="px-6 py-5 font-medium text-black">
+                          {v.business_id ?? v.id}
+                        </td>
+                        <td className="px-6 py-5 font-bold text-black">
+                          {v.buses?.business_name ?? "No Business"}
+                        </td>
+                        <td className="px-6 py-5">
+                          {getNoticeBadge(1, v.notice_level, v.status)}
+                        </td>
+                        <td className="px-6 py-5">
+                          {getNoticeBadge(2, v.notice_level, v.status)}
+                        </td>
+                        <td className="px-6 py-5">
+                          {getNoticeBadge(3, v.notice_level, v.status)}
+                        </td>
+                        <td className="px-6 py-5 font-semibold text-red-600">
+                          {formatMoney(v.penalty_amount)}
+                        </td>
+                        <td className="px-6 py-5 text-black">
+                          {formatMoney(v.payment_amount)}
+                        </td>
+                        <td className="px-6 py-5">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(
+                              v.status
+                            )}`}
+                          >
+                            {prettyStatus(v.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -388,21 +395,29 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          {/* Modal Backdrop */}
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+
+          {/* Modal */}
           {selectedViolation && (
-          <DetailsFerBusesForm 
-          violation={selectedViolation} 
-          onClose={() => setSelectedViolation(null)} 
-           />
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <DetailsFerBusesForm
+                violation={selectedViolation}
+                onClose={() => setSelectedViolation(null)}
+              />
+            </div>
           )}
-          </div>
-          {/* Mobile Card View */}
+
+          {/* Mobile Cards */}
           <div className="md:hidden text-gray-600 space-y-4">
             {loading && <p className="text-center py-4">Loading data...</p>}
-            {!loading && paginated.length === 0 && <p className="text-center py-4 text-gray-500">No violations found</p>}
+            {!loading && paginated.length === 0 && (
+              <p className="text-center py-4 text-gray-500">No violations found</p>
+            )}
             {paginated.map((v) => (
-              <div key={v.id} className="bg-white p-4 rounded-xl shadow-sm space-y-2">
+              <div
+                key={v.id}
+                className="bg-white p-4 rounded-xl shadow-sm space-y-2 cursor-pointer hover:bg-gray-50"
+                onClick={() => setSelectedViolation(v)}
+              >
                 <div className="flex justify-between">
                   <span className="font-semibold text-black">ID:</span>
                   <span className="text-black">{v.business_id ?? v.id}</span>
@@ -413,18 +428,23 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex justify-between space-x-2">
                   <div>
-                    <span className="font-semibold">Notice 1:</span> {getNoticeBadge(1, v.notice_level, v.status)}
+                    <span className="font-semibold">Notice 1:</span>{" "}
+                    {getNoticeBadge(1, v.notice_level, v.status)}
                   </div>
                   <div>
-                    <span className="font-semibold">Notice 2:</span> {getNoticeBadge(2, v.notice_level, v.status)}
+                    <span className="font-semibold">Notice 2:</span>{" "}
+                    {getNoticeBadge(2, v.notice_level, v.status)}
                   </div>
                   <div>
-                    <span className="font-semibold">Notice 3:</span> {getNoticeBadge(3, v.notice_level, v.status)}
+                    <span className="font-semibold">Notice 3:</span>{" "}
+                    {getNoticeBadge(3, v.notice_level, v.status)}
                   </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-semibold">Penalty:</span>
-                  <span className="text-red-600 font-semibold">{formatMoney(v.penalty_amount)}</span>
+                  <span className="text-red-600 font-semibold">
+                    {formatMoney(v.penalty_amount)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-semibold">Payment:</span>
@@ -432,10 +452,14 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="font-semibold">Status:</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(v.status)}`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(
+                      v.status
+                    )}`}
+                  >
                     {prettyStatus(v.status)}
                   </span>
-                </div> 
+                </div>
               </div>
             ))}
           </div>
