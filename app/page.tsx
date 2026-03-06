@@ -27,14 +27,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-
       const response = await fetch("/api/auth", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          email: form.username,
+          email: form.username.trim(),
           password: form.password
         })
       });
@@ -42,19 +41,21 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-
+        // Store user data in localStorage
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("sessionToken", data.sessionToken);
         localStorage.setItem("sessionExpiry", Date.now() + data.expiresIn);
 
+        // Redirect to dashboard
         window.location.href = "/SuperAdmin/users";
-
       } else {
-        alert(data.error || "Login failed");
+        // Handle specific error messages
+        const errorMessage = data.error || "Login failed";
+        alert(errorMessage);
       }
-
     } catch (error) {
-      alert("Login error");
+      console.error("Login error:", error);
+      alert("Network error. Please try again.");
     } finally {
       setLoading(false);
     }

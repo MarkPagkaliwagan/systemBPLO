@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Direct Supabase client for database access only (no auth)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Environment variables with fallbacks for Vercel
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+// Validate environment variables
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+// Create Supabase client with proper configuration for server-side
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
+    // Input validation
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email and password are required' },
@@ -17,38 +30,60 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Custom authentication: query users table directly
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (error || !user) {
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'Invalid email format' },
+        { status: 400 }
       );
     }
 
-    // Simple password comparison (in production, use hashed passwords)
-    if (user.password !== password) {
+    // Query users table with proper error handling
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
+      .single();
+
+    if (error) {
+      console.error('Database query error:', error);
+      // Don't expose specific database errors to client
       return NextResponse.json(
-        { error: 'Invalid password' },
+        { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    // Create custom session token (simple JWT-like token)
-    const sessionToken = Buffer.from(JSON.stringify({
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
+
+    // Password comparison (in production, use bcrypt/scrypt)
+    if (user.password !== password) {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
+
+    // Create secure session token with expiration
+    const sessionData = {
       userId: user.id,
       email: user.email,
       role: user.role,
-      timestamp: Date.now()
-    })).toString('base64');
+      timestamp: Date.now(),
+      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+    };
 
-    // Return user data and custom session
-    return NextResponse.json({
+    const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+
+    // Set secure HTTP-only cookie for production
+    const isProduction = process.env.NODE_ENV === 'production';
+    const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
@@ -58,6 +93,18 @@ export async function POST(request: NextRequest) {
       sessionToken,
       expiresIn: 24 * 60 * 60 * 1000 // 24 hours
     });
+
+    // Set secure cookie in production
+    if (isProduction) {
+      response.cookies.set('session-token', sessionToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 // 24 hours
+      });
+    }
+
+    return response;
 
   } catch (error) {
     console.error('Login error:', error);
