@@ -193,7 +193,7 @@ export default function DashboardPage() {
   };
 
   const formatMoney = (n?: number | null) =>
-    ₱ ${Number(n ?? 0).toLocaleString()};
+  `₱ ${Number(n ?? 0).toLocaleString()}`;
 
   return (
     <div className="flex min-h-screen bg-gray-50 relative">
