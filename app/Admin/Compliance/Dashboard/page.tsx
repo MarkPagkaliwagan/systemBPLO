@@ -220,13 +220,7 @@ export default function DashboardPage() {
                 View and manage business violations
               </p>
             </div>
-            <button
-              onClick={fetchData}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              <FiRefreshCw /> Refresh
-            </button>
-          </div>
+              </div>
 
           {/* Search & PerPage */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">

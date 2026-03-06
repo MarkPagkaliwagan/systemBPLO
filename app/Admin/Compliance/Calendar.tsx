@@ -11,6 +11,8 @@ import {
   isSameDay,
   startOfMonth,
   endOfMonth,
+  startOfWeek,
+  endOfWeek,
 } from "date-fns";
 
 interface Violation {
@@ -49,6 +51,7 @@ export default function CalendarPage() {
 
   const fetchData = async () => {
     setLoading(true);
+
     const { data, error } = await supabase.from("violations").select(`
       id,
       business_id,
@@ -61,35 +64,36 @@ export default function CalendarPage() {
         interval_days
       )
     `);
+
     setLoading(false);
+
     if (error) return console.error(error);
+
     setViolations(data as unknown as Violation[]);
   };
 
-const violationsWithNextNotice = useMemo(() => {
-  return violations
-    .filter((v) => v.status === "open")
-    .map((v) => {
-      const baseDate = v.last_notice_sent_at
-        ? new Date(v.last_notice_sent_at)
-        : new Date(v.created_at);
+  const violationsWithNextNotice = useMemo(() => {
+    return violations
+      .filter((v) => v.status === "open")
+      .map((v) => {
+        const baseDate = v.last_notice_sent_at
+          ? new Date(v.last_notice_sent_at)
+          : new Date(v.created_at);
 
-      const interval = v.buses?.interval_days ?? 3;
+        const interval = v.buses?.interval_days ?? 3;
 
-      let nextNotice = addDays(baseDate, interval);
+        let nextNotice = addDays(baseDate, interval);
 
-      // Set to 8:00 AM Philippines Time (UTC+8)
-      const utcYear = nextNotice.getUTCFullYear();
-      const utcMonth = nextNotice.getUTCMonth();
-      const utcDate = nextNotice.getUTCDate();
+        const utcYear = nextNotice.getUTCFullYear();
+        const utcMonth = nextNotice.getUTCMonth();
+        const utcDate = nextNotice.getUTCDate();
 
-      // 8 AM PHT = 00:00 UTC + 8 hours
-      nextNotice = new Date(Date.UTC(utcYear, utcMonth, utcDate, 0, 0, 0));
-      nextNotice.setUTCHours(8); // 8 AM PHT
+        nextNotice = new Date(Date.UTC(utcYear, utcMonth, utcDate, 0, 0, 0));
+        nextNotice.setUTCHours(8);
 
-      return { ...v, nextNotice };
-    });
-}, [violations]);
+        return { ...v, nextNotice };
+      });
+  }, [violations]);
 
   const filteredViolations = useMemo(() => {
     let data: any = violationsWithNextNotice;
@@ -126,7 +130,9 @@ const violationsWithNextNotice = useMemo(() => {
 
     filteredViolations.forEach((v: any) => {
       const key = format(v.nextNotice, "yyyy-MM-dd");
+
       if (!map[key]) map[key] = [];
+
       map[key].push(v);
     });
 
@@ -134,19 +140,24 @@ const violationsWithNextNotice = useMemo(() => {
   }, [filteredViolations]);
 
   const monthDates = useMemo(() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
+    const start = startOfWeek(startOfMonth(currentMonth));
+    const end = endOfWeek(endOfMonth(currentMonth));
+
     const dates: Date[] = [];
+
     for (let d = start; d <= end; d = addDays(d, 1)) {
       dates.push(d);
     }
+
     return dates;
   }, [currentMonth]);
 
-  const handlePrevMonth = () => setCurrentMonth(addDays(currentMonth, -30));
-  const handleNextMonth = () => setCurrentMonth(addDays(currentMonth, 30));
+  const handlePrevMonth = () =>
+    setCurrentMonth(addDays(startOfMonth(currentMonth), -1));
 
-  /* realtime countdown based on 8 AM next notice */
+  const handleNextMonth = () =>
+    setCurrentMonth(addDays(endOfMonth(currentMonth), 1));
+
   const getCountdown = (target: Date) => {
     const diff = target.getTime() - now.getTime();
 
@@ -176,30 +187,48 @@ const violationsWithNextNotice = useMemo(() => {
         <div className="max-w-full mx-auto flex flex-col gap-4">
 
           {/* HEADER */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between ">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                Notice Calendar
-              </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Notice Calendar
+            </h1>
+
+           <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={handlePrevMonth}
+                className="px-3 py-1 border text-gray-400 rounded hover:bg-gray-100 text-sm"
+              >
+                Prev
+              </button>
+
+              <span className="font-semibold text-gray-800">
+                {format(currentMonth, "MMMM yyyy")}
+              </span>
+
+              <button
+                onClick={handleNextMonth}
+                className="px-3 py-1 border text-gray-400  rounded hover:bg-gray-100 text-sm"
+              >
+                Next
+              </button>
             </div>
           </div>
 
           {/* SEARCH */}
-          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-center">
+          <div className="flex flex-wrap gap-3 items-center">
 
-            <div className="flex items-center border rounded-md px-2 py-1 w-full sm:w-56">
+            <div className="flex items-center border rounded-md px-2 py-1 w-56">
               <FiSearch size={14} className="text-gray-500" />
               <input
                 type="text"
                 placeholder="Search business..."
-                className="ml-2 outline-none text-sm w-full text-gray-800"
+                className="ml-2 outline-none text-sm w-full text-gray-900"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 
             <select
-              className="border rounded-md px-2 py-1 text-sm text-gray-800"
+              className="border rounded-md px-2 py-1 text-sm text-gray-900"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
@@ -208,50 +237,54 @@ const violationsWithNextNotice = useMemo(() => {
               <option value="notice">Sort by Notice Level</option>
             </select>
 
-            <div className="flex items-center gap-2 text-xs text-gray-600">
+            <div className="flex items-center gap-2 text-xs text-gray-700">
               <FiClock size={12} />
               <span>Cron: 8:00 AM daily</span>
-              <button
-                onClick={fetchData}
-                className="p-1 rounded hover:bg-green-100 text-green-700"
-              >
-                <FiRefreshCw size={14} />
-              </button>
+
             </div>
+
           </div>
 
-          {/* CALENDAR CARD */}
-          <div className="bg-white border rounded-xl shadow-sm p-4">
+          {/* CALENDAR */}
+          <div className="bg-white border rounded-xl shadow-sm p-3">
 
-            <div className="grid grid-cols-7 gap-1 text-center text-xs">
+            <div className="grid grid-cols-7 text-center text-xs mb-1">
               {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d)=>(
                 <div key={d} className="font-semibold text-green-700">
                   {d}
                 </div>
               ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-[3px]">
 
               {monthDates.map((date)=>{
 
                 const key=format(date,"yyyy-MM-dd");
                 const has=violationsByDate[key]?.length>0;
                 const selected=selectedDate && isSameDay(date,selectedDate);
+                const today=isSameDay(date,new Date());
+                const isCurrentMonth=date.getMonth()===currentMonth.getMonth();
 
                 return(
 
                   <div
                     key={key}
                     onClick={()=>setSelectedDate(date)}
-                    className={`h-12 border rounded flex flex-col justify-center items-center cursor-pointer
-                    ${selected?"bg-green-200":has?"bg-green-50":""}
+                    className={`relative h-12 border rounded flex flex-col justify-center items-center cursor-pointer
+                    ${selected?"bg-green-200 border-green-500":""}
+                    ${today?"border-blue-500 border-2":""}
+                    ${has?"bg-green-50":""}
+                    ${!isCurrentMonth?"text-gray-300":""}
                     hover:bg-green-100`}
                   >
 
-                    <span className="text-gray-800 font-medium">
+                    <span className="text-sm font-semibold text-gray-800">
                       {date.getDate()}
                     </span>
 
                     {has && (
-                      <span className="text-[10px] text-green-800 font-semibold">
+                      <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] px-1.5 py-[1px] rounded-full font-bold shadow">
                         {violationsByDate[key].length}
                       </span>
                     )}
@@ -263,6 +296,7 @@ const violationsWithNextNotice = useMemo(() => {
               })}
 
             </div>
+
           </div>
 
           {/* DETAILS */}
