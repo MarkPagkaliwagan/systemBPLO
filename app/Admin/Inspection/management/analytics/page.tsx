@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import StatCard from "../../../../components/statcard/page";
-import Sidebar from "../../../../components/sidebar/page";
+import StatCard from "../../../../components/statcard";
+import Sidebar from "../../../../components/sidebar";
 
 
 // Updated data with green-800 centric color palette
