@@ -64,12 +64,6 @@ const sidebarItems: SidebarItem[] = [
     icon: <FiAlertCircle className="w-5 h-5" />,
         href: "/Admin/Compliance/Dashboard",
       },
-      {
-        id: "compliance-aging",
-        label: "Aging",
-        icon: <FiBookOpen className="w-4 h-4" />,
-        href: "/Admin/Compliance/Aging",
-      },
 
   {
     id: "settings",
