@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import Sidebar from "../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
+import DetailsFerBusesForm from "./detailsferbusesform";
 
 import Calendar from "../Calendar";
 
@@ -36,6 +37,7 @@ type SortKey =
 
 export default function DashboardPage() {
   const [violations, setViolations] = useState<Violation[]>([]);
+  const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
   const [sortBy, setSortBy] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
@@ -328,6 +330,7 @@ export default function DashboardPage() {
                   )}
 
                   {!loading && paginated.length === 0 && (
+                    
                     <tr>
                       <td colSpan={8} className="text-center py-8 text-gray-500">
                         No violations found
@@ -336,7 +339,8 @@ export default function DashboardPage() {
                   )}
 
                   {paginated.map((v) => (
-                    <tr key={v.id} className="hover:bg-gray-50">
+                    <tr key={v.id} onClick={() => setSelectedViolation(v)}
+                    className="hover:bg-gray-50">
                       <td className="px-6 py-5 font-medium text-black">
                         {v.business_id ?? v.id}
                       </td>
@@ -384,7 +388,15 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-
+          {/* Modal Backdrop */}
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          {selectedViolation && (
+          <DetailsFerBusesForm 
+          violation={selectedViolation} 
+          onClose={() => setSelectedViolation(null)} 
+           />
+          )}
+          </div>
           {/* Mobile Card View */}
           <div className="md:hidden text-gray-600 space-y-4">
             {loading && <p className="text-center py-4">Loading data...</p>}
@@ -423,7 +435,7 @@ export default function DashboardPage() {
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(v.status)}`}>
                     {prettyStatus(v.status)}
                   </span>
-                </div>
+                </div> 
               </div>
             ))}
           </div>
