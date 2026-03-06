@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Spinner from "./components/Spinner";
-import { supabase } from "../lib/supabaseClient";
 
 export default function LoginPage() {
 
