@@ -15,6 +15,7 @@ import {
   FiChevronRight,
   FiLogOut,
   FiKey,
+  FiTrendingUp,
 } from "react-icons/fi";
 
 interface SidebarItem {
@@ -90,21 +91,27 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
           id: "csv-manager",
           label: "Masterlist",
           icon: <FiBookOpen className="w-4 h-4" />,
-          href: "/Admin/Inspection/management/masterlist",
+          href: "/SuperAdmin/Inspection/management/masterlist",
         },
         {
           id: "review",
           label: "Scheduling",
           icon: <FiBookOpen className="w-4 h-4" />,
-          href: "/Admin/Inspection/management/review",
+          href: "/SuperAdmin/Inspection/management/review",
         },
       ],
+    },
+    {
+      id: "analytics-dashboard",
+      label: "Analytics",
+      icon: <FiTrendingUp className="w-5 h-5" />,
+      href: "/SuperAdmin/Inspection/management/analytics",
     },
     {
       id: "compliance-dashboard",
       label: "Compliance Notice",
       icon: <FiAlertCircle className="w-5 h-5" />,
-      href: "/Admin/Compliance/Dashboard",
+      href: "/SuperAdmin/Compliance/Dashboard",
     },
     {
       id: "user-management",
