@@ -23,136 +23,161 @@ export default function ViolationsPage() {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<keyof Violation | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const fetchViolations = async () => {
-    let { data, error } = await supabase
+    setLoading(true);
+    const { data, error } = await supabase
       .from("business_violations")
       .select("*")
       .ilike("business_id", `%${query}%`)
       .order(sortKey || "id", { ascending: sortAsc });
-
     if (error) console.error(error);
     else setViolations(data || []);
+    setLoading(false);
   };
 
-  useEffect(() => {
-    fetchViolations();
-  }, [query, sortKey, sortAsc]);
+  useEffect(() => { fetchViolations(); }, [query, sortKey, sortAsc]);
 
   const toggleSort = (key: keyof Violation) => {
     if (sortKey === key) setSortAsc(!sortAsc);
-    else {
-      setSortKey(key);
-      setSortAsc(true);
-    }
+    else { setSortKey(key); setSortAsc(true); }
   };
 
-  const getNoticeStatus = (notice: number, violation: Violation) => {
-    if (violation.resolved) return "Resolved";
-    if (violation.notice_level >= notice) return "Sent";
+  const getNoticeStatus = (notice: number, v: Violation) => {
+    if (v.resolved) return "Resolved";
+    if (v.notice_level >= notice) return "Sent";
     return "Pending";
   };
 
-  const getStatusText = (violation: Violation) => {
-    if (violation.resolved) return "Resolved";
-    if (violation.notice_level > 3) return "Cease and Desist";
+  const getStatusText = (v: Violation) => {
+    if (v.resolved) return "Resolved";
+    if (v.notice_level > 3) return "Cease and Desist";
     return "Pending";
   };
 
   const renderSortIcon = (key: keyof Violation) => {
-    if (sortKey !== key)
-      return <FiChevronDown className="inline ml-1 text-gray-400" />;
-    return sortAsc ? (
-      <FiChevronUp className="inline ml-1 text-gray-400" />
-    ) : (
-      <FiChevronDown className="inline ml-1 text-gray-400" />
-    );
+    if (sortKey !== key) return <FiChevronDown className="inline ml-1 text-green-200" />;
+    return sortAsc
+      ? <FiChevronUp className="inline ml-1 text-green-200" />
+      : <FiChevronDown className="inline ml-1 text-green-200" />;
+  };
+
+  const StatusBadge = ({ v }: { v: Violation }) => {
+    const status = getStatusText(v);
+    if (status === "Resolved")
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-900">Resolved</span>;
+    if (status === "Cease and Desist")
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cease & Desist</span>;
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>;
+  };
+
+  const NoticeBadge = ({ notice, v }: { notice: number; v: Violation }) => {
+    const s = getNoticeStatus(notice, v);
+    if (s === "Sent") return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-900 font-medium">Sent</span>;
+    if (s === "Resolved") return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">Resolved</span>;
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-white border text-gray-700 font-medium">Pending</span>;
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto mt-12 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold mb-6 text-gray-900">
-          Violations Monitoring
-        </h1>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* Search */}
-        <div className="mb-6 w-full md:w-96 relative">
-          <FiSearch className="absolute top-3 left-3 text-green-700" />
-          <input
-            type="text"
-            placeholder="Search by Business ID..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-10 pr-4 py-3 w-full border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition"
-          />
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
+            <p className="text-gray-500 mt-1 text-sm max-w-xl">
+              Track business violations and notices. Minimalist modern interface.
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-gray-500">Total</div>
+            <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
+          </div>
         </div>
 
-        {/* Table Container */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200 rounded-xl bg-white shadow-sm">
-            <thead className="bg-green-600 text-white rounded-t-xl">
-              <tr>
-                <th
-                  className="px-6 py-3 cursor-pointer hover:bg-green-500 transition rounded-tl-xl"
-                  onClick={() => toggleSort("business_id")}
-                >
-                  Business ID {renderSortIcon("business_id")}
-                </th>
-                <th className="px-6 py-3">Violation</th>
-                <th className="px-6 py-3">Notice 1</th>
-                <th className="px-6 py-3">Notice 2</th>
-                <th className="px-6 py-3">Notice 3</th>
-                <th
-                  className="px-6 py-3 cursor-pointer hover:bg-green-500 transition rounded-tr-xl"
-                  onClick={() => toggleSort("resolved")}
-                >
-                  Status {renderSortIcon("resolved")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {violations.length === 0 ? (
+        {/* Search + Legend */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative w-full md:w-96">
+            <FiSearch className="absolute top-3 left-3 text-green-900 opacity-80" />
+            <input
+              type="text"
+              placeholder="Search by Business ID..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-900 shadow-md"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 text-sm">
+            <div className="inline-flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-700" />
+              <span className="text-gray-600">Sent</span>
+            </div>
+            <div className="inline-flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-gray-600">Pending</span>
+            </div>
+            <div className="inline-flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-600" />
+              <span className="text-gray-600">Cease &amp; Desist</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Table Card */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+          <div className="w-full overflow-x-auto">
+            <table className="min-w-full table-fixed">
+              <thead className="bg-green-900 text-white">
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-400">
-                    No violations found
-                  </td>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
+                      onClick={() => toggleSort("business_id")}>
+                    <div className="flex items-center">Business ID {renderSortIcon("business_id")}</div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Violation</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 1</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 2</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 3</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
+                      onClick={() => toggleSort("resolved")}>
+                    <div className="flex items-center">Status {renderSortIcon("resolved")}</div>
+                  </th>
                 </tr>
-              ) : (
-                violations.map((v) => (
-                  <tr
-                    key={v.id}
-                    className="hover:bg-green-50 cursor-pointer transition"
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-800">
-                      {v.business_id}
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">{v.violation}</td>
-                    <td className="px-6 py-4 text-gray-700">
-                      {getNoticeStatus(1, v)}
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">
-                      {getNoticeStatus(2, v)}
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">
-                      {getNoticeStatus(3, v)}
-                    </td>
-                    <td
-                      className={`px-6 py-4 font-semibold ${
-                        v.resolved
-                          ? "text-green-900"
-                          : v.notice_level > 3
-                          ? "text-red-600"
-                          : "text-yellow-700"
-                      }`}
-                    >
-                      {getStatusText(v)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody className="bg-white divide-y divide-gray-100">
+                {loading
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-3/4" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-full" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
+                        <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded w-24" /></td>
+                      </tr>
+                    ))
+                  : violations.length === 0
+                  ? <tr><td colSpan={6} className="text-center py-10 text-gray-500">Walang violations na natagpuan</td></tr>
+                  : violations.map((v) => (
+                      <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 align-top">
+                          <div className="text-sm font-medium text-gray-900">{v.business_id}</div>
+                          {v.last_sent_time && <div className="text-xs text-gray-400 mt-1">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
+                        </td>
+                        <td className="px-6 py-4 align-top"><div className="text-sm text-gray-700 line-clamp-2">{v.violation}</div></td>
+                        <td className="px-6 py-4 align-top"><NoticeBadge notice={1} v={v} /></td>
+                        <td className="px-6 py-4 align-top"><NoticeBadge notice={2} v={v} /></td>
+                        <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
+                        <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
+                      </tr>
+                    ))
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
