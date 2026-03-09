@@ -7,6 +7,7 @@ import { UserForm } from "../../components/ui/user-form";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import Sidebar from "../../components/sidebar";
+import ProtectedRoute from "../../../components/ProtectedRoute";
 
 interface User {
   id: number;
@@ -50,7 +51,13 @@ export default function SuperAdminUsersPage() {
   // Fetch users from API
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users');
+      const sessionToken = localStorage.getItem('sessionToken');
+      const res = await fetch('/api/users', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        }
+      });
       const data = await res.json();
       
       if (res.ok && Array.isArray(data)) {
@@ -73,9 +80,13 @@ export default function SuperAdminUsersPage() {
   const handleCreateUser = async (formData: FormData) => {
     setIsLoading(true);
     try {
+      const sessionToken = localStorage.getItem('sessionToken');
       const res = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
         body: JSON.stringify(formData),
       });
 
@@ -99,9 +110,13 @@ export default function SuperAdminUsersPage() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
+      const sessionToken = localStorage.getItem('sessionToken');
       const res = await fetch('/api/users', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
         body: JSON.stringify({ id }),
       });
 
@@ -118,11 +133,11 @@ export default function SuperAdminUsersPage() {
   };
 
   // Filter users based on search
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+ const filteredUsers = users.filter(user => 
+  (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+  (user.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -134,7 +149,7 @@ export default function SuperAdminUsersPage() {
   };
 
   return (
-    <>
+    <ProtectedRoute requiredRole="super_admin">
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -142,25 +157,28 @@ export default function SuperAdminUsersPage() {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className={`min-h-screen bg-gray-50 transition-all duration-300 ${isMobile ? 'p-3' : 'p-6'}`}>
+        <div className={`mx-auto ${isMobile ? 'max-w-full' : 'max-w-7xl'}`}>
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">User Management</h1>
-            <p className="text-gray-600">Manage system users and their administrative permissions</p>
+            <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-2`}>User Management</h1>
+            <p className={`${isMobile ? 'text-sm' : 'text-base'} text-gray-600`}>Manage system users and their administrative permissions</p>
           </div>
 
           {/* Create User Section */}
           <Card className="mb-6">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Create New User</CardTitle>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCreatingUser(!isCreatingUser)}
-                >
-                  <FiPlus className="w-4 h-4 mr-2" />
-                  {isCreatingUser ? 'Cancel' : 'Add User'}
-                </Button>
+              <div className={`flex items-center ${isMobile ? 'justify-between' : 'justify-between'}`}>
+                <CardTitle className={`${isMobile ? 'text-sm' : ''}`}>Create New User</CardTitle>
+                {!isCreatingUser && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreatingUser(!isCreatingUser)}
+                    className={`${isMobile ? 'px-3 py-2 text-sm' : ''}`}
+                  >
+                    <FiPlus className="w-4 h-4 mr-2" />
+                    Add User
+                  </Button>
+                )}
               </div>
             </CardHeader>
             {isCreatingUser && (
@@ -177,9 +195,9 @@ export default function SuperAdminUsersPage() {
           {/* Users List */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>System Users</CardTitle>
-                <div className="flex items-center space-x-3">
+              <div className={`flex items-center justify-between`}>
+                <CardTitle className={`${isMobile ? 'text-sm' : ''}`}>System Users</CardTitle>
+                <div className="flex flex-col items-end">
                   <div className="relative">
                     <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -187,13 +205,16 @@ export default function SuperAdminUsersPage() {
                       placeholder="Search users..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent w-64"
+                      className={`pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${isMobile ? 'w-32 text-xs' : 'w-64'}`}
                     />
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className={`text-sm text-gray-500 ${isMobile ? 'hidden' : 'mt-1'}`}>
                     Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
                   </div>
                 </div>
+              </div>
+              <div className={`text-sm text-gray-500 ${isMobile ? 'text-center mt-3' : 'hidden'}`}>
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
               </div>
             </CardHeader>
             <CardContent>
@@ -208,11 +229,11 @@ export default function SuperAdminUsersPage() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="mt-4 pt-4 border-t border-gray-200 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-700">
+                  <div className={`flex items-center ${isMobile ? 'flex-col space-y-2 space-x-0' : 'justify-between space-x-3'}`}>
+                    <div className={`text-sm text-gray-700 ${isMobile ? 'text-center' : ''}`}>
                       Page {currentPage} of {totalPages}
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className={`flex items-center ${isMobile ? 'justify-center' : 'space-x-2'}`}>
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
@@ -222,7 +243,7 @@ export default function SuperAdminUsersPage() {
                       </button>
 
                       {/* Page numbers */}
-                      <div className="flex space-x-1">
+                      <div className={`flex ${isMobile ? 'space-x-1' : 'space-x-1'}`}>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                           <button
                             key={pageNum}
@@ -252,6 +273,6 @@ export default function SuperAdminUsersPage() {
           </Card>
         </div>
       </div>
-    </>
+    </ProtectedRoute>
   );
 }

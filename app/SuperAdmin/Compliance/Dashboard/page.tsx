@@ -11,7 +11,7 @@ import {
 } from "react-icons/fi";
 import Sidebar from "../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
-import DetailsFerBusesForm from "./detailsferbusesform";
+import DetailsFerBusesForm from "../../../Admin/Compliance/Dashboard/detailsferbusesform";
 import Calendar from "../Calendar";
 import ProtectedRoute from "../../../../components/ProtectedRoute";
 
@@ -197,7 +197,7 @@ export default function DashboardPage() {
     `₱ ${Number(n ?? 0).toLocaleString()}`;
 
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="super_admin">
       <div className="flex min-h-screen bg-gray-50 relative">
         <Sidebar
           isMobile={false}
