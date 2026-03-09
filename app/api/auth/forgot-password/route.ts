@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create reset URL
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${encodeURIComponent(resetToken)}`;
-
+    // Create reset URL
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
     // Send reset email
     try {
       await sendEmail(
