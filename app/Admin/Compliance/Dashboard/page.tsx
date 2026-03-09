@@ -88,7 +88,7 @@ export default function ViolationsPage() {
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
             <p className="text-gray-500 mt-1 text-sm max-w-xl">
-              Track business violations and notices. Minimalist modern interface.
+              Track business violations and notices
             </p>
           </div>
           <div className="text-right">
@@ -98,7 +98,7 @@ export default function ViolationsPage() {
         </div>
 
         {/* Search + Legend */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center text-black justify-between gap-4">
           <div className="relative w-full md:w-96">
             <FiSearch className="absolute top-3 left-3 text-green-900 opacity-80" />
             <input
@@ -160,7 +160,7 @@ export default function ViolationsPage() {
                       </tr>
                     ))
                   : violations.length === 0
-                  ? <tr><td colSpan={6} className="text-center py-10 text-gray-500">Walang violations na natagpuan</td></tr>
+                  ? <tr><td colSpan={6} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
                   : violations.map((v) => (
                       <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 align-top">
