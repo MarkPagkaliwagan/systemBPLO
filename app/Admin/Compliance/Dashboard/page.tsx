@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { FiSearch, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { createClient } from "@supabase/supabase-js";
-import Sidebar from "../../../../components/sidebar";
+import Sidebar from "../../../components/sidebar";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -82,7 +82,11 @@ export default function ViolationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 flex">
-      <Sidebar /> {/* Added sidebar */}
+      <Sidebar isCollapsed={false} setIsCollapsed={function (collapsed: boolean): void {
+        throw new Error("Function not implemented.");
+      } } isMobile={false} isMobileMenuOpen={false} setIsMobileMenuOpen={function (open: boolean): void {
+        throw new Error("Function not implemented.");
+      } } /> {/* Added sidebar */}
       <div className="flex-1 max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
