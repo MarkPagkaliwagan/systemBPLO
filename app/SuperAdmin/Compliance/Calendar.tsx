@@ -17,7 +17,7 @@ import {
 
 interface Violation {
   id: number;
-  business_id: number | null;
+  business_identification_number: string | null; // updated
   notice_level: number;
   status: string;
   last_notice_sent_at: string | null;
@@ -54,7 +54,7 @@ export default function CalendarPage() {
 
     const { data, error } = await supabase.from("violations").select(`
       id,
-      business_id,
+      business_identification_number,
       notice_level,
       status,
       last_notice_sent_at,
@@ -240,7 +240,6 @@ export default function CalendarPage() {
             <div className="flex items-center gap-2 text-xs text-gray-700">
               <FiClock size={12} />
               <span>Cron: 8:00 AM daily</span>
-
             </div>
 
           </div>
@@ -250,9 +249,11 @@ export default function CalendarPage() {
 
             <div className="grid grid-cols-7 text-center text-xs mb-1">
               {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d)=>(
+
                 <div key={d} className="font-semibold text-green-700">
                   {d}
                 </div>
+
               ))}
             </div>
 
@@ -277,6 +278,7 @@ export default function CalendarPage() {
                     ${has?"bg-green-50":""}
                     ${!isCurrentMonth?"text-gray-300":""}
                     hover:bg-green-100`}
+
                   >
 
                     <span className="text-sm font-semibold text-gray-800">

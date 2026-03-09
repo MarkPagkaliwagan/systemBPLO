@@ -10,14 +10,15 @@ const supabase = createClient(
 export async function GET() {
   const now = new Date();
 
+  // Get violations joined with business_records
   const { data: violations, error } = await supabase
     .from("violations")
     .select(`
       *,
-      buses (
-        business_name,
+      business_records (
+        "Business Name",
         interval_days,
-        email
+        "Requestor Email"
       )
     `)
     .eq("status", "open");
@@ -31,7 +32,9 @@ export async function GET() {
       ? new Date(violation.last_notice_sent_at)
       : null;
 
-    const interval = violation.buses.interval_days;
+    const interval = violation.business_records?.interval_days ?? 3;
+    const email = violation.business_records?.["Requestor Email"];
+    const businessName = violation.business_records?.["Business Name"] ?? "Unknown";
 
     const shouldSend =
       !lastSent ||
@@ -49,23 +52,27 @@ export async function GET() {
         .update({ status: "cease_desist" })
         .eq("id", violation.id);
 
-      await sendEmail(
-        violation.buses.email,
-        "Cease and Desist Notice",
-        `<h1>Final Notice</h1>
-         <p>Your business ${violation.buses.business_name} is now under Cease & Desist.</p>`
-      );
+      if (email) {
+        await sendEmail(
+          email,
+          "Cease and Desist Notice",
+          `<h1>Final Notice</h1>
+           <p>Your business ${businessName} is now under Cease & Desist.</p>`
+        );
+      }
 
       continue;
     }
 
     // SEND NEXT NOTICE
-    await sendEmail(
-      violation.buses.email,
-      `Notice Level ${nextLevel}`,
-      `<h1>Compliance Notice ${nextLevel}</h1>
-       <p>Please resolve your violation immediately.</p>`
-    );
+    if (email) {
+      await sendEmail(
+        email,
+        `Notice Level ${nextLevel}`,
+        `<h1>Compliance Notice ${nextLevel}</h1>
+         <p>Please resolve your violation immediately.</p>`
+      );
+    }
 
     await supabase
       .from("violations")
