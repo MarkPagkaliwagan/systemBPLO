@@ -80,21 +80,21 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       id: "dashboard",
       label: "Dashboard",
       icon: <FiHome className="w-5 h-5" />,
-      href: "/SuperAdmin/users",
+      href: "/SuperAdmin/Inspection/management/analytics",
     },
     {
-      id: "masterlist",
+      id: "business-registry",
       label: "Business Registry",
       icon: <FiBookOpen className="w-5 h-5" />,
       children: [
         {
-          id: "csv-manager",
+          id: "masterlist",
           label: "Masterlist",
           icon: <FiBookOpen className="w-4 h-4" />,
           href: "/SuperAdmin/Inspection/management/masterlist",
         },
         {
-          id: "review",
+          id: "scheduling",
           label: "Scheduling",
           icon: <FiBookOpen className="w-4 h-4" />,
           href: "/SuperAdmin/Inspection/management/review",
@@ -102,13 +102,7 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       ],
     },
     {
-      id: "analytics-dashboard",
-      label: "Analytics",
-      icon: <FiTrendingUp className="w-5 h-5" />,
-      href: "/SuperAdmin/Inspection/management/analytics",
-    },
-    {
-      id: "compliance-dashboard",
+      id: "compliance-notice",
       label: "Compliance Notice",
       icon: <FiAlertCircle className="w-5 h-5" />,
       href: "/SuperAdmin/Compliance/Dashboard",
