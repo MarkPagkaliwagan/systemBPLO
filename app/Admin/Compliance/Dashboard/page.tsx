@@ -63,13 +63,11 @@ export default function DashboardPage() {
         business_name
       )
     `);
-
     setLoading(false);
     if (error) {
       console.error("Error fetching violations:", error);
       return;
     }
-
     setViolations(data as unknown as Violation[]);
   };
 
@@ -98,14 +96,12 @@ export default function DashboardPage() {
           -
         </span>
       );
-
     if (currentLevel >= requiredLevel)
       return (
         <span className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
           Sent
         </span>
       );
-
     return (
       <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-full">
         Pending
@@ -116,7 +112,6 @@ export default function DashboardPage() {
   const renderSortIcon = (key: SortKey) => {
     if (sortBy.key !== key)
       return <FiChevronDown className="inline ml-1 opacity-40" />;
-
     return sortBy.dir === "asc" ? (
       <FiChevronUp className="inline ml-1" />
     ) : (
@@ -127,13 +122,11 @@ export default function DashboardPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return violations;
-
     return violations.filter((v) => {
       const name = v.buses?.business_name ?? "";
       const id = String(v.business_id ?? v.id ?? "");
       const status = v.status ?? "";
       const payment_amount = String(v.payment_amount ?? "0");
-
       return (
         name.toLowerCase().includes(q) ||
         id.toLowerCase().includes(q) ||
@@ -203,7 +196,7 @@ export default function DashboardPage() {
     `₱ ${Number(n ?? 0).toLocaleString()}`;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 relative">
       <Sidebar
         isMobile={false}
         isMobileMenuOpen={false}
@@ -227,13 +220,7 @@ export default function DashboardPage() {
                 View and manage business violations
               </p>
             </div>
-            <button
-              onClick={fetchData}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              <FiRefreshCw /> Refresh
-            </button>
-          </div>
+              </div>
 
           {/* Search & PerPage */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -269,7 +256,6 @@ export default function DashboardPage() {
             <div className="px-6 py-4 border-b text-sm text-gray-600">
               Showing <b>{paginated.length}</b> of <b>{total}</b> records
             </div>
-
             <div className="overflow-x-auto">
               <table className="min-w-full text-base">
                 <thead className="bg-green-800 text-white sticky top-0">
@@ -375,7 +361,6 @@ export default function DashboardPage() {
               <div className="text-sm text-gray-600">
                 Page {pageSafe} of {totalPages}
               </div>
-
               <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -384,7 +369,6 @@ export default function DashboardPage() {
                 >
                   <FiChevronLeft />
                 </button>
-
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={pageSafe === totalPages}
@@ -395,16 +379,6 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-
-          {/* Modal */}
-          {selectedViolation && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <DetailsFerBusesForm
-                violation={selectedViolation}
-                onClose={() => setSelectedViolation(null)}
-              />
-            </div>
-          )}
 
           {/* Mobile Cards */}
           <div className="md:hidden text-gray-600 space-y-4">
@@ -464,6 +438,16 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+
+        {/* Modal */}
+        {selectedViolation && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <DetailsFerBusesForm
+              violation={selectedViolation}
+              onClose={() => setSelectedViolation(null)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
