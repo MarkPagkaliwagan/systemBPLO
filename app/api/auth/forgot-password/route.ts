@@ -39,11 +39,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate secure reset token
+    const now = new Date();
+    console.log('=== TOKEN CREATION DEBUG ===');
+    console.log('Current Date:', now.toString());
+    console.log('Current timestamp:', now.getTime());
+    console.log('Expiration timestamp:', now.getTime() + (24 * 60 * 60 * 1000));
+    console.log('========================');
+    
     const resetToken = Buffer.from(JSON.stringify({
       userId: user.id,
       email: user.email,
-      timestamp: Date.now(),
-      exp: Date.now() + (60 * 60 * 1000) // 1 hour expiration
+      timestamp: now.getTime(),
+      exp: now.getTime() + (24 * 60 * 60 * 1000) // 24 hours from now
     })).toString('base64');
 
     // Store reset token in database (you'll need to add these columns to users table)
@@ -51,7 +58,7 @@ export async function POST(request: NextRequest) {
       .from('users')
       .update({
         password_reset_token: resetToken,
-        password_reset_expires: new Date(Date.now() + 60 * 60 * 1000).toISOString()
+        password_reset_expires: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString()
       })
       .eq('id', user.id);
 
