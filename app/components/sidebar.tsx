@@ -13,6 +13,9 @@ import {
   FiSettings,
   FiChevronDown,
   FiChevronRight,
+  FiLogOut,
+  FiKey,
+  FiTrendingUp,
 } from "react-icons/fi";
 
 interface SidebarItem {
@@ -31,47 +34,95 @@ interface SidebarProps {
   setIsMobileMenuOpen: (open: boolean) => void;
 }
 
-const sidebarItems: SidebarItem[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    icon: <FiHome className="w-5 h-5" />,
-    href: "/Admin/Inspection/management/analytics",
-  },
-  {
-    id: "masterlist",
-    label: "Business Registry",
-    icon: <FiBookOpen className="w-5 h-5" />,
-    children: [
-      {
-        id: "csv-manager",
-        label: "Masterlist",
-        icon: <FiBookOpen className="w-4 h-4" />,
-        href: "/Admin/Inspection/management/masterlist",
-      },
-      {
-        id: "review",
-        label: "Scheduling",
-        icon: <FiBookOpen className="w-4 h-4" />,
-        href: "/Admin/Inspection/management/review",
-      },
-    ],
-  },
+const getSidebarItems = (userRole: string): SidebarItem[] => {
+  const adminItems: SidebarItem[] = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: <FiHome className="w-5 h-5" />,
+      href: "/Admin/Inspection/management/analytics",
+    },
+    {
+      id: "masterlist",
+      label: "Business Registry",
+      icon: <FiBookOpen className="w-5 h-5" />,
+      children: [
+        {
+          id: "csv-manager",
+          label: "Masterlist",
+          icon: <FiBookOpen className="w-4 h-4" />,
+          href: "/Admin/Inspection/management/masterlist",
+        },
+        {
+          id: "review",
+          label: "Scheduling",
+          icon: <FiBookOpen className="w-4 h-4" />,
+          href: "/Admin/Inspection/management/review",
+        },
+      ],
+    },
+    {
+      id: "compliance-dashboard",
+      label: "Compliance Notice",
+      icon: <FiAlertCircle className="w-5 h-5" />,
+      href: "/Admin/Compliance/Dashboard",
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: <FiSettings className="w-5 h-5" />,
+      href: "/module-2-inspection/notifCompliance",
+    },
+  ];
 
-      {
-        id: "compliance-dashboard",
-    label: "Compliance Notice",
-    icon: <FiAlertCircle className="w-5 h-5" />,
-        href: "/Admin/Compliance/Dashboard",
-      },
+  const superAdminItems: SidebarItem[] = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: <FiHome className="w-5 h-5" />,
+      href: "/SuperAdmin/Inspection/management/analytics",
+    },
+    {
+      id: "business-registry",
+      label: "Business Registry",
+      icon: <FiBookOpen className="w-5 h-5" />,
+      children: [
+        {
+          id: "masterlist",
+          label: "Masterlist",
+          icon: <FiBookOpen className="w-4 h-4" />,
+          href: "/SuperAdmin/Inspection/management/masterlist",
+        },
+        {
+          id: "scheduling",
+          label: "Scheduling",
+          icon: <FiBookOpen className="w-4 h-4" />,
+          href: "/SuperAdmin/Inspection/management/review",
+        },
+      ],
+    },
+    {
+      id: "compliance-notice",
+      label: "Compliance Notice",
+      icon: <FiAlertCircle className="w-5 h-5" />,
+      href: "/SuperAdmin/Compliance/Dashboard",
+    },
+    {
+      id: "user-management",
+      label: "User Management",
+      icon: <FiUser className="w-5 h-5" />,
+      href: "/SuperAdmin/users",
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: <FiSettings className="w-5 h-5" />,
+      href: "/module-2-inspection/notifCompliance",
+    },
+  ];
 
-  {
-    id: "settings",
-    label: "Settings",
-    icon: <FiSettings className="w-5 h-5" />,
-    href: "/module-2-inspection/notifCompliance",
-  },
-];
+  return userRole === 'super_admin' ? superAdminItems : adminItems;
+};
 
 const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => {
   for (const item of items) {
@@ -97,9 +148,20 @@ export default function Sidebar({
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
+  const getUserData = () => {
+    if (typeof window !== 'undefined') {
+      const userData = localStorage.getItem('user');
+      return userData ? JSON.parse(userData) : { name: 'User Name', email: 'user@example.com', role: 'admin' };
+    }
+    return { name: 'User Name', email: 'user@example.com', role: 'admin' };
+  };
+
+  const userRole = getUserData().role;
+  const sidebarItems = getSidebarItems(userRole);
+
   useEffect(() => {
     setCurrentPageLabel(getCurrentPageLabel(pathname, sidebarItems));
-  }, [pathname]);
+  }, [pathname, userRole]);
 
   useEffect(() => {
     const activeParent = sidebarItems.find(item =>
@@ -108,7 +170,7 @@ export default function Sidebar({
     if (activeParent && !expandedItems.includes(activeParent.id)) {
       setExpandedItems(prev => [...prev, activeParent.id]);
     }
-  }, [pathname]);
+  }, [pathname, sidebarItems]);
 
   const toggleExpanded = (itemId: string) => {
     setExpandedItems(prev =>
@@ -116,6 +178,15 @@ export default function Sidebar({
         ? prev.filter(id => id !== itemId)
         : [...prev, itemId]
     );
+  };
+
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('sessionToken');
+      localStorage.removeItem('sessionExpiry');
+      window.location.href = '/';
+    }
   };
 
   const renderNavItem = (item: SidebarItem, level: number = 0) => {
@@ -181,17 +252,16 @@ export default function Sidebar({
     );
   };
 
-  /* ===================== MOBILE ===================== */
   if (isMobile) {
     return (
       <>
         <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-5 shadow-sm">
           <div className="flex items-center space-x-3">
-<Link href="/Admin/Inspection/management/analytics">
-  <div className="w-12 h-9 bg-green-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer">
-    BPLO
-  </div>
-</Link>
+            <Link href="/Admin/Inspection/management/analytics">
+              <div className="w-12 h-9 bg-green-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer">
+                BPLO
+              </div>
+            </Link>
             <div className="flex flex-col leading-tight">
               <span className="font-semibold text-gray-800 text-sm tracking-wide">
                 Inspection Management System
@@ -232,14 +302,31 @@ export default function Sidebar({
               </nav>
 
               <div className="absolute bottom-4 left-4 right-4 border-t pt-4">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 mb-3">
                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                     <FiUser className="w-4 h-4 text-gray-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">User Name</p>
-                    <p className="text-xs text-gray-500">user@example.com</p>
+                    <p className="text-sm font-medium text-gray-800">{getUserData().name}</p>
+                    <p className="text-xs text-gray-500">{getUserData().email}</p>
                   </div>
+                </div>
+                <div className="space-y-1">
+                  <Link
+                    href="/SuperAdmin/change-password"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                  >
+                    <FiKey className="w-4 h-4 mr-3" />
+                    Change Password
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+                  >
+                    <FiLogOut className="w-4 h-4 mr-3" />
+                    Logout
+                  </button>
                 </div>
               </div>
             </div>
@@ -251,19 +338,18 @@ export default function Sidebar({
     );
   }
 
-  /* ===================== DESKTOP ===================== */
   return (
     <>
       <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center space-x-4">
-<Link href="/Admin/Inspection/management/analytics">
-  <div className="w-12 h-9 bg-green-700 hover:bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer">
-    BPLO
-  </div>
-</Link>
+          <Link href="/Admin/Inspection/management/analytics">
+            <div className="w-12 h-9 bg-green-700 hover:bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer">
+              BPLO
+            </div>
+          </Link>
           <div className="flex flex-col leading-tight">
             <span className="font-semibold text-gray-800 text-sm tracking-wide">
-                Inspection Management System
+              Inspection Management System
             </span>
             <span className="text-xs text-gray-800">{currentPageLabel}</span>
           </div>
@@ -286,14 +372,31 @@ export default function Sidebar({
               {sidebarItems.map(item => renderNavItem(item))}
 
               <div className="border-t pt-4 mt-3">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 mb-3">
                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                     <FiUser className="w-4 h-4 text-gray-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">User Name</p>
-                    <p className="text-xs text-gray-500">user@example.com</p>
+                    <p className="text-sm font-medium text-gray-800">{getUserData().name}</p>
+                    <p className="text-xs text-gray-500">{getUserData().email}</p>
                   </div>
+                </div>
+                <div className="space-y-1">
+                  <Link
+                    href="/SuperAdmin/change-password"
+                    onClick={() => setIsDesktopMenuOpen(false)}
+                    className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                  >
+                    <FiKey className="w-4 h-4 mr-3" />
+                    Change Password
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+                  >
+                    <FiLogOut className="w-4 h-4 mr-3" />
+                    Logout
+                  </button>
                 </div>
               </div>
             </div>
