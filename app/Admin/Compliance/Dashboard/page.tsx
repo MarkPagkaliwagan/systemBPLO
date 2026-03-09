@@ -77,17 +77,20 @@ export default function ViolationsPage() {
     const s = getNoticeStatus(notice, v);
     if (s === "Sent") return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-900 font-medium">Sent</span>;
     if (s === "Resolved") return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">Resolved</span>;
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-white border text-gray-700 font-medium">Pending</span>;
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-700 font-medium">Pending</span>;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex">
-      <Sidebar isCollapsed={false} setIsCollapsed={function (collapsed: boolean): void {
-        throw new Error("Function not implemented.");
-      } } isMobile={false} isMobileMenuOpen={false} setIsMobileMenuOpen={function (open: boolean): void {
-        throw new Error("Function not implemented.");
-      } } /> {/* Added sidebar */}
-      <div className="flex-1 max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
+      <Sidebar 
+        isCollapsed={false} 
+        setIsCollapsed={() => {}} 
+        isMobile={false} 
+        isMobileMenuOpen={false} 
+        setIsMobileMenuOpen={() => {}} 
+      />
+
+      <div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -112,7 +115,7 @@ export default function ViolationsPage() {
               placeholder="Search by Business ID..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-900 shadow-md"
+              className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-900 shadow-sm"
             />
           </div>
 
@@ -132,8 +135,10 @@ export default function ViolationsPage() {
           </div>
         </div>
 
-        {/* Table / Card */}
+        {/* Table / Cards */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+
+          {/* Desktop Table */}
           <div className="w-full overflow-x-auto hidden md:block">
             <table className="min-w-full table-fixed">
               <thead className="bg-green-900 text-white">
@@ -152,7 +157,6 @@ export default function ViolationsPage() {
                   </th>
                 </tr>
               </thead>
-
               <tbody className="bg-white divide-y divide-gray-100">
                 {loading
                   ? Array.from({ length: 6 }).map((_, i) => (
@@ -203,7 +207,7 @@ export default function ViolationsPage() {
                       <div className="font-semibold text-gray-900 text-sm">{v.business_id}</div>
                       <StatusBadge v={v} />
                     </div>
-                    <div className="text-gray-700 text-sm">{v.violation}</div>
+                    <div className="text-gray-700 text-sm line-clamp-2">{v.violation}</div>
                     <div className="flex gap-2">
                       <NoticeBadge notice={1} v={v} />
                       <NoticeBadge notice={2} v={v} />
