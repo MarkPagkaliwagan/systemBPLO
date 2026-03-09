@@ -81,7 +81,7 @@ export default function ViolationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 flex">
+    <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex">
       <Sidebar isCollapsed={false} setIsCollapsed={function (collapsed: boolean): void {
         throw new Error("Function not implemented.");
       } } isMobile={false} isMobileMenuOpen={false} setIsMobileMenuOpen={function (open: boolean): void {
