@@ -75,6 +75,11 @@ export default function LoginPage() {
 
         <div>
 
+          {/* Header */}
+          <h2 className="text-xl font-bold text-gray-800 text-center mb-6">
+            BPLO Inspection Management System
+          </h2>
+
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <img
@@ -83,10 +88,6 @@ export default function LoginPage() {
               className="w-36 h-36 object-contain rounded-full"
             />
           </div>
-
-          <h2 className="text-xl font-bold text-gray-800 text-center mb-2">
-            BPLO Inspection Management System
-          </h2>
 
           <p className="text-gray-400 text-center mb-10 text-sm">
             Please enter your details to sign in
