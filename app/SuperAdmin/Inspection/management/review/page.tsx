@@ -819,6 +819,7 @@ export default function CSVReview() {
         onSave={handleSaveReview}
         isMobile={isMobile}
       />
+      </>
     </ProtectedRoute>
   );
 }
