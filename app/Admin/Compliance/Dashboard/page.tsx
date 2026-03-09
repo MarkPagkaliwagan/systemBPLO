@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FiSearch, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { createClient } from "@supabase/supabase-js";
+import Sidebar from "../../../../components/sidebar";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -80,8 +81,9 @@ export default function ViolationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 p-6 flex">
+      <Sidebar /> {/* Added sidebar */}
+      <div className="flex-1 max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -126,9 +128,9 @@ export default function ViolationsPage() {
           </div>
         </div>
 
-        {/* Table (Desktop) / Cards (Mobile) */}
+        {/* Table / Card */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
-          <div className="hidden md:block w-full overflow-x-auto">
+          <div className="w-full overflow-x-auto hidden md:block">
             <table className="min-w-full table-fixed">
               <thead className="bg-green-900 text-white">
                 <tr>
@@ -183,22 +185,21 @@ export default function ViolationsPage() {
           <div className="md:hidden space-y-4 p-4">
             {loading
               ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="animate-pulse border rounded-xl p-4 shadow-sm bg-gray-100 space-y-2">
+                  <div key={i} className="animate-pulse border rounded-xl p-4 bg-gray-100 space-y-2">
                     <div className="h-4 bg-gray-200 rounded w-1/2" />
-                    <div className="h-3 bg-gray-200 rounded w-full" />
-                    <div className="h-3 bg-gray-200 rounded w-3/4" />
+                    <div className="h-4 bg-gray-200 rounded w-full" />
                     <div className="h-4 bg-gray-200 rounded w-1/4" />
                   </div>
                 ))
               : violations.length === 0
               ? <div className="text-center py-10 text-gray-500">NO DATA FOUND</div>
               : violations.map((v) => (
-                  <div key={v.id} className="border rounded-xl p-4 shadow-sm bg-white space-y-2">
+                  <div key={v.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-2">
                     <div className="flex justify-between items-center">
-                      <div className="font-medium text-gray-900">{v.business_id}</div>
+                      <div className="font-semibold text-gray-900 text-sm">{v.business_id}</div>
                       <StatusBadge v={v} />
                     </div>
-                    <div className="text-sm text-gray-700 line-clamp-2">{v.violation}</div>
+                    <div className="text-gray-700 text-sm">{v.violation}</div>
                     <div className="flex gap-2">
                       <NoticeBadge notice={1} v={v} />
                       <NoticeBadge notice={2} v={v} />
