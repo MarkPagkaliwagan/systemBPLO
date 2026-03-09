@@ -13,6 +13,7 @@ import Sidebar from "../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import DetailsFerBusesForm from "./detailsferbusesform";
 import Calendar from "../Calendar";
+import ProtectedRoute from "../../../../components/ProtectedRoute";
 
 interface Violation {
   id: number;
@@ -196,19 +197,20 @@ export default function DashboardPage() {
     `₱ ${Number(n ?? 0).toLocaleString()}`;
 
   return (
-    <div className="flex min-h-screen bg-gray-50 relative">
-      <Sidebar
-        isMobile={false}
-        isMobileMenuOpen={false}
-        setIsMobileMenuOpen={() => {}}
-        isCollapsed={false}
-        setIsCollapsed={() => {}}
-      />
+    <ProtectedRoute requiredRole="admin">
+      <div className="flex min-h-screen bg-gray-50 relative">
+        <Sidebar
+          isMobile={false}
+          isMobileMenuOpen={false}
+          setIsMobileMenuOpen={() => {}}
+          isCollapsed={false}
+          setIsCollapsed={() => {}}
+        />
 
-      <div className="max-w-7xl mx-auto mt-20 p-2">
-        <div className="mb-8">
-          <Calendar />
-        </div>
+        <div className="max-w-7xl mx-auto mt-20 p-2">
+          <div className="mb-8">
+            <Calendar />
+          </div>
 
         <div className="max-w-7xl mx-auto">
           <div className="mb-6 flex items-center justify-between">
@@ -450,5 +452,6 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

@@ -98,9 +98,19 @@ export default function ChangePasswordPage() {
           confirmPassword: ""
         });
         
-        // Redirect to dashboard after 2 seconds
+        // Get user role for role-based redirect
+        const userData = localStorage.getItem('user');
+        const user = userData ? JSON.parse(userData) : null;
+        
+        // Redirect based on user role after 2 seconds
         setTimeout(() => {
-          router.push('/SuperAdmin/users');
+          if (user?.role === 'super_admin') {
+            router.push('/SuperAdmin/users'); // Super Admin goes to user management
+          } else if (user?.role === 'admin') {
+            router.push('/Admin/Inspection/management/analytics'); // Admin goes to dashboard
+          } else {
+            router.push('/'); // Fallback to login
+          }
         }, 2000);
       } else {
         setError(data.error || "Failed to change password");

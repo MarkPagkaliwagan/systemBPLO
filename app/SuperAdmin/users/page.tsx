@@ -7,6 +7,7 @@ import { UserForm } from "../../components/ui/user-form";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import Sidebar from "../../components/sidebar";
+import ProtectedRoute from "../../../components/ProtectedRoute";
 
 interface User {
   id: number;
@@ -50,7 +51,13 @@ export default function SuperAdminUsersPage() {
   // Fetch users from API
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users');
+      const sessionToken = localStorage.getItem('sessionToken');
+      const res = await fetch('/api/users', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        }
+      });
       const data = await res.json();
       
       if (res.ok && Array.isArray(data)) {
@@ -73,9 +80,13 @@ export default function SuperAdminUsersPage() {
   const handleCreateUser = async (formData: FormData) => {
     setIsLoading(true);
     try {
+      const sessionToken = localStorage.getItem('sessionToken');
       const res = await fetch('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
         body: JSON.stringify(formData),
       });
 
@@ -99,9 +110,13 @@ export default function SuperAdminUsersPage() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
+      const sessionToken = localStorage.getItem('sessionToken');
       const res = await fetch('/api/users', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`
+        },
         body: JSON.stringify({ id }),
       });
 
@@ -134,7 +149,7 @@ export default function SuperAdminUsersPage() {
   };
 
   return (
-    <>
+    <ProtectedRoute requiredRole="super_admin">
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -258,6 +273,6 @@ export default function SuperAdminUsersPage() {
           </Card>
         </div>
       </div>
-    </>
+    </ProtectedRoute>
   );
 }
