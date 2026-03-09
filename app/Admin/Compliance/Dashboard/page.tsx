@@ -22,6 +22,8 @@ interface Violation {
   status: string;
   penalty_amount: number | null;
   payment_amount: number | null;
+  created_at: string | null;
+  last_notice_sent_at: string | null;
   buses: {
     business_name: string | null;
   } | null;
@@ -52,25 +54,26 @@ export default function DashboardPage() {
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from("violations").select(`
-      id,
-      business_id,
-      notice_level,
-      status,
-      penalty_amount,
-      payment_amount,
-      buses (
-        business_name
-      )
-    `);
-    setLoading(false);
-    if (error) {
-      console.error("Error fetching violations:", error);
-      return;
-    }
-    setViolations(data as unknown as Violation[]);
-  };
+  setLoading(true);
+  const { data, error } = await supabase.from("violations").select(`
+    id,
+    business_id,
+    notice_level,
+    status,
+    penalty_amount,
+    payment_amount,
+    created_at,
+    buses (
+      business_name
+    )
+  `);
+  setLoading(false);
+  if (error) {
+    console.error("Error fetching violations:", error);
+    return;
+  }
+  setViolations(data as unknown as Violation[]);
+};
 
   const getStatusBadge = (status: string) => {
     if (status === "open") return "bg-yellow-100 text-yellow-800";
@@ -194,7 +197,7 @@ export default function DashboardPage() {
   };
 
   const formatMoney = (n?: number | null) =>
-    `₱ ${Number(n ?? 0).toLocaleString()}`;
+  `₱ ${Number(n ?? 0).toLocaleString()}`;
 
   return (
     <ProtectedRoute requiredRole="admin">
