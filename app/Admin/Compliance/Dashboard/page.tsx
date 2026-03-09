@@ -66,17 +66,17 @@ export default function ViolationsPage() {
   const StatusBadge = ({ v }: { v: Violation }) => {
     const status = getStatusText(v);
     if (status === "Resolved")
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-900">Resolved</span>;
+      return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-900">Resolved</span>;
     if (status === "Cease and Desist")
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cease & Desist</span>;
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>;
+      return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">Cease & Desist</span>;
+    return <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">Pending</span>;
   };
 
   const NoticeBadge = ({ notice, v }: { notice: number; v: Violation }) => {
     const s = getNoticeStatus(notice, v);
-    if (s === "Sent") return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-900 font-medium">Sent</span>;
-    if (s === "Resolved") return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">Resolved</span>;
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-white border text-gray-700 font-medium">Pending</span>;
+    if (s === "Sent") return <span className="text-sm px-3 py-1 rounded-full bg-green-100 text-green-900 font-medium">Sent</span>;
+    if (s === "Resolved") return <span className="text-sm px-3 py-1 rounded-full bg-gray-100 text-gray-700 font-medium">Resolved</span>;
+    return <span className="text-sm px-3 py-1 rounded-full bg-white border text-gray-700 font-medium">Pending</span>;
   };
 
   return (
@@ -126,8 +126,8 @@ export default function ViolationsPage() {
           </div>
         </div>
 
-        {/* Table Card */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+        {/* Table for Desktop */}
+        <div className="hidden md:block bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
           <div className="w-full overflow-x-auto">
             <table className="min-w-full table-fixed">
               <thead className="bg-green-900 text-white">
@@ -179,6 +179,42 @@ export default function ViolationsPage() {
             </table>
           </div>
         </div>
+
+        {/* Cards for Mobile */}
+        <div className="md:hidden space-y-4">
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="animate-pulse bg-white rounded-xl shadow-md p-4 space-y-2 border border-gray-200">
+                  <div className="h-4 bg-gray-100 rounded w-3/4" />
+                  <div className="h-3 bg-gray-100 rounded w-full" />
+                  <div className="flex gap-2">
+                    <div className="h-3 w-16 bg-gray-100 rounded" />
+                    <div className="h-3 w-16 bg-gray-100 rounded" />
+                    <div className="h-3 w-16 bg-gray-100 rounded" />
+                  </div>
+                  <div className="h-4 bg-gray-100 rounded w-24" />
+                </div>
+              ))
+            : violations.length === 0
+            ? <div className="text-center py-10 text-gray-500">NO DATA FOUND</div>
+            : violations.map((v) => (
+                <div key={v.id} className="bg-white rounded-xl shadow-md p-4 space-y-2 border border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm font-medium text-gray-900">{v.business_id}</div>
+                    <StatusBadge v={v} />
+                  </div>
+                  {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
+                  <div className="text-sm text-gray-700 line-clamp-2">{v.violation}</div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <NoticeBadge notice={1} v={v} />
+                    <NoticeBadge notice={2} v={v} />
+                    <NoticeBadge notice={3} v={v} />
+                  </div>
+                </div>
+              ))
+          }
+        </div>
+
       </div>
     </div>
   );
