@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Spinner from "./components/Spinner";
 
 export default function LoginPage() {
@@ -45,8 +46,14 @@ export default function LoginPage() {
         localStorage.setItem("sessionToken", data.sessionToken);
         localStorage.setItem("sessionExpiry", Date.now() + data.expiresIn);
 
-        // Redirect to dashboard
-        window.location.href = "/SuperAdmin/users";
+        // Redirect to appropriate dashboard based on user role
+        if (data.user.role === 'super_admin') {
+          window.location.href = "/SuperAdmin/users";
+        } else if (data.user.role === 'admin') {
+          window.location.href = "/Admin/Inspection/management/analytics";
+        } else {
+          window.location.href = "/Admin/Inspection/management/analytics";
+        }
       } else {
         // Handle specific error messages
         const errorMessage = data.error || "Login failed";
@@ -135,9 +142,9 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-auto pt-8 text-center">
-          <a href="#" className="text-xs text-gray-400 hover:underline">
+          <Link href="/forgot-password" className="text-xs text-gray-400 hover:underline">
             Forgot your password?
-          </a>
+          </Link>
         </div>
 
       </div>
