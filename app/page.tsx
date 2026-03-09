@@ -48,7 +48,7 @@ export default function LoginPage() {
 
         // Redirect to appropriate dashboard based on user role
         if (data.user.role === 'super_admin') {
-          window.location.href = "/SuperAdmin/users";
+          window.location.href = "/SuperAdmin/Inspection/management/analytics";
         } else if (data.user.role === 'admin') {
           window.location.href = "/Admin/Inspection/management/analytics";
         } else {
