@@ -178,7 +178,14 @@ export default function ViolationsPage() {
               className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-900 shadow-sm"
             />
           </div>
-          <div className="flex items-center gap-2">
+  
+          <div className="flex items-center gap-3 text-sm">
+            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-700" /> <span className="text-gray-600">Sent</span></div>
+            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-gray-600">Pending</span></div>
+            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-600" /> <span className="text-gray-600">Cease &amp; Desist</span></div>
+          </div>
+        </div>
+                <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Auto Send</label>
             <input
               type="checkbox"
@@ -193,12 +200,6 @@ export default function ViolationsPage() {
               }}
             />
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-700" /> <span className="text-gray-600">Sent</span></div>
-            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-gray-600">Pending</span></div>
-            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-600" /> <span className="text-gray-600">Cease &amp; Desist</span></div>
-          </div>
-        </div>
 
         {/* Table / Cards */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
