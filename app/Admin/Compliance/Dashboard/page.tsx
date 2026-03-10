@@ -293,6 +293,35 @@ export default function ViolationsPage() {
 
           {/* Mobile Cards */}
           <div className="md:hidden space-y-4 p-4">
+            {/* Mobile Auto Send toggle */}
+            <div className="md:hidden flex justify-end mb-2 px-4">
+              <label className="flex items-center cursor-pointer select-none">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={autoSend}
+                    onChange={async (e) => {
+                      const checked = e.target.checked;
+                      setAutoSend(checked);
+                      localStorage.setItem("autoSend", checked ? "true" : "false");
+                      await fetch("/api/automatic-send", {
+                        method: "POST",
+                        body: JSON.stringify({ autoSend: checked }),
+                        headers: { "Content-Type": "application/json" },
+                      });
+                    }}
+                  />
+                  <div className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`} />
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""}`}
+                  />
+                </div>
+                <span className="ml-2 text-sm font-medium text-gray-700 flex items-center gap-1">
+                  Auto Send <FiSend className="text-green-600" />
+                </span>
+              </label>
+            </div>
             {loading
               ? Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="animate-pulse border rounded-xl p-4 bg-gray-100 space-y-2">
