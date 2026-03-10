@@ -29,17 +29,21 @@ export default function ViolationsPage() {
   const [sortAsc, setSortAsc] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  // ✅ NEW
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const fetchViolations = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
+    let request = supabase
       .from("business_violations")
       .select("*")
-      .ilike("business_id", `%${query}%`)
-      .order(sortKey || "id", { ascending: sortAsc });
+      .ilike("business_id", `%${query}%`);
+
+    if (sortKey) {
+      request = request.order(sortKey, { ascending: sortAsc });
+    }
+
+    const { data, error } = await request;
 
     if (error) console.error(error);
     else setViolations(data || []);
@@ -59,7 +63,6 @@ export default function ViolationsPage() {
     }
   };
 
-  // ✅ SELECT ROW
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
       prev.includes(id)
@@ -68,7 +71,6 @@ export default function ViolationsPage() {
     );
   };
 
-  // ✅ SELECT ALL
   const toggleSelectAll = () => {
     if (selectedIds.length === violations.length) {
       setSelectedIds([]);
@@ -77,7 +79,6 @@ export default function ViolationsPage() {
     }
   };
 
-  // ✅ Updated getNoticeStatus
   const getNoticeStatus = (notice: number, v: Violation) => {
     const level = v.notice_level || 0;
     if (v.resolved) return "Resolved";
@@ -170,6 +171,19 @@ export default function ViolationsPage() {
     return new Date() >= nextSend;
   };
 
+  const getNextSendDate = (v: Violation) => {
+    if (!v.last_sent_time) return "Now";
+
+    const interval = v.interval_days || 7;
+    const lastSent = new Date(v.last_sent_time);
+
+    const nextSend = new Date(
+      lastSent.getTime() + interval * 24 * 60 * 60 * 1000
+    );
+
+    return nextSend.toLocaleDateString();
+  };
+
   const handleSendNotice = async (id: number) => {
     setLoading(true);
 
@@ -194,7 +208,6 @@ export default function ViolationsPage() {
     }
   };
 
-  // ✅ BULK SEND
   const handleBulkSendNotice = async () => {
     if (selectedIds.length === 0) {
       alert("No rows selected");
@@ -237,7 +250,6 @@ export default function ViolationsPage() {
 
       <div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
 
-        {/* Header */}
         <div className="flex justify-between items-center">
 
           <div>
@@ -249,7 +261,6 @@ export default function ViolationsPage() {
             </p>
           </div>
 
-          {/* ✅ BULK BUTTON */}
           <button
             onClick={handleBulkSendNotice}
             className="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-800"
@@ -259,7 +270,6 @@ export default function ViolationsPage() {
 
         </div>
 
-        {/* SEARCH */}
         <div className="relative w-full md:w-96 text-black">
           <FiSearch className="absolute top-3 left-3 text-green-900 opacity-80" />
           <input
@@ -271,7 +281,6 @@ export default function ViolationsPage() {
           />
         </div>
 
-        {/* TABLE */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
           <div className="w-full overflow-x-auto">
 
@@ -280,7 +289,6 @@ export default function ViolationsPage() {
               <thead className="bg-green-900 text-white">
                 <tr>
 
-                  {/* ✅ SELECT ALL */}
                   <th className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -293,17 +301,47 @@ export default function ViolationsPage() {
                   </th>
 
                   <th
-                    className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer"
+                    className="px-6 py-3 cursor-pointer"
                     onClick={() => toggleSort("business_id")}
                   >
                     Business ID {renderSortIcon("business_id")}
                   </th>
 
-                  <th className="px-6 py-3">Violation</th>
-                  <th className="px-6 py-3">Notice 1</th>
-                  <th className="px-6 py-3">Notice 2</th>
-                  <th className="px-6 py-3">Notice 3</th>
-                  <th className="px-6 py-3">Status</th>
+                  <th
+                    className="px-6 py-3 cursor-pointer"
+                    onClick={() => toggleSort("violation")}
+                  >
+                    Violation {renderSortIcon("violation")}
+                  </th>
+
+                  <th
+                    className="px-6 py-3 cursor-pointer"
+                    onClick={() => toggleSort("notice_level")}
+                  >
+                    Notice 1 {renderSortIcon("notice_level")}
+                  </th>
+
+                  <th
+                    className="px-6 py-3 cursor-pointer"
+                    onClick={() => toggleSort("notice_level")}
+                  >
+                    Notice 2 {renderSortIcon("notice_level")}
+                  </th>
+
+                  <th
+                    className="px-6 py-3 cursor-pointer"
+                    onClick={() => toggleSort("notice_level")}
+                  >
+                    Notice 3 {renderSortIcon("notice_level")}
+                  </th>
+
+                  <th
+                    className="px-6 py-3 cursor-pointer"
+                    onClick={() => toggleSort("resolved")}
+                  >
+                    Status {renderSortIcon("resolved")}
+                  </th>
+
                   <th className="px-6 py-3">Action</th>
 
                 </tr>
@@ -314,7 +352,6 @@ export default function ViolationsPage() {
                 {violations.map((v) => (
                   <tr key={v.id} className="hover:bg-gray-50">
 
-                    {/* ✅ CHECKBOX */}
                     <td className="px-4 py-4">
                       <input
                         type="checkbox"
@@ -358,7 +395,9 @@ export default function ViolationsPage() {
                             : "bg-gray-300 text-gray-600 cursor-not-allowed"
                         }`}
                       >
-                        Send Notice
+                        {canSendNotice(v)
+                          ? "Send Notice"
+                          : `Next Send: ${getNextSendDate(v)}`}
                       </button>
 
                     </td>
