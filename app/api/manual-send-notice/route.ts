@@ -38,29 +38,30 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Decide notice content
-  let subjectText = "", textBody = "", htmlBody = "";
-  if (v.notice_level === 1) {
-    subjectText = "Notice 1: Business Violation";
-    textBody = `Your business has a violation: ${v.violation}. Resolve within ${interval} days.`;
-    htmlBody = `<p>Your business has a violation: <strong>${v.violation}</strong></p><p>Please resolve within ${interval} days.</p>`;
-  } else if (v.notice_level === 2) {
-    subjectText = "Notice 2: Business Violation Unresolved";
-    textBody = `Your business violation is still unresolved: ${v.violation}. Immediate attention required.`;
-    htmlBody = `<p>Your business violation is still unresolved: <strong>${v.violation}</strong></p><p>Immediate attention required.</p>`;
-  } else if (v.notice_level === 3) {
-    subjectText = "Final Notice: Business Violation";
-    textBody = `Final notice: ${v.violation}. Cease & Desist review pending.`;
-    htmlBody = `<p>Final notice: <strong>${v.violation}</strong></p><p>Cease & Desist review pending.</p>`;
-  }
+// Decide notice content
+let subjectText = "", textBody = "", htmlBody = "";
 
-  // Send email
-  await sendEmail(v.requestor_email!, subjectText, textBody, htmlBody);
+// Treat notice_level 0 as first notice
+const level = v.notice_level === 0 ? 1 : v.notice_level;
 
-  // Update DB
-  let updateData: any = { last_sent_time: now };
-  if (v.notice_level < 3) updateData.notice_level = v.notice_level + 1;
-  else updateData.cease_flag = true;
+if (level === 1) {
+  subjectText = "Notice 1: Business Violation";
+  textBody = `Your business has a violation: ${v.violation}. Resolve within ${interval} days.`;
+  htmlBody = `<p>Your business has a violation: <strong>${v.violation}</strong></p><p>Please resolve within ${interval} days.</p>`;
+} else if (level === 2) {
+  subjectText = "Notice 2: Business Violation Unresolved";
+  textBody = `Your business violation is still unresolved: ${v.violation}. Immediate attention required.`;
+  htmlBody = `<p>Your business violation is still unresolved: <strong>${v.violation}</strong></p><p>Immediate attention required.</p>`;
+} else if (level === 3) {
+  subjectText = "Final Notice: Business Violation";
+  textBody = `Final notice: ${v.violation}. Cease & Desist review pending.`;
+  htmlBody = `<p>Final notice: <strong>${v.violation}</strong></p><p>Cease & Desist review pending.</p>`;
+}
+
+// Update DB
+let updateData: any = { last_sent_time: now };
+if (level < 3) updateData.notice_level = level + 1; // increment notice level
+else updateData.cease_flag = true;
 
   await supabase.from("business_violations").update(updateData).eq("id", id);
 
