@@ -29,12 +29,8 @@ import {
 } from "lucide-react";
 
 import Sidebar from "../../../../components/sidebar";
+import { supabase } from "@/lib/supabaseClient";
 import { LucideIcon } from "lucide-react";
-
-type ComplianceStatus = {
-  name: string;
-  value: number;
-};
 
 type NoticeData = {
   notice: string;
@@ -46,13 +42,6 @@ type StatusData = {
   name: string;
   value: number;
 };
-
-const complianceData: ComplianceStatus[] = [
-  { name: "Compliant", value: 120 },
-  { name: "Non-Compliant", value: 45 },
-  { name: "For Inspection", value: 30 },
-  { name: "Active", value: 90 }
-];
 
 const noticeData: NoticeData[] = [
   { notice: "Notice 1", sent: 40, pending: 10 },
@@ -74,6 +63,12 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('compliance');
 
+  // Fetched counts from business_records
+  const [compliantCount, setCompliantCount] = useState(0);
+  const [nonCompliantCount, setNonCompliantCount] = useState(0);
+  const [forInspectionCount, setForInspectionCount] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -87,6 +82,41 @@ export default function DashboardPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  useEffect(() => {
+    const fetchStatusCounts = async () => {
+      try {
+        const [
+          { count: compliant },
+          { count: nonCompliant },
+          { count: forInspection },
+          { count: active },
+        ] = await Promise.all([
+          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'compliant'),
+          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'non_compliant'),
+          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'for_inspection'),
+          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        ]);
+
+        setCompliantCount(compliant ?? 0);
+        setNonCompliantCount(nonCompliant ?? 0);
+        setForInspectionCount(forInspection ?? 0);
+        setActiveCount(active ?? 0);
+      } catch (err) {
+        console.error('❌ fetchStatusCounts error:', err);
+      }
+    };
+
+    fetchStatusCounts();
+  }, []);
+
+  // Derived from fetched data
+  const complianceData = [
+    { name: "Compliant", value: compliantCount },
+    { name: "Non-Compliant", value: nonCompliantCount },
+    { name: "For Inspection", value: forInspectionCount },
+    { name: "Active", value: activeCount },
+  ];
+
   const tabs = [
     { id: 'compliance', label: 'Compliance Overview', icon: CheckCircle },
     { id: 'notices', label: 'Notice Analytics', icon: Mail },
@@ -94,10 +124,10 @@ export default function DashboardPage() {
   ];
 
   const kpiData = [
-    { title: "Compliant", value: "120", icon: CheckCircle, color: "from-green-400 to-green-600", trend: "+12%" },
-    { title: "Non-Compliant", value: "45", icon: AlertTriangle, color: "from-red-400 to-red-600", trend: "-5%" },
-    { title: "For Inspection", value: "30", icon: ClipboardList, color: "from-yellow-400 to-yellow-600", trend: "+8%" },
-    { title: "Active Businesses", value: "90", icon: Building2, color: "from-blue-400 to-blue-600", trend: "+15%" }
+    { title: "Compliant", value: String(compliantCount), icon: CheckCircle, color: "from-green-400 to-green-600", trend: "+12%" },
+    { title: "Non-Compliant", value: String(nonCompliantCount), icon: AlertTriangle, color: "from-red-400 to-red-600", trend: "-5%" },
+    { title: "For Inspection", value: String(forInspectionCount), icon: ClipboardList, color: "from-yellow-400 to-yellow-600", trend: "+8%" },
+    { title: "Active Businesses", value: String(activeCount), icon: Building2, color: "from-blue-400 to-blue-600", trend: "+15%" }
   ];
 
   const noticeStats = [
@@ -233,7 +263,6 @@ export default function DashboardPage() {
                       {/* PIE CHART WITH LEGEND - MOBILE FRIENDLY */}
                       <div className="flex-1 flex items-center">
                         {isMobile ? (
-                          // Mobile layout: Pie chart above legend
                           <div className="w-full space-y-6">
                             <div className="flex justify-center">
                               <ResponsiveContainer width="100%" height={250}>
@@ -262,7 +291,6 @@ export default function DashboardPage() {
                               </ResponsiveContainer>
                             </div>
                             
-                            {/* Mobile Legend - Grid layout */}
                             <div className="grid grid-cols-2 gap-3">
                               {complianceData.map((item, index) => (
                                 <div key={index} className="flex items-center space-x-2 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
@@ -276,7 +304,6 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         ) : (
-                          // Desktop layout: Side by side
                           <div className="flex items-center justify-between gap-6 w-full">
                             <div className="flex-1">
                               <ResponsiveContainer width="100%" height={380}>
@@ -329,7 +356,6 @@ export default function DashboardPage() {
                         <p className="text-slate-500 text-sm mb-6">Sent vs pending notices by type</p>
                       </div>
                       
-                      {/* BAR CHART */}
                       <div className="flex-1 flex items-center">
                         <div className="w-full max-w-2xl mx-auto">
                           <ResponsiveContainer width="100%" height={320}>
@@ -379,10 +405,8 @@ export default function DashboardPage() {
                         <p className="text-slate-500 text-sm mb-6">Current cease and desist and active cases status</p>
                       </div>
                       
-                      {/* STATUS PIE CHART WITH LEGEND - MOBILE FRIENDLY */}
                       <div className="flex-1 flex items-center">
                         {isMobile ? (
-                          // Mobile layout: Pie chart above legend
                           <div className="w-full space-y-6">
                             <div className="flex justify-center">
                               <ResponsiveContainer width="100%" height={250}>
@@ -411,7 +435,6 @@ export default function DashboardPage() {
                               </ResponsiveContainer>
                             </div>
                             
-                            {/* Mobile Legend - Grid layout */}
                             <div className="grid grid-cols-2 gap-3">
                               {statusData.map((item, index) => (
                                 <div key={index} className="flex items-center space-x-2 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
@@ -425,7 +448,6 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         ) : (
-                          // Desktop layout: Side by side
                           <div className="flex items-center justify-between gap-6 w-full">
                             <div className="flex-1">
                               <ResponsiveContainer width="100%" height={380}>
