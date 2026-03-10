@@ -16,7 +16,10 @@ type Violation = {
   violation: string;
   notice_level: number;
   last_sent_time: string | null;
+  interval_days: number | null;
   resolved: boolean;
+  requestor_email: string | null;
+  cease_flag?: boolean;
 };
 
 export default function ViolationsPage() {
@@ -45,15 +48,17 @@ export default function ViolationsPage() {
     else { setSortKey(key); setSortAsc(true); }
   };
 
+  // ✅ Updated getNoticeStatus to default 0
   const getNoticeStatus = (notice: number, v: Violation) => {
+    const level = v.notice_level || 0;
     if (v.resolved) return "Resolved";
-    if (v.notice_level >= notice) return "Sent";
+    if (level >= notice) return "Sent";
     return "Pending";
   };
 
   const getStatusText = (v: Violation) => {
     if (v.resolved) return "Resolved";
-    if (v.notice_level > 3) return "Cease and Desist";
+    if (v.cease_flag) return "Cease and Desist";
     return "Pending";
   };
 
@@ -64,6 +69,7 @@ export default function ViolationsPage() {
       : <FiChevronDown className="inline ml-1 text-green-200" />;
   };
 
+  // Badges
   const StatusBadge = ({ v }: { v: Violation }) => {
     const status = getStatusText(v);
     if (status === "Resolved")
@@ -78,6 +84,35 @@ export default function ViolationsPage() {
     if (s === "Sent") return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-900 font-medium">Sent</span>;
     if (s === "Resolved") return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">Resolved</span>;
     return <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-700 font-medium">Pending</span>;
+  };
+
+  // Check if Send Notice button is allowed based on interval_days
+  const canSendNotice = (v: Violation) => {
+    if (v.resolved) return false;
+    const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
+    const interval = v.interval_days || 7;
+    if (!lastSent) return true;
+    const nextSend = new Date(lastSent.getTime() + interval*24*60*60*1000);
+    return new Date() >= nextSend;
+  };
+
+  // Manual send handler
+  const handleSendNotice = async (id: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/manual-send-notice", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (data.success) alert("Notice sent successfully!");
+      else alert(`Failed: ${data.error}`);
+      fetchViolations(); // refresh table/cards
+    } catch (err) {
+      console.error(err);
+      alert("Error sending notice.");
+    } finally { setLoading(false); }
   };
 
   return (
@@ -96,9 +131,7 @@ export default function ViolationsPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
-            <p className="text-gray-500 mt-1 text-sm max-w-xl">
-              Track business violations and notices
-            </p>
+            <p className="text-gray-500 mt-1 text-sm max-w-xl">Track business violations and notices</p>
           </div>
           <div className="text-right">
             <div className="text-xs text-gray-500">Total</div>
@@ -120,18 +153,9 @@ export default function ViolationsPage() {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            <div className="inline-flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-700" />
-              <span className="text-gray-600">Sent</span>
-            </div>
-            <div className="inline-flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-gray-600">Pending</span>
-            </div>
-            <div className="inline-flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-600" />
-              <span className="text-gray-600">Cease &amp; Desist</span>
-            </div>
+            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-700" /> <span className="text-gray-600">Sent</span></div>
+            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-gray-600">Pending</span></div>
+            <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-600" /> <span className="text-gray-600">Cease &amp; Desist</span></div>
           </div>
         </div>
 
@@ -151,10 +175,8 @@ export default function ViolationsPage() {
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 1</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 2</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 3</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
-                      onClick={() => toggleSort("resolved")}>
-                    <div className="flex items-center">Status {renderSortIcon("resolved")}</div>
-                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -167,10 +189,11 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
                         <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
                         <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded w-24" /></td>
+                        <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded w-20" /></td>
                       </tr>
                     ))
                   : violations.length === 0
-                  ? <tr><td colSpan={6} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
+                  ? <tr><td colSpan={7} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
                   : violations.map((v) => (
                       <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 align-top">
@@ -182,6 +205,22 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={2} v={v} /></td>
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
+                        <td className="px-6 py-4 align-top">
+                          <button
+                            onClick={() => handleSendNotice(v.id)}
+                            disabled={!canSendNotice(v)}
+                            className={`px-2 py-1 text-xs rounded font-medium ${
+                              canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                            }`}
+                          >
+                            Send Notice
+                          </button>
+                          {!canSendNotice(v) && v.last_sent_time && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days || 7)*24*60*60*1000).toLocaleString()}
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     ))
                 }
@@ -214,6 +253,20 @@ export default function ViolationsPage() {
                       <NoticeBadge notice={3} v={v} />
                     </div>
                     {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
+                    <button
+                      onClick={() => handleSendNotice(v.id)}
+                      disabled={!canSendNotice(v)}
+                      className={`px-2 py-1 text-xs rounded font-medium ${
+                        canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                      }`}
+                    >
+                      Send Notice
+                    </button>
+                    {!canSendNotice(v) && v.last_sent_time && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days || 7)*24*60*60*1000).toLocaleString()}
+                      </div>
+                    )}
                   </div>
                 ))
             }
@@ -223,3 +276,4 @@ export default function ViolationsPage() {
     </div>
   );
 }
+
