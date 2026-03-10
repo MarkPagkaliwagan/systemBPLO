@@ -73,12 +73,6 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       icon: <FiSettings className="w-5 h-5" />,
       href: "/module-2-inspection/notifCompliance",
     },
-    {
-      id: "change-password",
-      label: "Change Password",
-      icon: <FiKey className="w-5 h-5" />,
-      href: "/change-password",
-    },
   ];
 
   const superAdminItems: SidebarItem[] = [
@@ -124,12 +118,6 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       label: "Settings",
       icon: <FiSettings className="w-5 h-5" />,
       href: "/module-2-inspection/notifCompliance",
-    },
-    {
-      id: "change-password",
-      label: "Change Password",
-      icon: <FiKey className="w-5 h-5" />,
-      href: "/change-password",
     },
   ];
 
