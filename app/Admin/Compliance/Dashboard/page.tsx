@@ -20,8 +20,6 @@ type Violation = {
   resolved: boolean;
   requestor_email: string | null;
   cease_flag?: boolean;
-  auto_send?: boolean; // <- new
-
 };
 
 export default function ViolationsPage() {
@@ -179,7 +177,6 @@ export default function ViolationsPage() {
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 3</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Action</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Auto Send</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
