@@ -20,6 +20,8 @@ type Violation = {
   resolved: boolean;
   requestor_email: string | null;
   cease_flag?: boolean;
+  auto_send?: boolean; // <- new
+
 };
 
 export default function ViolationsPage() {
@@ -78,6 +80,23 @@ export default function ViolationsPage() {
       return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cease & Desist</span>;
     return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>;
   };
+
+  const toggleAuto = async (id: number, current: boolean) => {
+  setLoading(true);
+  try {
+    const { error } = await supabase
+      .from("business_violations")
+      .update({ auto_send: !current })
+      .eq("id", id);
+
+    if (error) console.error(error);
+    else fetchViolations(); // refresh table/cards
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const NoticeBadge = ({ notice, v }: { notice: number; v: Violation }) => {
     const s = getNoticeStatus(notice, v);
@@ -177,6 +196,7 @@ export default function ViolationsPage() {
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 3</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Action</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Auto Send</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -195,7 +215,10 @@ export default function ViolationsPage() {
                   : violations.length === 0
                   ? <tr><td colSpan={7} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
                   : violations.map((v) => (
-                      <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                      <tr
+  key={v.id}
+  className={`hover:bg-gray-50 transition-colors ${v.auto_send ? 'bg-green-50' : ''}`}
+>
                         <td className="px-6 py-4 align-top">
                           <div className="text-sm font-medium text-gray-900">{v.business_id}</div>
                           {v.last_sent_time && <div className="text-xs text-gray-400 mt-1">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
@@ -205,16 +228,22 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={2} v={v} /></td>
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
-                        <td className="px-6 py-4 align-top">
-                          <button
-                            onClick={() => handleSendNotice(v.id)}
-                            disabled={!canSendNotice(v)}
-                            className={`px-2 py-1 text-xs rounded font-medium ${
-                              canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            }`}
-                          >
-                            Send Notice
-                          </button>
+                    <td className="px-6 py-4 align-top flex items-center gap-2">
+  <input
+    type="checkbox"
+    checked={v.auto_send || false}
+    onChange={() => toggleAuto(v.id, v.auto_send || false)}
+    className="w-5 h-5 accent-green-600 cursor-pointer"
+  />
+  <button
+    onClick={() => handleSendNotice(v.id)}
+    disabled={v.resolved}
+    className={`px-2 py-1 text-xs rounded font-medium ${
+      canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+    }`}
+  >
+    Send Notice
+  </button>
                           {!canSendNotice(v) && v.last_sent_time && (
                             <div className="text-xs text-gray-500 mt-1">
                               Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days || 7)*24*60*60*1000).toLocaleString()}
@@ -241,7 +270,10 @@ export default function ViolationsPage() {
               : violations.length === 0
               ? <div className="text-center py-10 text-gray-500">NO DATA FOUND</div>
               : violations.map((v) => (
-                  <div key={v.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-2">
+                  <div
+  key={v.id}
+  className={`border rounded-xl p-4 shadow-sm space-y-2 ${v.auto_send ? 'bg-green-50' : 'bg-white'}`}
+>
                     <div className="flex justify-between items-center">
                       <div className="font-semibold text-gray-900 text-sm">{v.business_id}</div>
                       <StatusBadge v={v} />
@@ -252,10 +284,20 @@ export default function ViolationsPage() {
                       <NoticeBadge notice={2} v={v} />
                       <NoticeBadge notice={3} v={v} />
                     </div>
+                    
                     {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
+                    <div className="flex items-center gap-2 mt-2">
+  <input
+    type="checkbox"
+    checked={v.auto_send || false}
+    onChange={() => toggleAuto(v.id, v.auto_send || false)}
+    className="w-5 h-5 accent-green-600 cursor-pointer"
+  />
+  <span className="text-xs text-gray-700">Auto Send</span>
+</div>
                     <button
                       onClick={() => handleSendNotice(v.id)}
-                      disabled={!canSendNotice(v)}
+                      disabled={v.resolved}
                       className={`px-2 py-1 text-xs rounded font-medium ${
                         canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                       }`}
