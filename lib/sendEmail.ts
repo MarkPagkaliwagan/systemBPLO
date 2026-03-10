@@ -1,29 +1,33 @@
 import nodemailer from "nodemailer";
 
 export const sendEmail = async (to: string, subject: string, html: string) => {
-  try {
-    console.log('EMAIL_USER exists:', !!process.env.EMAIL_USER);
-    console.log('EMAIL_PASS exists:', !!process.env.EMAIL_PASS);
-    console.log('Sending email to:', to);
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.sendMail({
-      from: `"BPLO Inspection Management System" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    });
-    
-    console.log('Email sent successfully');
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    throw error;
+  if (!user || !pass) {
+    throw new Error(
+      `Missing email credentials — EMAIL_USER: ${!!user}, EMAIL_PASS: ${!!pass}`
+    );
   }
+
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user,
+      pass,
+    },
+  });
+
+  await transporter.verify();
+
+  await transporter.sendMail({
+    from: `"BPLO Inspection Management System" <${user}>`,
+    to,
+    subject,
+    html,
+  });
+
+  console.log("Email sent successfully to:", to);
 };
