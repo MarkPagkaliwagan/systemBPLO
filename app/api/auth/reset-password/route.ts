@@ -4,7 +4,11 @@ import { hashPassword } from '@/lib/passwordUtils';
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, newPassword } = await request.json();
+    const body = await request.json();
+    console.log('=== REQUEST BODY DEBUG ===');
+    console.log('Received body:', body);
+    
+    const { token, newPassword } = body;
 
     // Input validation
     if (!token || !newPassword) {
@@ -23,10 +27,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Decode and validate reset token
+    console.log('=== RESET TOKEN DEBUG ===');
+    console.log('Received token:', token);
+    
     let tokenData;
     try {
-      tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
+      const decoded = Buffer.from(token, 'base64').toString();
+      console.log('Decoded token string:', decoded);
+      tokenData = JSON.parse(decoded);
+      console.log('Parsed token data:', tokenData);
     } catch (error) {
+      console.log('Token decode error:', error);
       return NextResponse.json(
         { error: 'Invalid reset token' },
         { status: 400 }
