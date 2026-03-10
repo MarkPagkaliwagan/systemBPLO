@@ -261,7 +261,7 @@ export default function Sidebar({
               <img
                 src="/bplo-logo.png"
                 alt="BPLO Logo"
-                className="w-12 h-9 object-contain rounded-xl shadow-md cursor-pointer"
+                className="w-12 h-9 object-contain rounded-full shadow-md cursor-pointer"
               />
             </Link>
             <div className="flex flex-col leading-tight">
@@ -348,7 +348,7 @@ export default function Sidebar({
             <img
               src="/bplo-logo.png"
               alt="BPLO Logo"
-              className="w-12 h-9 object-contain rounded-xl shadow-md cursor-pointer hover:opacity-80 transition-opacity"
+              className="w-12 h-9 object-contain rounded-full shadow-md cursor-pointer hover:opacity-80 transition-opacity"
             />
           </Link>
           <div className="flex flex-col leading-tight">
