@@ -4,81 +4,81 @@
 import { useState } from "react";
 import { FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser, FiMapPin, FiPhone, FiMail, FiBriefcase } from "react-icons/fi";
 
-interface CSVRow {
+interface BusinessRecord {
   id: string;
-  // Business Information
-  businessIdentificationNumber: string;
-  businessName: string;
-  tradeName: string;
-  businessNature: string;
-  businessLine: string;
-  businessType: string;
-  transmittalNumber: string;
-  inchargeFirstName: string;
-  inchargeMiddleName: string;
-  inchargeLastName: string;
-  inchargeExtensionName: string;
-  inchargeSex: string;
-  citizenship: string;
-  officeStreet: string;
-  officeRegion: string;
-  officeProvince: string;
-  officeMunicipality: string;
-  officeBarangay: string;
-  officeZipcode: string;
-  year: string;
-  capital: string;
-  grossAmount: string;
-  grossAmountEssential: string;
-  grossAmountNonEssential: string;
-  rejectRemarks: string;
-  moduleType: string;
-  transactionType: string;
-
-  // Requestor Information
-  requestorFirstName: string;
-  requestorMiddleName: string;
-  requestorLastName: string;
-  requestorExtensionName: string;
-  requestorEmail: string;
-  requestorMobileNo: string;
-  requestorSex: string;
-  civilStatus: string;
-  requestorStreet: string;
-  requestorMunicipality: string;
-  requestorBarangay: string;
-  requestorZipcode: string;
-  transactionId: string;
-  referenceNo: string;
-  brgyClearanceStatus: string;
-  siteTransactionId: string;
-  coreTransactionStatus: string;
-  soaNo: string;
-  annualAmount: string;
-  term: string;
-  amountPaid: string;
-  balance: string;
-  paymentType: string;
-  paymentDate: string;
-  orNo: string;
-  permitNo: string;
-  businessPlateNo: string;
-  actualClosureDate: string;
-  retirementReason: string;
-  sourceType: string;
-
-  // Review Information
-  violations: string[];
-  reviewActions: string[];
-  reviewedDate?: string;
-  reviewedBy?: string;
-  status: 'not_reviewed' | 'reviewed';
-  assignedInspector?: string;
-  scheduledDate?: string;
+  "Business Identification Number": string;
+  "Business Name": string;
+  "Trade Name": string | null;
+  "Business Nature": string | null;
+  "Business Line": string | null;
+  "Business Type": string | null;
+  "Transmittal No.": string | null;
+  "Incharge First Name": string | null;
+  "Incharge Middle Name": string | null;
+  "Incharge Last Name": string | null;
+  "Incharge Extension Name": string | null;
+  "Incharge Sex": string | null;
+  "Citizenship": string | null;
+  "Office Street": string | null;
+  "Office Region": string | null;
+  "Office Province": string | null;
+  "Office Municipality": string | null;
+  "Office Barangay": string | null;
+  "Office Zipcode": string | null;
+  "Year": number | null;
+  "Capital": number | null;
+  "Gross Amount": number | null;
+  "Gross Amount Essential": number | null;
+  "Gross Amount Non-Essential": number | null;
+  "Reject Remarks": string | null;
+  "Module Type": string | null;
+  "Transaction Type": string | null;
+  "Requestor First Name": string | null;
+  "Requestor Middle Name": string | null;
+  "Requestor Last Name": string | null;
+  "Requestor Extension Name": string | null;
+  "Requestor Email": string | null;
+  "Requestor Mobile No.": string | null;
+  "Birth Date": string | null;
+  "Requestor Sex": string | null;
+  "Civil Status": string | null;
+  "Requestor Street": string | null;
+  "Requestor Province": string | null;
+  "Requestor Municipality": string | null;
+  "Requestor Barangay": string | null;
+  "Requestor Zipcode": string | null;
+  "Transaction ID": string | null;
+  "Reference No.": string | null;
+  "Brgy. Clearance Status": string | null;
+  "SITE Transaction Status": string | null;
+  "CORE Transaction Status": string | null;
+  "Transaction Date": string | null;
+  "SOA No.": string | null;
+  "Annual Amount": number | null;
+  "Term": string | null;
+  "Amount Paid": number | null;
+  "Balance": number | null;
+  "Payment Type": string | null;
+  "Payment Date": string | null;
+  "O.R. No.": string | null;
+  "Brgy. Clearance No.": string | null;
+  "O.R. Date": string | null;
+  "Permit No.": string | null;
+  "Business Plate No.": string | null;
+  "Actual Closure Date": string | null;
+  "Retirement Reason": string | null;
+  "Source Type": string | null;
+  violation: string | null;
+  review_action: string | null;
+  review_date: string | null;
+  reviewed_by: string | null;
+  status: string | null;
+  assigned_inspector: string | null;
+  scheduled_date: string | null;
 }
 
 interface ReviewModalProps {
-  selectedRow: CSVRow | null;
+  selectedRow: BusinessRecord | null;
   showReviewModal: boolean;
   onClose: () => void;
   onSave: (reviewData: {
@@ -101,7 +101,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
           <div className="flex items-center justify-between">
             <div>
               <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>Review Business</h2>
-              <p className="text-green-100 text-sm mt-1">{selectedRow.businessName}</p>
+              <p className="text-green-100 text-sm mt-1">{selectedRow["Business Name"]}</p>
             </div>
             <button onClick={onClose} className="text-white hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-white/20">
               <FiX className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'}`} />
@@ -119,7 +119,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                 </div>
                 <div>
                   <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>Business Information</h3>
-                  <p className="text-sm text-gray-500 mt-1">Permit #{selectedRow.permitNo}</p>
+                  <p className="text-sm text-gray-500 mt-1">Permit #{selectedRow["Permit No."]}</p>
                 </div>
               </div>
 
@@ -131,43 +131,43 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   <div className={`${isMobile ? 'space-y-2' : 'grid grid-cols-1 md:grid-cols-2 gap-3'} text-sm`}>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">BIN:</span>
-                      <span className="truncate">{selectedRow.businessIdentificationNumber}</span>
+                      <span className="truncate">{selectedRow["Business Identification Number"]}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Business Name:</span>
-                      <span className="truncate">{selectedRow.businessName}</span>
+                      <span className="truncate">{selectedRow["Business Name"]}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Trade Name:</span>
-                      <span className="truncate">{selectedRow.tradeName}</span>
+                      <span className="truncate">{selectedRow["Trade Name"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Nature:</span>
-                      <span className="truncate">{selectedRow.businessNature}</span>
+                      <span className="truncate">{selectedRow["Business Nature"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Line:</span>
-                      <span className="truncate">{selectedRow.businessLine}</span>
+                      <span className="truncate">{selectedRow["Business Line"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Type:</span>
-                      <span className="truncate">{selectedRow.businessType}</span>
+                      <span className="truncate">{selectedRow["Business Type"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Transmittal:</span>
-                      <span className="truncate">{selectedRow.transmittalNumber}</span>
+                      <span className="truncate">{selectedRow["Transmittal No."] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Module:</span>
-                      <span className="truncate">{selectedRow.moduleType}</span>
+                      <span className="truncate">{selectedRow["Module Type"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Transaction:</span>
-                      <span className="truncate">{selectedRow.transactionType}</span>
+                      <span className="truncate">{selectedRow["Transaction Type"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Year:</span>
-                      <span className="truncate">{selectedRow.year}</span>
+                      <span className="truncate">{selectedRow["Year"] ?? '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -178,15 +178,17 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   <div className={`${isMobile ? 'space-y-2' : 'grid grid-cols-1 md:grid-cols-2 gap-3'} text-sm`}>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Name:</span>
-                      <span className="truncate">{selectedRow.inchargeFirstName} {selectedRow.inchargeMiddleName} {selectedRow.inchargeLastName} {selectedRow.inchargeExtensionName}</span>
+                      <span className="truncate">
+                        {[selectedRow["Incharge First Name"], selectedRow["Incharge Middle Name"], selectedRow["Incharge Last Name"], selectedRow["Incharge Extension Name"]].filter(Boolean).join(' ') || '-'}
+                      </span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Sex:</span>
-                      <span className="truncate">{selectedRow.inchargeSex}</span>
+                      <span className="truncate">{selectedRow["Incharge Sex"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Citizenship:</span>
-                      <span className="truncate">{selectedRow.citizenship}</span>
+                      <span className="truncate">{selectedRow["Citizenship"] ?? '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -197,27 +199,27 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   <div className={`${isMobile ? 'space-y-2' : 'grid grid-cols-1 md:grid-cols-2 gap-3'} text-sm`}>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Street:</span>
-                      <span className="truncate">{selectedRow.officeStreet}</span>
+                      <span className="truncate">{selectedRow["Office Street"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Region:</span>
-                      <span className="truncate">{selectedRow.officeRegion}</span>
+                      <span className="truncate">{selectedRow["Office Region"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Province:</span>
-                      <span className="truncate">{selectedRow.officeProvince}</span>
+                      <span className="truncate">{selectedRow["Office Province"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Municipality:</span>
-                      <span className="truncate">{selectedRow.officeMunicipality}</span>
+                      <span className="truncate">{selectedRow["Office Municipality"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Barangay:</span>
-                      <span className="truncate">{selectedRow.officeBarangay}</span>
+                      <span className="truncate">{selectedRow["Office Barangay"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Zipcode:</span>
-                      <span className="truncate">{selectedRow.officeZipcode}</span>
+                      <span className="truncate">{selectedRow["Office Zipcode"] ?? '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -228,23 +230,23 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   <div className={`${isMobile ? 'space-y-2' : 'grid grid-cols-1 md:grid-cols-2 gap-3'} text-sm`}>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Capital:</span>
-                      <span className="truncate">{selectedRow.capital}</span>
+                      <span className="truncate">{selectedRow["Capital"] != null ? `₱${selectedRow["Capital"].toLocaleString()}` : '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Gross Amount:</span>
-                      <span className="truncate">{selectedRow.grossAmount}</span>
+                      <span className="truncate">{selectedRow["Gross Amount"] != null ? `₱${selectedRow["Gross Amount"].toLocaleString()}` : '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Essential:</span>
-                      <span className="truncate">{selectedRow.grossAmountEssential}</span>
+                      <span className="truncate">{selectedRow["Gross Amount Essential"] != null ? `₱${selectedRow["Gross Amount Essential"].toLocaleString()}` : '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Non-Essential:</span>
-                      <span className="truncate">{selectedRow.grossAmountNonEssential}</span>
+                      <span className="truncate">{selectedRow["Gross Amount Non-Essential"] != null ? `₱${selectedRow["Gross Amount Non-Essential"].toLocaleString()}` : '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Reject Remarks:</span>
-                      <span className="truncate">{selectedRow.rejectRemarks || '-'}</span>
+                      <span className="truncate">{selectedRow["Reject Remarks"] || '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -255,39 +257,41 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   <div className={`${isMobile ? 'space-y-2' : 'grid grid-cols-1 md:grid-cols-2 gap-3'} text-sm`}>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Name:</span>
-                      <span className="truncate">{selectedRow.requestorFirstName} {selectedRow.requestorMiddleName} {selectedRow.requestorLastName} {selectedRow.requestorExtensionName}</span>
+                      <span className="truncate">
+                        {[selectedRow["Requestor First Name"], selectedRow["Requestor Middle Name"], selectedRow["Requestor Last Name"], selectedRow["Requestor Extension Name"]].filter(Boolean).join(' ') || '-'}
+                      </span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Email:</span>
-                      <span className="truncate">{selectedRow.requestorEmail}</span>
+                      <span className="truncate">{selectedRow["Requestor Email"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Mobile No:</span>
-                      <span className="truncate">{selectedRow.requestorMobileNo}</span>
+                      <span className="truncate">{selectedRow["Requestor Mobile No."] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Sex:</span>
-                      <span className="truncate">{selectedRow.requestorSex}</span>
+                      <span className="truncate">{selectedRow["Requestor Sex"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Civil Status:</span>
-                      <span className="truncate">{selectedRow.civilStatus}</span>
+                      <span className="truncate">{selectedRow["Civil Status"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Address:</span>
-                      <span className="truncate">{selectedRow.requestorStreet}</span>
+                      <span className="truncate">{selectedRow["Requestor Street"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Municipality:</span>
-                      <span className="truncate">{selectedRow.requestorMunicipality}</span>
+                      <span className="truncate">{selectedRow["Requestor Municipality"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Barangay:</span>
-                      <span className="truncate">{selectedRow.requestorBarangay}</span>
+                      <span className="truncate">{selectedRow["Requestor Barangay"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Zipcode:</span>
-                      <span className="truncate">{selectedRow.requestorZipcode}</span>
+                      <span className="truncate">{selectedRow["Requestor Zipcode"] ?? '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -298,75 +302,75 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   <div className={`${isMobile ? 'space-y-2' : 'grid grid-cols-1 md:grid-cols-2 gap-3'} text-sm`}>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Transaction ID:</span>
-                      <span className="truncate">{selectedRow.transactionId}</span>
+                      <span className="truncate">{selectedRow["Transaction ID"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Reference No:</span>
-                      <span className="truncate">{selectedRow.referenceNo}</span>
+                      <span className="truncate">{selectedRow["Reference No."] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Brgy Clearance:</span>
-                      <span className="truncate">{selectedRow.brgyClearanceStatus}</span>
+                      <span className="truncate">{selectedRow["Brgy. Clearance Status"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">SITE Transaction:</span>
-                      <span className="truncate">{selectedRow.siteTransactionId}</span>
+                      <span className="truncate">{selectedRow["SITE Transaction Status"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Core Transaction:</span>
-                      <span className="truncate">{selectedRow.coreTransactionStatus}</span>
+                      <span className="truncate">{selectedRow["CORE Transaction Status"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">SOA No:</span>
-                      <span className="truncate">{selectedRow.soaNo}</span>
+                      <span className="truncate">{selectedRow["SOA No."] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Annual Amount:</span>
-                      <span className="truncate">{selectedRow.annualAmount}</span>
+                      <span className="truncate">{selectedRow["Annual Amount"] != null ? `₱${selectedRow["Annual Amount"].toLocaleString()}` : '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Term:</span>
-                      <span className="truncate">{selectedRow.term}</span>
+                      <span className="truncate">{selectedRow["Term"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Amount Paid:</span>
-                      <span className="truncate">{selectedRow.amountPaid}</span>
+                      <span className="truncate">{selectedRow["Amount Paid"] != null ? `₱${selectedRow["Amount Paid"].toLocaleString()}` : '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Balance:</span>
-                      <span className="truncate">{selectedRow.balance}</span>
+                      <span className="truncate">{selectedRow["Balance"] != null ? `₱${selectedRow["Balance"].toLocaleString()}` : '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Payment Type:</span>
-                      <span className="truncate">{selectedRow.paymentType}</span>
+                      <span className="truncate">{selectedRow["Payment Type"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Payment Date:</span>
-                      <span className="truncate">{selectedRow.paymentDate}</span>
+                      <span className="truncate">{selectedRow["Payment Date"] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">O.R No:</span>
-                      <span className="truncate">{selectedRow.orNo}</span>
+                      <span className="truncate">{selectedRow["O.R. No."] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Permit No:</span>
-                      <span className="truncate">{selectedRow.permitNo}</span>
+                      <span className="truncate">{selectedRow["Permit No."] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Business Plate No:</span>
-                      <span className="truncate">{selectedRow.businessPlateNo}</span>
+                      <span className="truncate">{selectedRow["Business Plate No."] ?? '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Closure Date:</span>
-                      <span className="truncate">{selectedRow.actualClosureDate || '-'}</span>
+                      <span className="truncate">{selectedRow["Actual Closure Date"] || '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Retirement Reason:</span>
-                      <span className="truncate">{selectedRow.retirementReason || '-'}</span>
+                      <span className="truncate">{selectedRow["Retirement Reason"] || '-'}</span>
                     </div>
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700">Source Type:</span>
-                      <span className="truncate">{selectedRow.sourceType}</span>
+                      <span className="truncate">{selectedRow["Source Type"] ?? '-'}</span>
                     </div>
                   </div>
                 </div>
@@ -376,10 +380,10 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
             {/* Review Form */}
             <div className={`${isMobile ? 'w-full' : 'lg:col-span-1'}`}>
               <ReviewForm
-                initialActions={selectedRow.reviewActions}
-                initialViolations={selectedRow.violations}
-                initialInspector={selectedRow.assignedInspector}
-                initialScheduledDate={selectedRow.scheduledDate}
+                initialActions={selectedRow.review_action ? selectedRow.review_action.split(',').map(a => a.trim()) : []}
+                initialViolations={selectedRow.violation ? selectedRow.violation.split(',').map(v => v.trim()) : []}
+                initialInspector={selectedRow.assigned_inspector ?? undefined}
+                initialScheduledDate={selectedRow.scheduled_date ?? undefined}
                 onSave={onSave}
                 onCancel={onClose}
                 isMobile={isMobile}
@@ -392,7 +396,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
   );
 }
 
-// Review Form Component
+// Review Form Component — untouched
 function ReviewForm({
   initialActions,
   initialViolations,
@@ -436,8 +440,6 @@ function ReviewForm({
   const handleViolationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
     setViolationText(text);
-
-    // Split by comma and filter empty strings
     const violationArray = text.split(',').map(v => v.trim()).filter(v => v.length > 0);
     setViolations(violationArray);
   };
