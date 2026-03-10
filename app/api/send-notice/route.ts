@@ -1,65 +1,258 @@
-import nodemailer from "nodemailer";
+"use client";
+
+import { useEffect, useState } from "react";
+import { FiSearch, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import Sidebar from "../../../components/sidebar";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export async function POST(req: Request) {
+type Violation = {
+  id: number;
+  business_id: string;
+  violation: string;
+  notice_level: number;
+  last_sent_time: string | null;
+  resolved: boolean;
+};
 
-  const { id } = await req.json();
+export default function ViolationsPage() {
+  const [violations, setViolations] = useState<Violation[]>([]);
+  const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState<keyof Violation | null>(null);
+  const [sortAsc, setSortAsc] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // get violation info
-  const { data, error } = await supabase
-    .from("business_violations")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const fetchViolations = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("business_violations")
+      .select("*")
+      .ilike("business_id", `%${query}%`)
+      .order(sortKey || "id", { ascending: sortAsc });
+    if (error) console.error(error);
+    else setViolations(data || []);
+    setLoading(false);
+  };
 
-  if (error) {
-    return NextResponse.json({ error: error.message });
+  useEffect(() => { fetchViolations(); }, [query, sortKey, sortAsc]);
+
+  const toggleSort = (key: keyof Violation) => {
+    if (sortKey === key) setSortAsc(!sortAsc);
+    else { setSortKey(key); setSortAsc(true); }
+  };
+
+  const sendNotice = async (id: number) => {
+  const confirmSend = confirm("Send notice to this business?");
+  if (!confirmSend) return;
+
+  const res = await fetch("/api/send-notice", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ id }),
+  });
+
+  if (res.ok) {
+    alert("Notice sent successfully");
+    fetchViolations(); // reload table
+  } else {
+    alert("Failed to send notice");
   }
+};
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+  const getNoticeStatus = (notice: number, v: Violation) => {
+    if (v.resolved) return "Resolved";
+    if (v.notice_level >= notice) return "Sent";
+    return "Pending";
+  };
 
-  const noticeLevel = data.notice_level;
+  const getStatusText = (v: Violation) => {
+    if (v.resolved) return "Resolved";
+    if (v.notice_level > 3) return "Cease and Desist";
+    return "Pending";
+  };
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: data.requestor_email,
-    subject: `Violation Notice ${noticeLevel}`,
-    html: `
-      <h2>Business Violation Notice ${noticeLevel}</h2>
+  const renderSortIcon = (key: keyof Violation) => {
+    if (sortKey !== key) return <FiChevronDown className="inline ml-1 text-green-200" />;
+    return sortAsc
+      ? <FiChevronUp className="inline ml-1 text-green-200" />
+      : <FiChevronDown className="inline ml-1 text-green-200" />;
+  };
 
-      <p><b>Business ID:</b> ${data.business_id}</p>
-      <p><b>Violation:</b> ${data.violation}</p>
+  const StatusBadge = ({ v }: { v: Violation }) => {
+    const status = getStatusText(v);
+    if (status === "Resolved")
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-900">Resolved</span>;
+    if (status === "Cease and Desist")
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cease & Desist</span>;
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>;
+  };
 
-      ${
-        noticeLevel === 3
-        ? "<p style='color:red'><b>FINAL NOTICE: Failure to comply may result in Cease and Desist.</b></p>"
-        : ""
-      }
+  const NoticeBadge = ({ notice, v }: { notice: number; v: Violation }) => {
+    const s = getNoticeStatus(notice, v);
+    if (s === "Sent") return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-900 font-medium">Sent</span>;
+    if (s === "Resolved") return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">Resolved</span>;
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-700 font-medium">Pending</span>;
+  };
 
-      <p>Please resolve this issue immediately.</p>
-    `
-  });
+  return (
+    <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
+      <Sidebar 
+        isCollapsed={false} 
+        setIsCollapsed={() => {}} 
+        isMobile={false} 
+        isMobileMenuOpen={false} 
+        setIsMobileMenuOpen={() => {}} 
+      />
 
-  // update database after sending
-  await supabase
-    .from("business_violations")
-    .update({
-      last_sent_time: new Date(),
-      notice_level: noticeLevel + 1
-    })
-    .eq("id", id);
+      <div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
 
-  return NextResponse.json({ success: true });
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
+            <p className="text-gray-500 mt-1 text-sm max-w-xl">
+              Track business violations and notices
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-gray-500">Total</div>
+            <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
+          </div>
+        </div>
+
+        {/* Search + Legend */}
+        <div className="flex flex-col md:flex-row md:items-center text-black justify-between gap-4">
+          <div className="relative w-full md:w-96">
+            <FiSearch className="absolute top-3 left-3 text-green-900 opacity-80" />
+            <input
+              type="text"
+              placeholder="Search by Business ID..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-900 shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 text-sm">
+            <div className="inline-flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-700" />
+              <span className="text-gray-600">Sent</span>
+            </div>
+            <div className="inline-flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className="text-gray-600">Pending</span>
+            </div>
+            <div className="inline-flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-600" />
+              <span className="text-gray-600">Cease &amp; Desist</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Table / Cards */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+
+          {/* Desktop Table */}
+          <div className="w-full overflow-x-auto hidden md:block">
+            <table className="min-w-full table-fixed">
+              <thead className="bg-green-900 text-white">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
+                      onClick={() => toggleSort("business_id")}>
+                    <div className="flex items-center">Business ID {renderSortIcon("business_id")}</div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Violation</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 1</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 2</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 3</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
+                      onClick={() => toggleSort("resolved")}>
+                    <div className="flex items-center">Status {renderSortIcon("resolved")}</div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">
+  Action
+</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {loading
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-3/4" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-full" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
+                        <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
+                        <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded w-24" /></td>
+                      </tr>
+                    ))
+                  : violations.length === 0
+                  ? <tr><td colSpan={6} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
+                  : violations.map((v) => (
+                      <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 align-top">
+                          <div className="text-sm font-medium text-gray-900">{v.business_id}</div>
+                          {v.last_sent_time && <div className="text-xs text-gray-400 mt-1">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
+                        </td>
+                        <td className="px-6 py-4 align-top"><div className="text-sm text-gray-700 line-clamp-2">{v.violation}</div></td>
+                        <td className="px-6 py-4 align-top"><NoticeBadge notice={1} v={v} /></td>
+                        <td className="px-6 py-4 align-top"><NoticeBadge notice={2} v={v} /></td>
+                        <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
+                        <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
+                        <td className="px-6 py-4 align-top">
+  {!v.resolved && v.notice_level <= 3 && (
+    <button
+      onClick={() => sendNotice(v.id)}
+      className="bg-green-900 text-white text-xs px-3 py-1 rounded-lg hover:bg-green-800"
+    >
+      Send Notice
+    </button>
+  )}
+</td>
+                      </tr>
+                    ))
+                }
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-4 p-4">
+            {loading
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="animate-pulse border rounded-xl p-4 bg-gray-100 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-gray-200 rounded w-full" />
+                    <div className="h-4 bg-gray-200 rounded w-1/4" />
+                  </div>
+                ))
+              : violations.length === 0
+              ? <div className="text-center py-10 text-gray-500">NO DATA FOUND</div>
+              : violations.map((v) => (
+                  <div key={v.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="font-semibold text-gray-900 text-sm">{v.business_id}</div>
+                      <StatusBadge v={v} />
+                    </div>
+                    <div className="text-gray-700 text-sm line-clamp-2">{v.violation}</div>
+                    <div className="flex gap-2">
+                      <NoticeBadge notice={1} v={v} />
+                      <NoticeBadge notice={2} v={v} />
+                      <NoticeBadge notice={3} v={v} />
+                    </div>
+                    {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
+                  </div>
+                ))
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
