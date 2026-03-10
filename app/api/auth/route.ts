@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
+import { comparePassword } from '@/lib/passwordUtils';
 
 
 export async function POST(request: NextRequest) {
@@ -23,12 +24,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Login attempt for email:', email.toLowerCase().trim());
+    
     // Query users table with proper error handling
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email.toLowerCase().trim())
       .single();
+
+    console.log('Database query result:', { user: user ? 'found' : 'not found', error: error ? error.message : 'none' });
 
     if (error) {
       console.error('Database query error:', error);
@@ -46,8 +51,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Password comparison (in production, use bcrypt/scrypt)
-    if (user.password !== password) {
+    // Password comparison using bcrypt
+    console.log('Comparing password for user:', user.email);
+    const isPasswordValid = await comparePassword(password, user.password);
+    console.log('Password valid:', isPasswordValid);
+    
+    if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -92,6 +101,23 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Login error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // For now, logout is handled client-side by clearing localStorage
+    // In the future, we could implement server-side session invalidation
+    return NextResponse.json(
+      { message: 'Logout successful' },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Logout error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

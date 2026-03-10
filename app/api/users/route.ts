@@ -1,8 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
+import { hashPassword, validatePassword } from '@/lib/passwordUtils';
 
-export async function GET() {
+// Helper function to validate user role
+async function validateUserRole(request: NextRequest): Promise<{ valid: boolean; userRole?: string }> {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return { valid: false };
+    }
+
+    const sessionToken = authHeader.substring(7);
+    const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
+
+    // Check session expiration
+    if (Date.now() > sessionData.exp) {
+      return { valid: false };
+    }
+
+    return { 
+      valid: true, 
+      userRole: sessionData.role 
+    };
+  } catch (error) {
+    return { valid: false };
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Validate user role - only super_admin can access user management
+    const { valid, userRole } = await validateUserRole(request);
+    if (!valid || userRole !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Access denied. Super admin privileges required.' },
+        { status: 403 }
+      );
+    }
     const { data: users, error } = await supabase
       .from('users')
       .select('*')
@@ -19,7 +53,7 @@ export async function GET() {
     // Transform data to match expected format
     const transformedUsers = users.map(user => ({
       id: user.id,
-      name: user.name,
+      name: user.full_name, // Map full_name to name for frontend
       email: user.email,
       role: user.role,
       createdAt: user.created_at
@@ -37,6 +71,15 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate user role - only super_admin can create users
+    const { valid, userRole } = await validateUserRole(request);
+    if (!valid || userRole !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Access denied. Super admin privileges required.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { name, email, password, role } = body;
 
@@ -44,6 +87,15 @@ export async function POST(request: NextRequest) {
     if (!name || !email || !password || !role) {
       return NextResponse.json(
         { error: 'All fields are required' },
+        { status: 400 }
+      );
+    }
+
+    // Password strength validation
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return NextResponse.json(
+        { error: passwordValidation.message },
         { status: 400 }
       );
     }
@@ -62,14 +114,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Hash password before storing
+    const hashedPassword = await hashPassword(password);
+
     // Create new user
     const { data: newUser, error } = await supabase
       .from('users')
       .insert([
         {
-          name,
+          full_name: name, // Map name to full_name column
           email,
-          password, // Note: In production, hash this password
+          password: hashedPassword, // Store hashed password
           role,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -89,7 +144,7 @@ export async function POST(request: NextRequest) {
     // Transform response to match expected format
     const transformedUser = {
       id: newUser.id,
-      name: newUser.name,
+      name: newUser.full_name, // Map full_name to name for frontend
       email: newUser.email,
       role: newUser.role,
       createdAt: newUser.created_at
@@ -107,6 +162,14 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Validate user role - only super_admin can delete users
+    const { valid, userRole } = await validateUserRole(request);
+    if (!valid || userRole !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Access denied. Super admin privileges required.' },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const { id } = body;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Spinner from "./components/Spinner";
 
 export default function LoginPage() {
@@ -45,8 +46,14 @@ export default function LoginPage() {
         localStorage.setItem("sessionToken", data.sessionToken);
         localStorage.setItem("sessionExpiry", Date.now() + data.expiresIn);
 
-        // Redirect to dashboard
-        window.location.href = "/SuperAdmin/users";
+        // Redirect to appropriate dashboard based on user role
+        if (data.user.role === 'super_admin') {
+          window.location.href = "/SuperAdmin/Inspection/management/analytics";
+        } else if (data.user.role === 'admin') {
+          window.location.href = "/Admin/Inspection/management/analytics";
+        } else {
+          window.location.href = "/Admin/Inspection/management/analytics";
+        }
       } else {
         // Handle specific error messages
         const errorMessage = data.error || "Login failed";
@@ -68,6 +75,10 @@ export default function LoginPage() {
 
         <div>
 
+          {/* Header */}
+          <h2 className="text-2xl font-bold text-gray-800 text-center mb-2">
+            BPLO
+          </h2>
           {/* Logo */}
           <div className="flex justify-center mb-6">
             <img
@@ -76,11 +87,9 @@ export default function LoginPage() {
               className="w-36 h-36 object-contain rounded-full"
             />
           </div>
-
-          <h2 className="text-xl font-bold text-gray-800 text-center mb-2">
-            BPLO Inspection Management System
+          <h2 className="text-lg font-bold text-gray-800 text-center mb-2">
+            Inspection Management System
           </h2>
-
           <p className="text-gray-400 text-center mb-10 text-sm">
             Please enter your details to sign in
           </p>
@@ -135,9 +144,9 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-auto pt-8 text-center">
-          <a href="#" className="text-xs text-gray-400 hover:underline">
+          <Link href="/forgot-password" className="text-xs text-gray-400 hover:underline">
             Forgot your password?
-          </a>
+          </Link>
         </div>
 
       </div>
