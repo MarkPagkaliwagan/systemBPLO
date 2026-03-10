@@ -1,3 +1,4 @@
+// File: /app/violations/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -48,9 +49,11 @@ export default function ViolationsPage() {
     else { setSortKey(key); setSortAsc(true); }
   };
 
+  // ✅ Updated getNoticeStatus to default 0
   const getNoticeStatus = (notice: number, v: Violation) => {
+    const level = v.notice_level || 0;
     if (v.resolved) return "Resolved";
-    if (v.notice_level >= notice) return "Sent";
+    if (level >= notice) return "Sent";
     return "Pending";
   };
 
