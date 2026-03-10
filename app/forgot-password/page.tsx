@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 sm:p-6 font-sans text-gray-900">
       <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-md">
 
-        {/* Logo */}
+
         <div className="flex justify-center mb-6">
           <img
             src="/bplo-logo.png"
