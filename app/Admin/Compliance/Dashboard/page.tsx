@@ -29,6 +29,12 @@ export default function ViolationsPage() {
   const [sortAsc, setSortAsc] = useState(true);
   const [loading, setLoading] = useState(false);
   const [autoSend, setAutoSend] = useState(false); // ✅ missing state
+  // load persisted Auto Send state
+useEffect(() => {
+  const saved = localStorage.getItem("autoSend");
+  if (saved === "true") setAutoSend(true);
+}, []);
+
   const fetchViolations = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -178,28 +184,40 @@ export default function ViolationsPage() {
               className="pl-10 pr-4 py-2 w-full border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-900 shadow-sm"
             />
           </div>
-  
+<div className="flex items-center gap-2 justify-end w-full md:w-auto">
+  <label className="flex items-center cursor-pointer select-none">
+    <div className="relative">
+      <input
+        type="checkbox"
+        className="sr-only"
+        checked={autoSend}
+        onChange={async (e) => {
+          const checked = e.target.checked;
+          setAutoSend(checked);
+          localStorage.setItem("autoSend", checked ? "true" : "false"); // persist
+          await fetch("/api/automatic-send", {
+            method: "POST",
+            body: JSON.stringify({ autoSend: checked }),
+            headers: { "Content-Type": "application/json" },
+          });
+        }}
+      />
+      <div className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`} />
+      <div
+        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""}`}
+      />
+    </div>
+    <span className="ml-3 text-sm font-medium text-gray-700 flex items-center gap-1">
+      Auto Send <FiSend className="text-green-600" />
+    </span>
+  </label>
+</div>
           <div className="flex items-center gap-3 text-sm">
             <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-700" /> <span className="text-gray-600">Sent</span></div>
             <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-gray-600">Pending</span></div>
             <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-600" /> <span className="text-gray-600">Cease &amp; Desist</span></div>
           </div>
-        </div>
-                <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Auto Send</label>
-            <input
-              type="checkbox"
-              checked={autoSend}
-              onChange={async (e) => {
-                setAutoSend(e.target.checked);
-                await fetch("/api/automatic-send", {
-                  method: "POST",
-                  body: JSON.stringify({ autoSend: e.target.checked }),
-                  headers: { "Content-Type": "application/json" },
-                });
-              }}
-            />
-          </div>
+       
 
         {/* Table / Cards */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
