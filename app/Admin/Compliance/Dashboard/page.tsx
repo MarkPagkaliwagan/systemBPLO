@@ -38,32 +38,43 @@ export default function ViolationsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchViolations(); }, [query, sortKey, sortAsc]);
+  useEffect(() => {
+    fetchViolations();
+  }, [query, sortKey, sortAsc]);
 
   const toggleSort = (key: keyof Violation) => {
     if (sortKey === key) setSortAsc(!sortAsc);
-    else { setSortKey(key); setSortAsc(true); }
+    else {
+      setSortKey(key);
+      setSortAsc(true);
+    }
   };
 
   const sendNotice = async (id: number) => {
-  const confirmSend = confirm("Send notice to this business?");
-  if (!confirmSend) return;
+    const confirmSend = confirm("Send notice to this business?");
+    if (!confirmSend) return;
 
-  const res = await fetch("/api/send-notice", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id }),
-  });
+    try {
+      const res = await fetch("/api/send-notice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
 
-  if (res.ok) {
-    alert("Notice sent successfully");
-    fetchViolations(); // reload table
-  } else {
-    alert("Failed to send notice");
-  }
-};
+      if (res.ok) {
+        alert("Notice sent successfully");
+        fetchViolations(); // reload table
+      } else {
+        const err = await res.json();
+        alert("Failed to send notice: " + (err.error || ""));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send notice");
+    }
+  };
 
   const getNoticeStatus = (notice: number, v: Violation) => {
     if (v.resolved) return "Resolved";
@@ -102,12 +113,12 @@ export default function ViolationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
-      <Sidebar 
-        isCollapsed={false} 
-        setIsCollapsed={() => {}} 
-        isMobile={false} 
-        isMobileMenuOpen={false} 
-        setIsMobileMenuOpen={() => {}} 
+      <Sidebar
+        isCollapsed={false}
+        setIsCollapsed={() => {}}
+        isMobile={false}
+        isMobileMenuOpen={false}
+        setIsMobileMenuOpen={() => {}}
       />
 
       <div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
@@ -175,9 +186,7 @@ export default function ViolationsPage() {
                       onClick={() => toggleSort("resolved")}>
                     <div className="flex items-center">Status {renderSortIcon("resolved")}</div>
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">
-  Action
-</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -193,7 +202,7 @@ export default function ViolationsPage() {
                       </tr>
                     ))
                   : violations.length === 0
-                  ? <tr><td colSpan={6} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
+                  ? <tr><td colSpan={7} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
                   : violations.map((v) => (
                       <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 align-top">
@@ -206,15 +215,15 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
                         <td className="px-6 py-4 align-top">
-  {!v.resolved && v.notice_level <= 3 && (
-    <button
-      onClick={() => sendNotice(v.id)}
-      className="bg-green-900 text-white text-xs px-3 py-1 rounded-lg hover:bg-green-800"
-    >
-      Send Notice
-    </button>
-  )}
-</td>
+                          {!v.resolved && v.notice_level <= 3 && (
+                            <button
+                              onClick={() => sendNotice(v.id)}
+                              className="bg-green-900 text-white text-xs px-3 py-1 rounded-lg hover:bg-green-800"
+                            >
+                              Send Notice
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))
                 }
