@@ -77,7 +77,7 @@ export default function LoginPage() {
 
           {/* Header */}
           <h2 className="text-xl font-bold text-gray-800 text-center mb-6">
-            BPLO Inspection Management System
+            BPLO
           </h2>
 
           {/* Logo */}
@@ -88,7 +88,9 @@ export default function LoginPage() {
               className="w-36 h-36 object-contain rounded-full"
             />
           </div>
-
+          <h2 className="text-lg font-bold text-gray-800 text-center mb-2">
+            Inspection Management System
+          </h2>
           <p className="text-gray-400 text-center mb-10 text-sm">
             Please enter your details to sign in
           </p>
