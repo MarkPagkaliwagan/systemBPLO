@@ -261,7 +261,7 @@ export default function Sidebar({
               <img
                 src="/bplo-logo.png"
                 alt="BPLO Logo"
-                className="w-12 h-9 object-contain rounded-full shadow-md cursor-pointer"
+                className="w-12 h-12 object-contain rounded-full cursor-pointer"
               />
             </Link>
             <div className="flex flex-col leading-tight">
