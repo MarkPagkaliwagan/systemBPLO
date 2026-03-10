@@ -38,7 +38,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // Generate secure reset token
+    const now = new Date();
+    console.log('=== TOKEN CREATION DEBUG ===');
+    console.log('Current Date:', now.toString());
+    console.log('Current timestamp:', now.getTime());
+    console.log('Expiration timestamp:', now.getTime() + (24 * 60 * 60 * 1000));
+    console.log('========================');
+    
+    const resetToken = Buffer.from(JSON.stringify({
+      userId: user.id,
+      email: user.email,
+      timestamp: now.getTime(),
+      exp: now.getTime() + (24 * 60 * 60 * 1000) // 24 hours from now
+    })).toString('base64');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const { error: updateError } = await supabase
