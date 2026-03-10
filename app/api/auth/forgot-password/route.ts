@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: 'If an account with this email exists, a password reset link has been sent.' },
+      { message: 'If an account with this email exists, A password reset link has been sent.' },
       { status: 200 }
     );
 
