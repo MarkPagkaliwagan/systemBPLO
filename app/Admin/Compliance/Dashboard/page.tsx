@@ -20,8 +20,7 @@ type Violation = {
   resolved: boolean;
   requestor_email: string | null;
   cease_flag?: boolean;
-  auto_send?: boolean; // <- new
-
+  auto_send?: boolean;
 };
 
 export default function ViolationsPage() {
@@ -50,7 +49,6 @@ export default function ViolationsPage() {
     else { setSortKey(key); setSortAsc(true); }
   };
 
-  // ✅ Updated getNoticeStatus to default 0
   const getNoticeStatus = (notice: number, v: Violation) => {
     const level = v.notice_level || 0;
     if (v.resolved) return "Resolved";
@@ -71,7 +69,6 @@ export default function ViolationsPage() {
       : <FiChevronDown className="inline ml-1 text-green-200" />;
   };
 
-  // Badges
   const StatusBadge = ({ v }: { v: Violation }) => {
     const status = getStatusText(v);
     if (status === "Resolved")
@@ -81,23 +78,6 @@ export default function ViolationsPage() {
     return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>;
   };
 
-  const toggleAuto = async (id: number, current: boolean) => {
-  setLoading(true);
-  try {
-    const { error } = await supabase
-      .from("business_violations")
-      .update({ auto_send: !current })
-      .eq("id", id);
-
-    if (error) console.error(error);
-    else fetchViolations(); // refresh table/cards
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
-
   const NoticeBadge = ({ notice, v }: { notice: number; v: Violation }) => {
     const s = getNoticeStatus(notice, v);
     if (s === "Sent") return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-900 font-medium">Sent</span>;
@@ -105,9 +85,9 @@ export default function ViolationsPage() {
     return <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-700 font-medium">Pending</span>;
   };
 
-  // Check if Send Notice button is allowed based on interval_days
   const canSendNotice = (v: Violation) => {
     if (v.resolved) return false;
+    if (v.auto_send) return false; // disable manual send if auto_send
     const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
     const interval = v.interval_days || 7;
     if (!lastSent) return true;
@@ -115,7 +95,6 @@ export default function ViolationsPage() {
     return new Date() >= nextSend;
   };
 
-  // Manual send handler
   const handleSendNotice = async (id: number) => {
     setLoading(true);
     try {
@@ -127,11 +106,36 @@ export default function ViolationsPage() {
       const data = await res.json();
       if (data.success) alert("Notice sent successfully!");
       else alert(`Failed: ${data.error}`);
-      fetchViolations(); // refresh table/cards
+      fetchViolations();
     } catch (err) {
       console.error(err);
       alert("Error sending notice.");
     } finally { setLoading(false); }
+  };
+
+  const toggleAuto = async (id: number, current: boolean) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("business_violations")
+        .update({ auto_send: !current })
+        .eq("id", id);
+      if (error) console.error(error);
+      else fetchViolations();
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  const toggleAutoAll = async (checked: boolean) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("business_violations")
+        .update({ auto_send: checked });
+      if (error) console.error(error);
+      else fetchViolations();
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -158,7 +162,7 @@ export default function ViolationsPage() {
           </div>
         </div>
 
-        {/* Search + Legend */}
+        {/* Search + Legend + Check All */}
         <div className="flex flex-col md:flex-row md:items-center text-black justify-between gap-4">
           <div className="relative w-full md:w-96">
             <FiSearch className="absolute top-3 left-3 text-green-900 opacity-80" />
@@ -176,18 +180,25 @@ export default function ViolationsPage() {
             <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-gray-600">Pending</span></div>
             <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-600" /> <span className="text-gray-600">Cease &amp; Desist</span></div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={violations.every(v => v.auto_send)}
+              onChange={(e) => toggleAutoAll(e.target.checked)}
+              className="w-5 h-5 accent-green-600 cursor-pointer"
+            />
+            <span className="text-sm text-gray-700">Auto Send All</span>
+          </div>
         </div>
 
-        {/* Table / Cards */}
+        {/* Table */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
-
-          {/* Desktop Table */}
           <div className="w-full overflow-x-auto hidden md:block">
             <table className="min-w-full table-fixed">
               <thead className="bg-green-900 text-white">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
-                      onClick={() => toggleSort("business_id")}>
+                  <th onClick={() => toggleSort("business_id")} className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none">
                     <div className="flex items-center">Business ID {renderSortIcon("business_id")}</div>
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Violation</th>
@@ -210,15 +221,13 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4"><div className="h-4 bg-gray-100 rounded w-16" /></td>
                         <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded w-24" /></td>
                         <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded w-20" /></td>
+                        <td className="px-6 py-4"><div className="h-6 bg-gray-100 rounded w-16" /></td>
                       </tr>
                     ))
                   : violations.length === 0
-                  ? <tr><td colSpan={7} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
+                  ? <tr><td colSpan={8} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
                   : violations.map((v) => (
-                      <tr
-  key={v.id}
-  className={`hover:bg-gray-50 transition-colors ${v.auto_send ? 'bg-green-50' : ''}`}
->
+                      <tr key={v.id} className={`hover:bg-gray-50 transition-colors ${v.auto_send ? 'bg-green-50' : ''}`}>
                         <td className="px-6 py-4 align-top">
                           <div className="text-sm font-medium text-gray-900">{v.business_id}</div>
                           {v.last_sent_time && <div className="text-xs text-gray-400 mt-1">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
@@ -228,27 +237,24 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={2} v={v} /></td>
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
-                    <td className="px-6 py-4 align-top flex items-center gap-2">
-  <input
-    type="checkbox"
-    checked={v.auto_send || false}
-    onChange={() => toggleAuto(v.id, v.auto_send || false)}
-    className="w-5 h-5 accent-green-600 cursor-pointer"
-  />
-  <button
-    onClick={() => handleSendNotice(v.id)}
-    disabled={v.resolved}
-    className={`px-2 py-1 text-xs rounded font-medium ${
-      canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-    }`}
-  >
-    Send Notice
-  </button>
-                          {!canSendNotice(v) && v.last_sent_time && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days || 7)*24*60*60*1000).toLocaleString()}
-                            </div>
-                          )}
+                        <td className="px-6 py-4 align-top flex items-center gap-2">
+                          <button
+                            onClick={() => handleSendNotice(v.id)}
+                            disabled={!canSendNotice(v)}
+                            className={`px-2 py-1 text-xs rounded font-medium ${
+                              canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                            }`}
+                          >
+                            Send Notice
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 align-top flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={v.auto_send || false}
+                            onChange={() => toggleAuto(v.id, v.auto_send || false)}
+                            className="w-5 h-5 accent-green-600 cursor-pointer"
+                          />
                         </td>
                       </tr>
                     ))
@@ -259,63 +265,42 @@ export default function ViolationsPage() {
 
           {/* Mobile Cards */}
           <div className="md:hidden space-y-4 p-4">
-            {loading
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="animate-pulse border rounded-xl p-4 bg-gray-100 space-y-2">
-                    <div className="h-4 bg-gray-200 rounded w-1/2" />
-                    <div className="h-4 bg-gray-200 rounded w-full" />
-                    <div className="h-4 bg-gray-200 rounded w-1/4" />
-                  </div>
-                ))
-              : violations.length === 0
-              ? <div className="text-center py-10 text-gray-500">NO DATA FOUND</div>
-              : violations.map((v) => (
-                  <div
-  key={v.id}
-  className={`border rounded-xl p-4 shadow-sm space-y-2 ${v.auto_send ? 'bg-green-50' : 'bg-white'}`}
->
-                    <div className="flex justify-between items-center">
-                      <div className="font-semibold text-gray-900 text-sm">{v.business_id}</div>
-                      <StatusBadge v={v} />
-                    </div>
-                    <div className="text-gray-700 text-sm line-clamp-2">{v.violation}</div>
-                    <div className="flex gap-2">
-                      <NoticeBadge notice={1} v={v} />
-                      <NoticeBadge notice={2} v={v} />
-                      <NoticeBadge notice={3} v={v} />
-                    </div>
-                    
-                    {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
-                    <div className="flex items-center gap-2 mt-2">
-  <input
-    type="checkbox"
-    checked={v.auto_send || false}
-    onChange={() => toggleAuto(v.id, v.auto_send || false)}
-    className="w-5 h-5 accent-green-600 cursor-pointer"
-  />
-  <span className="text-xs text-gray-700">Auto Send</span>
-</div>
-                    <button
-                      onClick={() => handleSendNotice(v.id)}
-                      disabled={v.resolved}
-                      className={`px-2 py-1 text-xs rounded font-medium ${
-                        canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                      }`}
-                    >
-                      Send Notice
-                    </button>
-                    {!canSendNotice(v) && v.last_sent_time && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days || 7)*24*60*60*1000).toLocaleString()}
-                      </div>
-                    )}
-                  </div>
-                ))
-            }
+            {violations.map((v) => (
+              <div key={v.id} className={`border rounded-xl p-4 shadow-sm space-y-2 ${v.auto_send ? 'bg-green-50' : 'bg-white'}`}>
+                <div className="flex justify-between items-center">
+                  <div className="font-semibold text-gray-900 text-sm">{v.business_id}</div>
+                  <StatusBadge v={v} />
+                </div>
+                <div className="text-gray-700 text-sm line-clamp-2">{v.violation}</div>
+                <div className="flex gap-2">
+                  <NoticeBadge notice={1} v={v} />
+                  <NoticeBadge notice={2} v={v} />
+                  <NoticeBadge notice={3} v={v} />
+                </div>
+                {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    checked={v.auto_send || false}
+                    onChange={() => toggleAuto(v.id, v.auto_send || false)}
+                    className="w-5 h-5 accent-green-600 cursor-pointer"
+                  />
+                  <span className="text-xs text-gray-700">Auto Send</span>
+                </div>
+                <button
+                  onClick={() => handleSendNotice(v.id)}
+                  disabled={!canSendNotice(v)}
+                  className={`px-2 py-1 text-xs rounded font-medium ${
+                    canSendNotice(v) ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  }`}
+                >
+                  Send Notice
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </div>
   );
 }
-
