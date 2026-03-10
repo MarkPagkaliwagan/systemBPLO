@@ -1,6 +1,6 @@
-import nodemailer from "nodemailer";
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import { sendEmail } from "@/lib/sendEmail";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +10,7 @@ const supabase = createClient(
 export async function POST(req: Request) {
   try {
     const { id } = await req.json();
+    if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
     // fetch violation
     const { data, error } = await supabase
@@ -19,52 +20,39 @@ export async function POST(req: Request) {
       .single();
 
     if (error || !data) {
-      console.error(error);
+      console.error("Supabase fetch error:", error);
       return NextResponse.json({ error: error?.message || "Violation not found" }, { status: 500 });
     }
 
     if (!data.requestor_email) {
+      console.error("No requestor email for violation", data);
       return NextResponse.json({ error: "No email for this violation" }, { status: 400 });
-    }
-
-    if (data.resolved) {
-      return NextResponse.json({ error: "Violation already resolved" }, { status: 400 });
     }
 
     const noticeLevel = Number(data.notice_level);
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // Gmail App Password
-      },
-    });
+    // send email
+    const subject = `Violation Notice ${noticeLevel}`;
+    const html = `
+      <h2>Violation Notice ${noticeLevel}</h2>
+      <p><b>Business ID:</b> ${data.business_id}</p>
+      <p><b>Violation:</b> ${data.violation}</p>
+      ${
+        noticeLevel === 3
+          ? "<p style='color:red'><b>FINAL NOTICE: Failure to comply may result in Cease & Desist.</b></p>"
+          : ""
+      }
+      ${
+        noticeLevel > 3
+          ? "<p style='color:red'><b>CEASE AND DESIST ORDER ISSUED.</b></p>"
+          : ""
+      }
+      <p>Please resolve this violation immediately.</p>
+    `;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: data.requestor_email,
-      subject: `Violation Notice ${noticeLevel}`,
-      html: `
-        <h2>Violation Notice ${noticeLevel}</h2>
-        <p><b>Business ID:</b> ${data.business_id}</p>
-        <p><b>Violation:</b> ${data.violation}</p>
-        ${
-          noticeLevel === 3
-            ? "<p style='color:red'><b>FINAL NOTICE: Failure to comply may result in Cease & Desist.</b></p>"
-            : ""
-        }
-        ${
-          noticeLevel > 3
-            ? "<p style='color:red'><b>CEASE AND DESIST ORDER ISSUED.</b></p>"
-            : ""
-        }
-        <p>Please resolve this violation immediately.</p>
-      `,
-    });
+    await sendEmail(data.requestor_email, subject, html);
 
+    // update database
     const { error: updateError } = await supabase
       .from("business_violations")
       .update({
@@ -74,7 +62,7 @@ export async function POST(req: Request) {
       .eq("id", id);
 
     if (updateError) {
-      console.error(updateError);
+      console.error("Supabase update error:", updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
