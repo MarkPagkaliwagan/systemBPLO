@@ -45,6 +45,26 @@ export default function ViolationsPage() {
     else { setSortKey(key); setSortAsc(true); }
   };
 
+  const sendNotice = async (id: number) => {
+  const confirmSend = confirm("Send notice to this business?");
+  if (!confirmSend) return;
+
+  const res = await fetch("/api/send-notice", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ id }),
+  });
+
+  if (res.ok) {
+    alert("Notice sent successfully");
+    fetchViolations(); // reload table
+  } else {
+    alert("Failed to send notice");
+  }
+};
+
   const getNoticeStatus = (notice: number, v: Violation) => {
     if (v.resolved) return "Resolved";
     if (v.notice_level >= notice) return "Sent";
@@ -155,6 +175,9 @@ export default function ViolationsPage() {
                       onClick={() => toggleSort("resolved")}>
                     <div className="flex items-center">Status {renderSortIcon("resolved")}</div>
                   </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">
+  Action
+</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -182,6 +205,16 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={2} v={v} /></td>
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
+                        <td className="px-6 py-4 align-top">
+  {!v.resolved && v.notice_level <= 3 && (
+    <button
+      onClick={() => sendNotice(v.id)}
+      className="bg-green-900 text-white text-xs px-3 py-1 rounded-lg hover:bg-green-800"
+    >
+      Send Notice
+    </button>
+  )}
+</td>
                       </tr>
                     ))
                 }
