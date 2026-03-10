@@ -76,7 +76,7 @@ export default function LoginPage() {
         <div>
 
           {/* Header */}
-          <h2 className="text-xl font-bold text-gray-800 text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">
             BPLO
           </h2>
 
