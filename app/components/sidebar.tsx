@@ -324,14 +324,6 @@ export default function Sidebar({
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Link
-                    href="/SuperAdmin/change-password"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-                  >
-                    <FiKey className="w-4 h-4 mr-3" />
-                    Change Password
-                  </Link>
                   <button
                     onClick={handleLogout}
                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
@@ -394,14 +386,6 @@ export default function Sidebar({
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Link
-                    href="/SuperAdmin/change-password"
-                    onClick={() => setIsDesktopMenuOpen(false)}
-                    className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-                  >
-                    <FiKey className="w-4 h-4 mr-3" />
-                    Change Password
-                  </Link>
                   <button
                     onClick={handleLogout}
                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
