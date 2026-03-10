@@ -16,19 +16,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
+    // STEP 1: Test Supabase
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email.toLowerCase().trim())
       .single();
 
-    if (error || !user) {
+    if (error) {
+      return NextResponse.json({ error: 'SUPABASE ERROR', detail: error.message }, { status: 500 });
+    }
+
+    if (!user) {
       return NextResponse.json(
         { message: 'If an account with this email exists, a password reset link has been sent.' },
         { status: 200 }
       );
     }
 
+    // STEP 2: Test token update
     const resetToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -41,40 +47,24 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Failed to store reset token:', updateError);
-      return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+      return NextResponse.json({ error: 'SUPABASE UPDATE ERROR', detail: updateError.message }, { status: 500 });
     }
 
+    // STEP 3: Test email
     const resetUrl = `https://system-bplo-nxbj.vercel.app/reset-password?token=${resetToken}`;
 
-    await sendEmail(
-      user.email,
-      'Password Reset Request',
-      `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
-        <p style="color: #666; margin-bottom: 20px;">Hello ${user.name || user.email},</p>
-        <p style="color: #666; margin-bottom: 20px;">
-          We received a request to reset your password for the BPLO Inspection Management System.
-          Click the link below to reset your password:
-        </p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${resetUrl}"
-             style="background-color: #059669; color: white; padding: 12px 30px;
-                    text-decoration: none; border-radius: 6px; display: inline-block;">
-            Reset Password
-          </a>
-        </div>
-        <p style="color: #666; margin-bottom: 20px;">This link will expire in 24 hours for security reasons.</p>
-        <p style="color: #666; margin-bottom: 20px;">
-          If you didn't request this password reset, please ignore this email.
-          Your password will remain unchanged.
-        </p>
-        <hr style="border: 1px solid #eee; margin: 30px 0;">
-        <p style="color: #999; font-size: 12px;">
-          This is an automated message from BPLO Inspection Management System.
-        </p>
-      </div>`
-    );
+    try {
+      await sendEmail(
+        user.email,
+        'Password Reset Request',
+        `<p>Click here to reset: <a href="${resetUrl}">${resetUrl}</a></p>`
+      );
+    } catch (emailError) {
+      return NextResponse.json({ 
+        error: 'EMAIL ERROR', 
+        detail: emailError instanceof Error ? emailError.message : String(emailError)
+      }, { status: 500 });
+    }
 
     return NextResponse.json(
       { message: 'If an account with this email exists, a password reset link has been sent.' },
@@ -82,9 +72,10 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error) {
-    console.error('Forgot password error:', error);
-    return NextResponse.json({ error: 'Internal server error' 
-      ,detail: error instanceof Error ? error.message : String(error) }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'UNEXPECTED ERROR', 
+      detail: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 
