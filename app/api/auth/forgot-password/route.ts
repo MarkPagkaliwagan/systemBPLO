@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/sendEmail';
 import crypto from 'crypto';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +21,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    // STEP 1: Test Supabase
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -34,7 +38,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // STEP 2: Test token update
     const resetToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -50,30 +53,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'SUPABASE UPDATE ERROR', detail: updateError.message }, { status: 500 });
     }
 
-    // STEP 3: Test email
     const resetUrl = `https://system-bplo-nxbj.vercel.app/reset-password?token=${resetToken}`;
 
     try {
       await sendEmail(
         user.email,
         'Password Reset Request',
-        `<p>Click here to reset: <a href="${resetUrl}">${resetUrl}</a></p>`
+        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Password Reset Request</h2>
+          <p>Hello ${user.name || user.email},</p>
+          <p>Click the link below to reset your password:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}"
+               style="background-color: #059669; color: white; padding: 12px 30px;
+                      text-decoration: none; border-radius: 6px; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          <p>This link will expire in 24 hours.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+        </div>`
       );
     } catch (emailError) {
-      return NextResponse.json({ 
-        error: 'EMAIL ERROR', 
+      return NextResponse.json({
+        error: 'EMAIL ERROR',
         detail: emailError instanceof Error ? emailError.message : String(emailError)
       }, { status: 500 });
     }
 
     return NextResponse.json(
-      { message: 'If an account with this email exists, A password reset link has been sent.' },
+      { message: 'If an account with this email exists, a password reset link has been sent.' },
       { status: 200 }
     );
 
   } catch (error) {
-    return NextResponse.json({ 
-      error: 'UNEXPECTED ERROR', 
+    return NextResponse.json({
+      error: 'UNEXPECTED ERROR',
       detail: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
