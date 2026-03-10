@@ -171,34 +171,7 @@ export default function ViolationsPage() {
             <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
           </div>
         </div>
-<div className="flex items-center gap-2 justify-end w-full md:w-auto">
-          <label className="flex items-center cursor-pointer select-none">
-            <div className="relative">
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={autoSend}
-                onChange={async (e) => {
-                  const checked = e.target.checked;
-                  setAutoSend(checked);
-                  localStorage.setItem("autoSend", checked ? "true" : "false"); // persist
-                  await fetch("/api/automatic-send", {
-                    method: "POST",
-                    body: JSON.stringify({ autoSend: checked }),
-                    headers: { "Content-Type": "application/json" },
-                  });
-                }}
-              />
-              <div className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`} />
-              <div
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""}`}
-              />
-            </div>
-            <span className="ml-3 text-sm font-medium text-gray-700 flex items-center gap-1">
-              Auto Send <FiSend className="text-green-600" />
-            </span>
-          </label>
-        </div>
+
         {/* Search + Legend */}
         <div className="flex flex-col md:flex-row md:items-center text-black justify-between gap-4">
           <div className="relative w-full md:w-96">
@@ -212,7 +185,7 @@ export default function ViolationsPage() {
             />
           </div>
         </div>
-          <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-3 text-sm">
           <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-700" /> <span className="text-gray-600">Sent</span></div>
           <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-gray-600">Pending</span></div>
           <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-600" /> <span className="text-gray-600">Cease &amp; Desist</span></div>
@@ -236,7 +209,38 @@ export default function ViolationsPage() {
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 2</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 3</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Action</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">
+                    <div className="flex items-center justify-between">
+                      <span>Action</span>
+                      {/* Auto Send toggle inside header */}
+                      <label className="flex items-center cursor-pointer select-none ml-2">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            className="sr-only"
+                            checked={autoSend}
+                            onChange={async (e) => {
+                              const checked = e.target.checked;
+                              setAutoSend(checked);
+                              localStorage.setItem("autoSend", checked ? "true" : "false");
+                              await fetch("/api/automatic-send", {
+                                method: "POST",
+                                body: JSON.stringify({ autoSend: checked }),
+                                headers: { "Content-Type": "application/json" },
+                              });
+                            }}
+                          />
+                          <div className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`} />
+                          <div
+                            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""}`}
+                          />
+                        </div>
+                        <span className="ml-2 text-xs font-medium text-gray-100 flex items-center gap-1">
+                          Auto Send <FiSend className="text-green-100" />
+                        </span>
+                      </label>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
