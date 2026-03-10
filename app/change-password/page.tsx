@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "../../components/sidebar";
+import Sidebar from "../components/sidebar";
 
 export default function ChangePasswordPage() {
   const [form, setForm] = useState({

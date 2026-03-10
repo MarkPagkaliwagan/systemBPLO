@@ -69,11 +69,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
     // Create reset URL
-    // Create reset URL
-    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
-    // Send reset email
+    const resetUrl = `https://system-bplo-nxbj.vercel.app/reset-password?token=${encodeURIComponent(resetToken)}`;
     try {
       await sendEmail(
         user.email,
