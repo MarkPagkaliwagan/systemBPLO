@@ -118,10 +118,10 @@ export default function DashboardPage() {
 
   // valueColor: colored numbers; iconBg: colored icon background; trendColor: colored trend badge
   const kpiData = [
-    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,  trend: "+12%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
-    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-slate-800",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
-    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-slate-800", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
     { title: "Active Businesses", value: String(activeCount),        icon: Building2,    trend: "+15%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
+    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,  trend: "+12%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
+    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-slate-800", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-slate-800",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
   ];
 
   const noticeStats = [
