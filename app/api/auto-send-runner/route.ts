@@ -36,7 +36,7 @@ for (const v of violations) {
     ? new Date(v.last_sent_time)
     : null;
 
-  const interval = v.interval_days || 7;
+  const interval = v.interval_days ?? 7;
 
   const nextSend = lastSent
     ? new Date(lastSent.getTime() + interval * 86400000)

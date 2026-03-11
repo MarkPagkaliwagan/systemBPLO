@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   const v = violations[0];
   const now = new Date();
-  const interval = v.interval_days || 7;
+  const interval = v.interval_days ?? 7;
   const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
 
   // Check interval

@@ -105,7 +105,7 @@ export default function ViolationsPage() {
   const canSendNotice = (v: Violation) => {
     if (v.resolved || v.cease_flag) return false;
     const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
-    const interval = v.interval_days || 7;
+    const interval = v.interval_days ?? 7;
     if (!lastSent) return true;
     const nextSend = new Date(lastSent.getTime() + interval * 24 * 60 * 60 * 1000);
     return new Date() >= nextSend;
