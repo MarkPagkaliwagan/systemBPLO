@@ -41,7 +41,7 @@ export default function ViolationsPage() {
       setIsMobile(window.innerWidth < 768);
       if (window.innerWidth >= 768) setIsMobileMenuOpen(false);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -128,12 +128,12 @@ export default function ViolationsPage() {
     return "Pending";
   };
 
-const getStatusText = (v: Violation) => {
-  if (v.resolved) return "Resolved";
-  // Cease and Desist kapag notice_level >= 3
-  if ((v.notice_level || 0) >= 3) return "Cease and Desist";
-  return "Pending";
-};
+  const getStatusText = (v: Violation) => {
+    if (v.resolved) return "Resolved";
+    // Cease and Desist kapag notice_level >= 3
+    if ((v.notice_level || 0) >= 3) return "Cease and Desist";
+    return "Pending";
+  };
 
   const renderSortIcon = (key: keyof Violation) => {
     if (sortKey !== key) return <FiChevronDown className="inline ml-1 text-green-200" />;
@@ -189,7 +189,7 @@ const getStatusText = (v: Violation) => {
   };
 
   return (
-   <div className="min-h-screen bg-gray-50 pt-10 md:pt-16 px-4 md:px-6 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-50 pt-10 md:pt-16 px-4 md:px-6 flex flex-col md:flex-row">
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -197,23 +197,23 @@ const getStatusText = (v: Violation) => {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-<div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
-  {/* Calendar */}
-  <div className="mb-8">
-    <CalendarPage />
-  </div>
+      <div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
+        {/* Calendar */}
+        <div className="mb-8">
+          <CalendarPage />
+        </div>
 
-  {/* Header */}
-  <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-    <div>
-      <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
-      <p className="text-gray-500 mt-1 text-sm max-w-xl">Track business violations and notices</p>
-    </div>
-    <div className="text-right">
-      <div className="text-xs text-gray-500">Total</div>
-      <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
-    </div>
-  </div>
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div>
+            <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
+            <p className="text-gray-500 mt-1 text-sm max-w-xl">Track business violations and notices</p>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-gray-500">Total</div>
+            <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
+          </div>
+        </div>
 
 
         {/* Search + Legend */}
