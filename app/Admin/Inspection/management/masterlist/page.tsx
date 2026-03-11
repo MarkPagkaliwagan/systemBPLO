@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiUpload, FiFile, FiClock, FiDownload, FiTrash2, FiChevronLeft, FiChevronRight, FiAlertCircle, FiFilter } from "react-icons/fi";
+import { FiUpload, FiFile, FiClock, FiDownload, FiTrash2, FiChevronLeft, FiChevronRight, FiAlertCircle, FiFilter, FiPlus } from "react-icons/fi";
 import Papa from "papaparse";
 import Sidebar from "../../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
@@ -522,6 +522,21 @@ export default function CSVManager() {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setFileToDelete(null)}
       />
+      {/* Floating Upload Button (Desktop Only) */}
+{!isMobile && (
+  <button
+    onClick={() => fileInputRef.current?.click()}
+    className="fixed bottom-8 right-8 z-50 
+               w-14 h-14 rounded-full 
+               bg-green-600 hover:bg-green-700 
+               text-white shadow-lg 
+               flex items-center justify-center
+               transition-all duration-200
+               hover:scale-105"
+  >
+    <FiPlus className="w-6 h-6" />
+  </button>
+)}
     </>
   );
 }
