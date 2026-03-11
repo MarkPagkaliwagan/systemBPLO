@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import {
   FiArrowLeft,
   FiBriefcase,
@@ -90,6 +92,43 @@ export default function ManualAddBusiness() {
 
   const router = useRouter();
 
+  const [loading,setLoading] = useState(false);
+  const [confirmModal,setConfirmModal] = useState(false);
+  const [successModal,setSuccessModal] = useState(false);
+
+  const [form,setForm] = useState<any>({});
+
+  const handleChange = (label:string,value:any)=>{
+    setForm((prev:any)=>({
+      ...prev,
+      [label]:value
+    }))
+  }
+
+  const handleSubmit = async ()=>{
+
+    setConfirmModal(false)
+    setLoading(true)
+
+    const payload = {
+      ...form,
+      id: crypto.randomUUID()
+    }
+
+    const {error} = await supabase
+      .from("business_records")
+      .insert(payload)
+
+    setLoading(false)
+
+    if(!error){
+      setSuccessModal(true)
+    }else{
+      alert(error.message)
+    }
+
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -111,113 +150,116 @@ export default function ManualAddBusiness() {
       <div className="max-w-7xl mx-auto p-6 space-y-8">
 
         <Section title="Business Information" icon={<FiBriefcase/>}>
-          <Input label="Business Identification Number"/>
-          <Input label="Business Name"/>
-          <Input label="Trade Name"/>
-          <Input label="Business Nature"/>
-          <Input label="Business Line"/>
-          <Input label="Business Type"/>
-          <Input label="Transmittal No."/>
-          <Input label="Year" type="number"/>
+          <Input label="Business Identification Number" onChange={handleChange}/>
+          <Input label="Business Name" onChange={handleChange}/>
+          <Input label="Trade Name" onChange={handleChange}/>
+          <Input label="Business Nature" onChange={handleChange}/>
+          <Input label="Business Line" onChange={handleChange}/>
+          <Input label="Business Type" onChange={handleChange}/>
+          <Input label="Transmittal No." onChange={handleChange}/>
+          <Input label="Year" type="number" onChange={handleChange}/>
         </Section>
 
         <Section title="Incharge Information" icon={<FiUser/>}>
-          <Input label="Incharge First Name"/>
-          <Input label="Incharge Middle Name"/>
-          <Input label="Incharge Last Name"/>
-          <Input label="Incharge Extension Name"/>
-          <Input label="Incharge Sex"/>
-          <Input label="Citizenship"/>
+          <Input label="Incharge First Name" onChange={handleChange}/>
+          <Input label="Incharge Middle Name" onChange={handleChange}/>
+          <Input label="Incharge Last Name" onChange={handleChange}/>
+          <Input label="Incharge Extension Name" onChange={handleChange}/>
+          <Input label="Incharge Sex" onChange={handleChange}/>
+          <Input label="Citizenship" onChange={handleChange}/>
         </Section>
 
         <Section title="Office Address" icon={<FiMapPin/>}>
-          <Input label="Office Street"/>
-          <Input label="Office Region"/>
-          <Input label="Office Province"/>
-          <Input label="Office Municipality"/>
-          <Input label="Office Barangay"/>
-          <Input label="Office Zipcode"/>
+          <Input label="Office Street" onChange={handleChange}/>
+          <Input label="Office Region" onChange={handleChange}/>
+          <Input label="Office Province" onChange={handleChange}/>
+          <Input label="Office Municipality" onChange={handleChange}/>
+          <Input label="Office Barangay" onChange={handleChange}/>
+          <Input label="Office Zipcode" onChange={handleChange}/>
         </Section>
 
         <Section title="Financial Information" icon={<FiDollarSign/>}>
-          <Input label="Capital" type="number"/>
-          <Input label="Gross Amount" type="number"/>
-          <Input label="Gross Amount Essential" type="number"/>
-          <Input label="Gross Amount Non-Essential" type="number"/>
+          <Input label="Capital" type="number" onChange={handleChange}/>
+          <Input label="Gross Amount" type="number" onChange={handleChange}/>
+          <Input label="Gross Amount Essential" type="number" onChange={handleChange}/>
+          <Input label="Gross Amount Non-Essential" type="number" onChange={handleChange}/>
         </Section>
 
         <Section title="Requestor Information" icon={<FiUser/>}>
-          <Input label="Requestor First Name"/>
-          <Input label="Requestor Middle Name"/>
-          <Input label="Requestor Last Name"/>
-          <Input label="Requestor Extension Name"/>
-          <Input label="Requestor Email"/>
-          <Input label="Requestor Mobile No."/>
-          <Input label="Birth Date" type="date"/>
-          <Input label="Requestor Sex"/>
-          <Input label="Civil Status"/>
-          <Input label="Requestor Street"/>
-          <Input label="Requestor Province"/>
-          <Input label="Requestor Municipality"/>
-          <Input label="Requestor Barangay"/>
-          <Input label="Requestor Zipcode"/>
+          <Input label="Requestor First Name" onChange={handleChange}/>
+          <Input label="Requestor Middle Name" onChange={handleChange}/>
+          <Input label="Requestor Last Name" onChange={handleChange}/>
+          <Input label="Requestor Extension Name" onChange={handleChange}/>
+          <Input label="Requestor Email" onChange={handleChange}/>
+          <Input label="Requestor Mobile No." onChange={handleChange}/>
+          <Input label="Birth Date" type="date" onChange={handleChange}/>
+          <Input label="Requestor Sex" onChange={handleChange}/>
+          <Input label="Civil Status" onChange={handleChange}/>
+          <Input label="Requestor Street" onChange={handleChange}/>
+          <Input label="Requestor Province" onChange={handleChange}/>
+          <Input label="Requestor Municipality" onChange={handleChange}/>
+          <Input label="Requestor Barangay" onChange={handleChange}/>
+          <Input label="Requestor Zipcode" onChange={handleChange}/>
         </Section>
 
         <Section title="Transaction Information" icon={<FiFileText/>}>
-          <Input label="Transaction ID"/>
-          <Input label="Reference No."/>
-          <Input label="Module Type"/>
-          <Input label="Transaction Type"/>
-          <Input label="Transaction Date" type="date"/>
-          <Input label="SOA No."/>
-          <Input label="Term"/>
-        </Section>
-
-        <Section title="Payment Information" icon={<FiClipboard/>}>
-          <Input label="Annual Amount" type="number"/>
-          <Input label="Amount Paid" type="number"/>
-          <Input label="Balance" type="number"/>
-          <Input label="Payment Type"/>
-          <Input label="Payment Date" type="date"/>
-          <Input label="O.R. No."/>
-          <Input label="O.R. Date" type="date"/>
-        </Section>
-
-        <Section title="Permit / Clearance" icon={<FiCheckCircle/>}>
-          <Input label="Brgy. Clearance Status"/>
-          <Input label="Brgy. Clearance No."/>
-          <Input label="Permit No."/>
-          <Input label="Business Plate No."/>
-        </Section>
-
-        <Section title="Closure / Retirement" icon={<FiCalendar/>}>
-          <Input label="Actual Closure Date" type="date"/>
-          <Input label="Retirement Reason"/>
-          <Input label="Source Type"/>
+          <Input label="Transaction ID" onChange={handleChange}/>
+          <Input label="Reference No." onChange={handleChange}/>
+          <Input label="Module Type" onChange={handleChange}/>
+          <Input label="Transaction Type" onChange={handleChange}/>
+          <Input label="Transaction Date" type="date" onChange={handleChange}/>
+          <Input label="SOA No." onChange={handleChange}/>
+          <Input label="Term" onChange={handleChange}/>
         </Section>
 
         <Section title="Inspection / Review" icon={<FiClipboard/>}>
-          <Input label="violation"/>
-          <Input label="review_action"/>
-          <Input label="review_date" type="date"/>
-          <Input label="reviewed_by"/>
-          <Input label="status"/>
-          <Input label="assigned_inspector"/>
-          <Input label="scheduled_date" type="date"/>
+          <Input label="violation" onChange={handleChange}/>
+          <Input label="review_action" onChange={handleChange}/>
+          <Input label="review_date" type="date" onChange={handleChange}/>
+          <Input label="reviewed_by" onChange={handleChange}/>
+          <Input label="status" onChange={handleChange}/>
+          <Input label="assigned_inspector" onChange={handleChange}/>
+          <Input label="scheduled_date" type="date" onChange={handleChange}/>
         </Section>
 
         {/* BUTTONS */}
         <div className="flex justify-end gap-4 pt-6">
-          <button className="px-6 py-2 border rounded-lg hover:bg-gray-100">
+          <button
+            onClick={()=>router.back()}
+            className="px-6 py-2 border rounded-lg hover:bg-gray-100"
+          >
             Cancel
           </button>
 
-          <button className="px-6 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800">
-            Save Record
+          <button
+            onClick={()=>setConfirmModal(true)}
+            className="px-6 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800"
+          >
+            {loading ? "Saving..." : "Save Record"}
           </button>
         </div>
 
       </div>
+
+      {/* CONFIRM MODAL */}
+      {confirmModal &&(
+        <Modal
+          title="Confirm Save"
+          text="Do you want to save this record?"
+          onConfirm={handleSubmit}
+          onCancel={()=>setConfirmModal(false)}
+        />
+      )}
+
+      {/* SUCCESS MODAL */}
+      {successModal &&(
+        <Modal
+          title="Saved"
+          text="Record successfully saved."
+          onConfirm={()=>router.push("/Admin/Inspection/management")}
+        />
+      )}
+
     </div>
   );
 }
@@ -242,15 +284,53 @@ function Section({title,icon,children}:{title:string,icon:any,children:any}){
   )
 }
 
-function Input({label,type="text"}:{label:string,type?:string}){
+function Input({label,type="text",onChange}:{label:string,type?:string,onChange:any}){
 
   return(
     <div className="flex flex-col">
       <label className="text-sm text-gray-600 mb-1">{label}</label>
       <input
         type={type}
-        className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-900 outline-none"
+        onChange={(e)=>onChange(label,e.target.value)}
+        className="border rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-green-900 outline-none"
       />
+    </div>
+  )
+}
+
+function Modal({title,text,onConfirm,onCancel}:{title:string,text:string,onConfirm:any,onCancel?:any}){
+
+  return(
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+      <div className="bg-white rounded-xl p-6 w-[380px]">
+
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+
+        <p className="text-gray-600 mb-6">{text}</p>
+
+        <div className="flex justify-end gap-3">
+
+          {onCancel &&(
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 border rounded-lg"
+            >
+              Cancel
+            </button>
+          )}
+
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 bg-green-900 text-white rounded-lg"
+          >
+            Confirm
+          </button>
+
+        </div>
+
+      </div>
+
     </div>
   )
 }
