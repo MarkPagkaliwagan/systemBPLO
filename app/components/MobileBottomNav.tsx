@@ -29,22 +29,22 @@ const MobileBottomNav = () => {
     if (userRole === 'super_admin') {
       return [
         {
-          id: "dashboard",
-          label: "Dashboard",
+          id: "home",
+          label: "Home",
           icon: <FiHome className="w-6 h-6" />,
           href: "/SuperAdmin/Inspection/management/analytics",
-        },
-        {
-          id: "masterlist",
-          label: "Masterlist",
-          icon: <FiBookOpen className="w-6 h-6" />,
-          href: "/SuperAdmin/Inspection/management/masterlist",
         },
         {
           id: "scheduling",
           label: "Scheduling",
           icon: <FiBookOpen className="w-6 h-6" />,
           href: "/SuperAdmin/Inspection/management/review",
+        },
+        {
+          id: "business-registry",
+          label: "Business Registry",
+          icon: <FiBookOpen className="w-6 h-6" />,
+          href: "/SuperAdmin/Inspection/management/masterlist",
         },
         {
           id: "compliance",
@@ -56,22 +56,22 @@ const MobileBottomNav = () => {
     } else {
       return [
         {
-          id: "dashboard",
-          label: "Dashboard",
+          id: "home",
+          label: "Home",
           icon: <FiHome className="w-6 h-6" />,
           href: "/Admin/Inspection/management/analytics",
-        },
-        {
-          id: "masterlist",
-          label: "Masterlist",
-          icon: <FiBookOpen className="w-6 h-6" />,
-          href: "/Admin/Inspection/management/masterlist",
         },
         {
           id: "scheduling",
           label: "Scheduling",
           icon: <FiBookOpen className="w-6 h-6" />,
           href: "/Admin/Inspection/management/review",
+        },
+        {
+          id: "business-registry",
+          label: "Business Registry",
+          icon: <FiBookOpen className="w-6 h-6" />,
+          href: "/Admin/Inspection/management/masterlist",
         },
         {
           id: "compliance",
@@ -86,12 +86,12 @@ const MobileBottomNav = () => {
   const navItems = getNavItems();
 
   const getActiveTab = (): string => {
-    if (pathname.includes("/analytics") || pathname.includes("/Dashboard")) return "dashboard";
-    if (pathname.includes("/masterlist")) return "masterlist";
+    if (pathname.includes("/analytics") || pathname.includes("/Dashboard")) return "home";
     if (pathname.includes("/review")) return "scheduling";
+    if (pathname.includes("/masterlist")) return "business-registry";
     if (pathname.includes("/Compliance")) return "compliance";
     if (pathname.includes("/notifCompliance")) return "settings";
-    return "dashboard";
+    return "home";
   };
 
   const activeTab = getActiveTab();
