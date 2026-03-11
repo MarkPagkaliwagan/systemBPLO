@@ -22,14 +22,7 @@ export default function CalendarPage() {
   const [schedule, setSchedule] = useState<Record<string, Violation[]>>({});
   const [dates, setDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
-
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const today = new Date();
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
     loadSchedule();
@@ -57,11 +50,18 @@ export default function CalendarPage() {
     setDates(Object.keys(grouped).sort());
   };
 
-  const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const handlePrevMonth = () =>
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  const handleNextMonth = () =>
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+
+  // Calendar helper
+  const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+  const today = new Date();
 
   const getHeatClass = (count: number) => {
-    if (count === 0) return "bg-transparent";
+    if (count === 0) return "";
     if (count <= 2) return "bg-green-200";
     if (count <= 4) return "bg-green-400";
     if (count <= 6) return "bg-green-600";
@@ -71,36 +71,33 @@ export default function CalendarPage() {
   const renderCalendar = () => {
     const cells: JSX.Element[] = [];
 
-    for (let i = 0; i < firstDay; i++) {
-      cells.push(<div key={"empty" + i} className="h-16" />);
-    }
+    // Empty cells before first day
+    for (let i = 0; i < firstDay; i++) cells.push(<div key={"empty" + i} className="h-12" />);
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(year, month, d);
+      const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d);
       const key = date.toISOString().split("T")[0];
       const count = schedule[key]?.length || 0;
-      const isToday = today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
+      const isToday = today.getDate() === d && today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
+      const selected = selectedDate === key;
 
       cells.push(
-        <button
-          key={d}
+        <div
+          key={key}
           onClick={() => setSelectedDate(key)}
-          className={`relative flex flex-col items-start gap-1 p-2 h-16 rounded-md transition-all duration-200 outline-none
-            ${isToday ? "bg-green-50 ring-2 ring-green-300" : "hover:bg-green-100"} ${getHeatClass(count)}`}
+          className={`relative h-12 border rounded flex flex-col justify-center items-center cursor-pointer
+            ${selected ? "bg-green-200 border-green-500" : ""}
+            ${isToday ? "border-blue-500 border-2" : ""}
+            ${count > 0 ? "bg-green-50" : ""}
+            hover:bg-green-100`}
         >
-          <div className="flex items-center w-full justify-between">
-            <div className={`text-sm font-medium ${isToday ? "text-green-900" : "text-gray-800"}`}>{d}</div>
-            {count > 0 && (
-              <div className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-900 text-white shadow">
-                {count}
-              </div>
-            )}
-          </div>
-          <div className="text-[11px] text-gray-500 truncate w-full">
-            {schedule[key]?.slice(0, 2).map((s) => s.business_id).join(", ")}
-            {schedule[key] && schedule[key].length > 2 ? "..." : ""}
-          </div>
-        </button>
+          <span className="text-sm font-semibold text-gray-800">{d}</span>
+          {count > 0 && (
+            <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] px-1.5 py-[1px] rounded-full font-bold shadow">
+              {count}
+            </span>
+          )}
+        </div>
       );
     }
 
@@ -108,111 +105,59 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 md:px-6 py-6">
-      <div className="max-w-6xl mx-auto space-y-4">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-green-900">Notice Schedule</h1>
-          <div className="flex items-center gap-2 text-gray-600">
-            <button onClick={handlePrevMonth} className="p-2 rounded hover:bg-green-100 transition" title="Previous month">
-              <FiChevronLeft size={20} />
-            </button>
-            <span className="text-sm md:text-base font-medium">{currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
-            <button onClick={handleNextMonth} className="p-2 rounded hover:bg-green-100 transition" title="Next month">
-              <FiChevronRight size={20} />
-            </button>
-          </div>
-        </div>
-
-        {/* DESKTOP CALENDAR */}
-        <div className="hidden md:block bg-white rounded-2xl shadow-md border">
-          <div className="grid grid-cols-7 gap-1 px-4 py-2 border-b text-xs text-gray-600 font-medium">
-            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
-              <div key={d} className="text-center">{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1 p-2">{renderCalendar()}</div>
-        </div>
-
-        {/* MOBILE LIST */}
-        <div className="md:hidden space-y-2">
-          {dates.length === 0 && (
-            <div className="bg-white border rounded-xl shadow p-4 text-center text-gray-500 text-sm">
-              No scheduled notices
+    <div className="flex flex-col md:flex-row px-4 md:px-6 py-6">
+      <div className="flex-1">
+        <div className="max-w-full mx-auto flex flex-col gap-4">
+          {/* HEADER */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-green-900">Notice Calendar</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <button onClick={handlePrevMonth} className="px-3 py-1 border text-gray-400 rounded hover:bg-green-100 text-sm">Prev</button>
+              <span className="font-semibold text-gray-800">{currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
+              <button onClick={handleNextMonth} className="px-3 py-1 border text-gray-400 rounded hover:bg-green-100 text-sm">Next</button>
             </div>
-          )}
+          </div>
 
-          {dates.map((date) => {
-            const list = schedule[date];
-            const d = new Date(date);
+          {/* CALENDAR */}
+          <div className="bg-white border rounded-xl shadow-sm p-3">
+            <div className="grid grid-cols-7 text-center text-xs mb-1">
+              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
+                <div key={d} className="font-semibold text-green-700">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-[3px]">{renderCalendar()}</div>
+          </div>
 
-            return (
-              <div key={date} className="bg-white rounded-xl shadow-md border overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2">
-                  <div>
-                    <div className="text-xs text-gray-500">{d.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <div className="text-sm font-semibold text-gray-900">{d.toLocaleDateString()}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm text-white font-semibold bg-green-900 px-2 py-0.5 rounded-full shadow">
-                      {list.length}
-                    </div>
-                    <button className="text-xs text-gray-500" onClick={() => setSelectedDate(date)}>View</button>
-                  </div>
-                </div>
+          {/* DETAILS */}
+          {selectedDate && (
+            <div className="border rounded-xl p-4 bg-white shadow-sm">
+              <h2 className="text-sm font-semibold text-green-800 mb-3">{selectedDate}</h2>
 
-                <div className="divide-y">
-                  {list.map((v) => {
+              {(schedule[selectedDate] || []).length === 0 ? (
+                <p className="text-sm text-gray-500">No data for this date</p>
+              ) : (
+                <div className="space-y-2">
+                  {schedule[selectedDate].map((v) => {
                     const last = v.last_sent_time ? new Date(v.last_sent_time) : new Date();
                     const interval = v.interval_days ?? 7;
                     const next = new Date(last.getTime() + interval * 24 * 60 * 60 * 1000);
-
                     return (
-                      <div key={v.id} className="p-2 flex items-start justify-between hover:bg-green-50 transition rounded-md">
-                        <div className="pr-2 w-3/4">
-                          <div className="text-sm font-medium text-green-900">{v.business_id}</div>
-                          <div className="text-[12px] text-gray-500 truncate">{v.violation}</div>
+                      <div key={v.id} className="flex justify-between items-center border rounded p-2 text-sm hover:bg-green-50">
+                        <div>
+                          <div className="font-medium text-green-900">{v.business_id}</div>
+                          <div className="text-xs text-gray-600">{v.violation}</div>
                         </div>
-                        <div className="text-xs text-green-900 font-medium">{next.toLocaleTimeString()}</div>
+                        <div className="text-right text-xs text-gray-700">
+                          <div className="font-medium">{next.toLocaleTimeString()}</div>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* DESKTOP SELECTED DATE PANEL */}
-        {selectedDate && (
-          <div className="hidden md:block bg-white rounded-2xl shadow-md border p-4 mt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm md:text-base font-semibold text-green-900">Schedule for {selectedDate}</h2>
-              <button className="text-xs md:text-sm text-gray-500 hover:text-gray-700" onClick={() => setSelectedDate(null)}>Close</button>
-            </div>
-
-            <div className="space-y-2">
-              {schedule[selectedDate]?.map((v) => {
-                const last = v.last_sent_time ? new Date(v.last_sent_time) : new Date();
-                const interval = v.interval_days ?? 7;
-                const next = new Date(last.getTime() + interval * 24 * 60 * 60 * 1000);
-
-                return (
-                  <div key={v.id} className="flex items-center justify-between border rounded-lg p-3 hover:shadow transition">
-                    <div>
-                      <div className="text-sm font-medium text-green-900">{v.business_id}</div>
-                      <div className="text-xs text-gray-500">{v.violation}</div>
-                    </div>
-                    <div className="text-xs text-green-900 font-semibold">{next.toLocaleTimeString()}</div>
-                  </div>
-                );
-              })}
-              {!schedule[selectedDate] && (
-                <div className="text-gray-500 text-center py-4">No data found</div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
