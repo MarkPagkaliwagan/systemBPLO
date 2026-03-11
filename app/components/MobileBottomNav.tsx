@@ -35,16 +35,16 @@ const MobileBottomNav = () => {
           href: "/SuperAdmin/Inspection/management/analytics",
         },
         {
+          id: "masterlist",
+          label: "Masterlist",
+          icon: <FiBookOpen className="w-6 h-6" />,
+          href: "/SuperAdmin/Inspection/management/masterlist",
+        },
+        {
           id: "scheduling",
           label: "Scheduling",
           icon: <FiBookOpen className="w-6 h-6" />,
           href: "/SuperAdmin/Inspection/management/review",
-        },
-        {
-          id: "business-registry",
-          label: "Business",
-          icon: <FiBookOpen className="w-6 h-6" />,
-          href: "/SuperAdmin/Inspection/management/masterlist",
         },
         {
           id: "compliance",
@@ -62,16 +62,16 @@ const MobileBottomNav = () => {
           href: "/Admin/Inspection/management/analytics",
         },
         {
+          id: "masterlist",
+          label: "Masterlist",
+          icon: <FiBookOpen className="w-6 h-6" />,
+          href: "/Admin/Inspection/management/masterlist",
+        },
+        {
           id: "scheduling",
           label: "Scheduling",
           icon: <FiBookOpen className="w-6 h-6" />,
           href: "/Admin/Inspection/management/review",
-        },
-        {
-          id: "business-registry",
-          label: "Business",
-          icon: <FiBookOpen className="w-6 h-6" />,
-          href: "/Admin/Inspection/management/masterlist",
         },
         {
           id: "compliance",
@@ -87,11 +87,10 @@ const MobileBottomNav = () => {
 
   const getActiveTab = (): string => {
     if (pathname.includes("/analytics") || pathname.includes("/Dashboard")) return "dashboard";
+    if (pathname.includes("/masterlist")) return "masterlist";
     if (pathname.includes("/review")) return "scheduling";
-    if (pathname.includes("/masterlist")) return "business-registry";
     if (pathname.includes("/Compliance")) return "compliance";
-    if (pathname.includes("/users")) return "users";
-    if (pathname.includes("/settings") || pathname.includes("/notifCompliance")) return "settings";
+    if (pathname.includes("/notifCompliance")) return "settings";
     return "dashboard";
   };
 
@@ -154,19 +153,6 @@ const MobileBottomNav = () => {
         }
         return renderNavItem(item, index);
       })}
-      
-      {/* Add Profile/Settings button at the end */}
-      <button 
-        className="flex flex-col items-center flex-1 transition-all active:scale-90"
-        onClick={() => handleNavClick("/module-2-inspection/notifCompliance")}
-      >
-        <div className={activeTab === "settings" ? "text-green-500" : "text-gray-400"}>
-          <FiUser className="w-6 h-6" />
-        </div>
-        <span className={`text-[10px] font-medium mt-1 ${activeTab === 'settings' ? 'text-green-500' : 'text-gray-400'}`}>
-          Profile
-        </span>
-      </button>
     </nav>
   );
 };
