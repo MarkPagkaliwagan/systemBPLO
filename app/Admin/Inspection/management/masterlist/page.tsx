@@ -7,7 +7,7 @@ import Papa from "papaparse";
 import Sidebar from "../../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
-
+import Link from "next/link";
 interface CSVFile {
   id: string;
   name: string;
@@ -522,10 +522,11 @@ export default function CSVManager() {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setFileToDelete(null)}
       />
-      {/* Floating Upload Button (Desktop Only) */}
+      {/* Floating Add Button (Desktop Only) */}
 {!isMobile && (
-  <button
-    onClick={() => fileInputRef.current?.click()}
+  <Link
+    href="/Admin/Inspection/management/manual_add"
+    title="Manual Add Record"
     className="fixed bottom-8 right-8 z-50 
                w-14 h-14 rounded-full 
                bg-green-600 hover:bg-green-700 
@@ -535,7 +536,7 @@ export default function CSVManager() {
                hover:scale-105"
   >
     <FiPlus className="w-6 h-6" />
-  </button>
+  </Link>
 )}
     </>
   );
