@@ -105,11 +105,18 @@ export default function ViolationsPage() {
     return "Pending";
   };
 
-  const getStatusText = (v: Violation) => {
-    if (v.resolved) return "Resolved";
-    if (v.cease_flag) return "Cease and Desist";
-    return "Pending";
-  };
+const getStatusText = (v: Violation) => {
+  if (v.resolved) return "Resolved";
+
+  const level = v.notice_level || 0;
+
+  if (level === 0) return "Pending";
+  if (level === 1) return "First Notice Sent";
+  if (level === 2) return "Second Notice Sent";
+  if (level >= 3) return "Cease & Desist";
+
+  return "Pending";
+};
 
   const renderSortIcon = (key: keyof Violation) => {
     if (sortKey !== key) return <FiChevronDown className="inline ml-1 text-green-200" />;
@@ -119,14 +126,43 @@ export default function ViolationsPage() {
   };
 
   // Badges
-  const StatusBadge = ({ v }: { v: Violation }) => {
-    const status = getStatusText(v);
-    if (status === "Resolved")
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-900">Resolved</span>;
-    if (status === "Cease and Desist")
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cease & Desist</span>;
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>;
-  };
+const StatusBadge = ({ v }: { v: Violation }) => {
+  const status = getStatusText(v);
+
+  if (status === "Resolved")
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-900">
+        Resolved
+      </span>
+    );
+
+  if (status === "Cease & Desist")
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+        Cease & Desist
+      </span>
+    );
+
+  if (status === "Second Notice Sent")
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+        Second Notice
+      </span>
+    );
+
+  if (status === "First Notice Sent")
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+        First Notice
+      </span>
+    );
+
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+      Pending
+    </span>
+  );
+};
 
   const NoticeBadge = ({ notice, v }: { notice: number; v: Violation }) => {
     const s = getNoticeStatus(notice, v);
