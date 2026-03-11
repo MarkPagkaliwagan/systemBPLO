@@ -35,7 +35,6 @@ export default function ManualAddBusiness() {
     const handleChange = (label: string, value: any) => {
 
         let v = value
-
         if (v === "") v = null
 
         setForm((prev: any) => ({
@@ -47,19 +46,12 @@ export default function ManualAddBusiness() {
     /* ---------- CLEAN DATA BEFORE SAVE ---------- */
 
     const cleanData = (data: any) => {
-
         const cleaned: any = {}
 
         Object.keys(data).forEach(key => {
-
             let value = data[key]
-
-            if (value === "" || value === undefined) {
-                value = null
-            }
-
+            if (value === "" || value === undefined) value = null
             cleaned[key] = value
-
         })
 
         return cleaned
@@ -135,6 +127,7 @@ export default function ManualAddBusiness() {
                     <Input label="Incharge Extension Name" onChange={handleChange} />
                     <Input label="Incharge Sex" onChange={handleChange} />
                     <Input label="Citizenship" onChange={handleChange} />
+                    <Input label="Birth Date" type="date" onChange={handleChange} />
                 </Section>
 
                 {/* ADDRESS */}
@@ -166,7 +159,6 @@ export default function ManualAddBusiness() {
                     <Input label="Requestor Extension Name" onChange={handleChange} />
                     <Input label="Requestor Email" onChange={handleChange} />
                     <Input label="Requestor Mobile No." onChange={handleChange} />
-                    <Input label="Birth Date" type="date" onChange={handleChange} />
                     <Input label="Requestor Sex" onChange={handleChange} />
                     <Input label="Civil Status" onChange={handleChange} />
                     <Input label="Requestor Street" onChange={handleChange} />
@@ -184,6 +176,9 @@ export default function ManualAddBusiness() {
                     <Input label="Module Type" onChange={handleChange} />
                     <Input label="Transaction Type" onChange={handleChange} />
                     <Input label="Transaction Date" type="datetime-local" onChange={handleChange} />
+                    <Input label="SITE Transaction Status" onChange={handleChange} />
+                    <Input label="CORE Transaction Status" onChange={handleChange} />
+                    <Input label="Reject Remarks" onChange={handleChange} />
                     <Input label="SOA No." onChange={handleChange} />
                     <Input label="Term" onChange={handleChange} />
                 </Section>
