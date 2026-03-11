@@ -29,20 +29,59 @@ export default function ViolationsPage() {
   const [sortAsc, setSortAsc] = useState(true);
   const [loading, setLoading] = useState(false);
   const [autoSend, setAutoSend] = useState(false); // ✅ missing state
-  // load persisted Auto Send state
- useEffect(() => {
-  const loadSetting = async () => {
-    const { data } = await supabase
-      .from("settings")
-      .select("value")
-      .eq("key", "auto_send")
-      .single();
+  const [editingInterval, setEditingInterval] = useState<number | null>(null);
+  const [intervalValue, setIntervalValue] = useState<number>(7);
 
-    if (data) setAutoSend(data.value);
+  const handleMarkResolved = async (id: number) => {
+  setLoading(true);
+  try {
+    const { error } = await supabase
+      .from("business_violations")
+      .update({ resolved: true })
+      .eq("id", id);
+
+    if (error) {
+      alert("Failed to mark as resolved.");
+      console.error(error);
+    } else {
+      fetchViolations(); // refresh table/cards
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error updating status.");
+  } finally {
+    setLoading(false);
+  }
+};
+  
+  const updateInterval = async (id: number) => {
+    const { error } = await supabase
+      .from("business_violations")
+      .update({ interval_days: intervalValue })
+      .eq("id", id);
+
+    if (error) {
+      alert("Failed to update interval");
+      console.error(error);
+    } else {
+      setEditingInterval(null);
+      fetchViolations();
+    }
   };
+  // load persisted Auto Send state
+  useEffect(() => {
+    const loadSetting = async () => {
+      const { data } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "auto_send")
+        .single();
 
-  loadSetting();
-}, []);
+      if (data) setAutoSend(data.value);
+    };
+
+    loadSetting();
+  }, []);
 
   const fetchViolations = async () => {
     setLoading(true);
@@ -190,6 +229,9 @@ export default function ViolationsPage() {
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 1</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 2</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Notice 3</th>
+                  <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">
+                    Interval Days
+                  </th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">
                     <div className="flex items-center justify-between">
@@ -251,16 +293,62 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={1} v={v} /></td>
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={2} v={v} /></td>
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
+                        <td className="px-6 py-4 align-top">
+                          {editingInterval === v.id ? (
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="number"
+                                value={intervalValue}
+                                onChange={(e) => setIntervalValue(Number(e.target.value))}
+                                className="w-16 border text-black rounded px-1 py-0.5 text-xs"
+                              />
+                              <button
+                                onClick={() => updateInterval(v.id)}
+                                className="text-green-600 text-xs"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingInterval(null)}
+                                className="text-gray-500 text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => {
+                                setEditingInterval(v.id);
+                                setIntervalValue(v.interval_days ?? 7);
+                              }}
+                              className="cursor-pointer text-sm text-gray-700 hover:text-green-700"
+                            >
+                              {v.interval_days ?? 7} days
+                            </div>
+                          )}
+                        </td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
                         <td className="px-6 py-4 align-top">
-                          <button
-                            onClick={() => handleSendNotice(v.id)}
-                            disabled={autoSend || !canSendNotice(v)}
-                            className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
-                              }`}
-                          >
-                            Send Notice
-                          </button>
+  <button
+    onClick={() => handleSendNotice(v.id)}
+    disabled={autoSend || !canSendNotice(v)}
+    className={`px-2 py-1 text-xs rounded font-medium ${
+      autoSend || !canSendNotice(v) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
+    }`}
+  >
+    Send Notice
+  </button>
+
+  <button
+    onClick={() => handleMarkResolved(v.id)}
+    disabled={v.resolved}
+    className={`ml-2 px-2 py-1 text-xs rounded font-medium ${
+      v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+    }`}
+  >
+    Mark Resolved
+  </button>
+
                           {!canSendNotice(v) && v.last_sent_time && (
                             <div className="text-xs text-gray-500 mt-1">
                               Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
@@ -328,6 +416,41 @@ export default function ViolationsPage() {
                       <NoticeBadge notice={2} v={v} />
                       <NoticeBadge notice={3} v={v} />
                     </div>
+                    <div className="text-xs text-gray-500">
+                      Interval:{" "}
+                      {editingInterval === v.id ? (
+                        <span className="flex items-center gap-2 mt-1">
+                          <input
+                            type="number"
+                            value={intervalValue}
+                            onChange={(e) => setIntervalValue(Number(e.target.value))}
+                            className="w-16 border rounded px-1 py-0.5 text-xs"
+                          />
+                          <button
+                            onClick={() => updateInterval(v.id)}
+                            className="text-green-600 text-xs"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingInterval(null)}
+                            className="text-gray-500 text-xs"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <span
+                          onClick={() => {
+                            setEditingInterval(v.id);
+                            setIntervalValue(v.interval_days ?? 7);
+                          }}
+                          className="cursor-pointer text-gray-700 hover:text-green-700"
+                        >
+                          {v.interval_days ?? 7} days
+                        </span>
+                      )}
+                    </div>
                     {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
                     <button
                       onClick={() => handleSendNotice(v.id)}
@@ -337,9 +460,18 @@ export default function ViolationsPage() {
                     >
                       Send Notice
                     </button>
+                    <button
+  onClick={() => handleMarkResolved(v.id)}
+  disabled={v.resolved}
+  className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${
+    v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+  }`}
+>
+  Mark Resolved
+</button>
                     {!canSendNotice(v) && v.last_sent_time && (
                       <div className="text-xs text-gray-500 mt-1">
-                       Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
+                        Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
                       </div>
                     )}
                   </div>
