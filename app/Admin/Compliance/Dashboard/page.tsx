@@ -189,8 +189,8 @@ const getStatusText = (v: Violation) => {
   };
 
   return (
-<div className="min-h-screen bg-gray-50 pt-6 md:pt-8 px-4 md:px-6 flex flex-col md:flex-row">
-        <Sidebar
+   <div className="min-h-screen bg-gray-50 pt-10 md:pt-16 px-4 md:px-6 flex flex-col md:flex-row">
+      <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         isMobile={isMobile}
