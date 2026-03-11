@@ -28,6 +28,23 @@ export default function ViolationsPage() {
   const [sortKey, setSortKey] = useState<keyof Violation | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  // Mobile state
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) setIsMobileMenuOpen(false);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [autoSend, setAutoSend] = useState(false); // ✅ missing state
   const [editingInterval, setEditingInterval] = useState<number | null>(null);
   const [intervalValue, setIntervalValue] = useState<number>(7);
@@ -173,11 +190,11 @@ const getStatusText = (v: Violation) => {
   return (
     <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
       <Sidebar
-        isCollapsed={false}
-        setIsCollapsed={() => { }}
-        isMobile={false}
-        isMobileMenuOpen={false}
-        setIsMobileMenuOpen={() => { }}
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isMobile={isMobile}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
       <div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
