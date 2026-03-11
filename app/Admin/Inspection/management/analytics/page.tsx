@@ -116,12 +116,12 @@ export default function DashboardPage() {
     { id: 'status', label: 'Status for Compliance', icon: Gavel },
   ];
 
-  // valueColor: colored numbers; iconBg: colored icon background
+  // valueColor: colored numbers; iconBg: colored icon background; trendColor: colored trend badge
   const kpiData = [
-    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,  trend: "+12%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600"  },
-    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-red-500",    iconBg: "from-red-400 to-red-600"      },
-    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-yellow-500", iconBg: "from-yellow-400 to-yellow-600"},
-    { title: "Active Businesses", value: String(activeCount),        icon: Building2,    trend: "+15%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600"  },
+    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,  trend: "+12%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-red-500",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
+    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-yellow-500", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
+    { title: "Active Businesses", value: String(activeCount),        icon: Building2,    trend: "+15%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
   ];
 
   const noticeStats = [
@@ -153,7 +153,7 @@ export default function DashboardPage() {
     currentMonth.getFullYear() === today.getFullYear();
 
   const CalendarWidget = () => (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border-2 border-slate-200">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-slate-800">Calendar</h2>
         <div className="flex items-center space-x-2">
@@ -220,23 +220,35 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KPI METRICS — always 2×2 */}
-          <div className="grid grid-cols-2 gap-3 mb-5">
+          {/* KPI METRICS — 4 cols (1 row) on mobile, 2×2 on desktop */}
+          <div className={`grid ${isMobile ? "grid-cols-4 gap-2" : "grid-cols-2 gap-3"} mb-5`}>
             {kpiData.map((kpi, index) => (
-              <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
+              <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
                 <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`${isMobile ? "w-9 h-9" : "w-12 h-12"} rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
-                      <kpi.icon size={isMobile ? 18 : 24} className="text-white" />
+                  <div className={`flex ${isMobile ? "flex-col items-center gap-1" : "items-center justify-between mb-3"}`}>
+                    <div className={`${isMobile ? "w-8 h-8" : "w-12 h-12"} rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
+                      <kpi.icon size={isMobile ? 16 : 24} className="text-white" />
                     </div>
-                    <div className="flex items-center space-x-1 text-green-600 text-xs font-medium">
-                      <TrendingUp size={13} />
-                      <span>{kpi.trend}</span>
-                    </div>
+                    {!isMobile && (
+                      <div className={`flex items-center space-x-1 ${kpi.trendColor} text-xs font-medium`}>
+                        <TrendingUp size={13} />
+                        <span>{kpi.trend}</span>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-1">{kpi.title}</p>
-                    <h3 className={`${isMobile ? "text-2xl" : "text-3xl"} font-bold ${kpi.valueColor}`}>{kpi.value}</h3>
+                  <div className={isMobile ? "text-center mt-1" : ""}>
+                    <p className="text-slate-500 text-xs font-medium mb-1 leading-tight">{kpi.title}</p>
+                    {isMobile ? (
+                      <h3 className={`text-lg font-bold ${kpi.valueColor}`}>{kpi.value}</h3>
+                    ) : (
+                      <>
+                        <h3 className={`text-3xl font-bold ${kpi.valueColor}`}>{kpi.value}</h3>
+                        <div className={`flex items-center space-x-1 ${kpi.trendColor} text-xs font-medium mt-1`}>
+                          <TrendingUp size={11} />
+                          <span>{kpi.trend}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
