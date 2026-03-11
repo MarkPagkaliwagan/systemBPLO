@@ -119,8 +119,8 @@ export default function DashboardPage() {
   // valueColor: colored numbers; iconBg: colored icon background; trendColor: colored trend badge
   const kpiData = [
     { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,  trend: "+12%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
-    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-red-500",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
-    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-yellow-500", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-slate-800",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
+    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-slate-800", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
     { title: "Active Businesses", value: String(activeCount),        icon: Building2,    trend: "+15%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
   ];
 
@@ -153,7 +153,7 @@ export default function DashboardPage() {
     currentMonth.getFullYear() === today.getFullYear();
 
   const CalendarWidget = () => (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border-2 border-slate-200">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border-2 border-slate-200 h-full overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-slate-800">Calendar</h2>
         <div className="flex items-center space-x-2">
@@ -199,17 +199,17 @@ export default function DashboardPage() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-x-hidden">
-        <div className={`${isMobile ? "px-3 py-4" : "px-8 py-10"}`}>
+      <div className={`${isMobile ? "h-screen overflow-hidden" : "min-h-screen"} bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-x-hidden`}>
+        <div className={`${isMobile ? "px-3 py-3 h-full flex flex-col" : "px-8 py-10"}`}>
 
           {/* HEADER */}
-          <div className="mb-5">
+          <div className={`${isMobile ? "mb-2 shrink-0" : "mb-5"}`}>
             <div className="flex items-center justify-between">
               <div>
-                <h1 className={`${isMobile ? "text-2xl" : "text-4xl"} font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent`}>
+                <h1 className={`${isMobile ? "text-xl" : "text-4xl"} font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent`}>
                   Overview
                 </h1>
-                <p className={`text-slate-500 ${isMobile ? "text-sm" : "text-lg"} mt-1`}>
+                <p className={`text-slate-500 ${isMobile ? "text-xs" : "text-lg"} mt-1`}>
                   Real-time inspection and notice monitoring
                 </p>
               </div>
@@ -221,7 +221,7 @@ export default function DashboardPage() {
           </div>
 
           {/* KPI METRICS — 4 cols (1 row) on mobile, 2×2 on desktop */}
-          <div className={`grid ${isMobile ? "grid-cols-4 gap-2" : "grid-cols-2 gap-3"} mb-5`}>
+          <div className={`grid ${isMobile ? "grid-cols-4 gap-2 mb-2 shrink-0" : "grid-cols-2 gap-3 mb-5"}`}>
             {kpiData.map((kpi, index) => (
               <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
                 <div className="relative z-10">
@@ -256,9 +256,9 @@ export default function DashboardPage() {
           </div>
 
           {/* NOTICE STATISTICS */}
-          <div className="mb-5">
+          <div className={`${isMobile ? "mb-2 shrink-0" : "mb-5"}`}>
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-4">
+              <div className={`flex items-center justify-between ${isMobile ? "mb-2" : "mb-4"}`}>
                 <h2 className={`${isMobile ? "text-base" : "text-xl"} font-bold text-slate-800`}>Notice Statistics</h2>
                 <Activity className="w-5 h-5 text-slate-400" />
               </div>
@@ -298,7 +298,7 @@ export default function DashboardPage() {
           </div>
 
           {/* CALENDAR */}
-          <div>
+          <div className={isMobile ? "flex-1 min-h-0" : ""}>
             <CalendarWidget />
           </div>
 
