@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -43,13 +43,11 @@ export default function CalendarPage() {
 
     const grouped: Record<string, Violation[]> = {};
 
-    data.forEach((v: Violation) => {
+    (data as Violation[]).forEach((v) => {
       const last = v.last_sent_time ? new Date(v.last_sent_time) : new Date();
       const interval = v.interval_days ?? 7;
 
-      const nextSend = new Date(
-        last.getTime() + interval * 24 * 60 * 60 * 1000
-      );
+      const nextSend = new Date(last.getTime() + interval * 24 * 60 * 60 * 1000);
 
       const key = nextSend.toISOString().split("T")[0];
 
@@ -62,10 +60,14 @@ export default function CalendarPage() {
   };
 
   const renderCalendar = () => {
-    const cells = [];
+    const cells: JSX.Element[] = [];
 
     for (let i = 0; i < firstDay; i++) {
-      cells.push(<div key={"empty" + i}></div>);
+      cells.push(
+        <div key={"empty" + i} className="p-2">
+          <div className="h-16" />
+        </div>
+      );
     }
 
     for (let d = 1; d <= daysInMonth; d++) {
@@ -73,24 +75,30 @@ export default function CalendarPage() {
       const key = date.toISOString().split("T")[0];
       const count = schedule[key]?.length || 0;
 
-      const isToday =
-        today.getDate() === d && today.getMonth() === month;
+      const isToday = today.getDate() === d && today.getMonth() === month;
 
       cells.push(
-        <div
+        <button
           key={d}
           onClick={() => setSelectedDate(key)}
-          className={`h-24 border p-2 relative cursor-pointer transition hover:bg-green-50
-          ${isToday ? "bg-green-100 border-green-400" : ""}`}
+          className={`relative flex flex-col items-start gap-1 p-2 min-h-[64px] h-16 outline-none transition-all duration-150
+            ${isToday ? "bg-green-50 ring-1 ring-green-200" : "hover:bg-gray-50"}`}
         >
-          <div className="text-sm font-semibold text-gray-800">{d}</div>
+          <div className="flex items-center gap-2 w-full">
+            <div className="text-sm font-medium text-gray-800">{d}</div>
+            <div className="flex-1 h-px bg-transparent" />
+            {count > 0 && (
+              <div className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-900 text-white">
+                {count}
+              </div>
+            )}
+          </div>
 
-          {count > 0 && (
-            <div className="absolute top-1 right-1 w-6 h-6 bg-green-900 text-white text-xs rounded-full flex items-center justify-center">
-              {count}
-            </div>
-          )}
-        </div>
+          <div className="text-[11px] text-gray-500 truncate w-full">
+            {schedule[key]?.slice(0, 2).map((s) => s.business_id).join(", ")}
+            {schedule[key] && schedule[key].length > 2 ? "..." : ""}
+          </div>
+        </button>
       );
     }
 
@@ -98,181 +106,111 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
-
-
-      <div className="flex-1 max-w-6xl mx-auto space-y-6 w-full">
-
+    <div className="min-h-screen bg-gray-50 px-4 md:px-6 py-10">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-extrabold text-green-900">
-            Notice Schedule
-          </h1>
-
-          <div className="text-sm text-gray-500">
-            {today.toLocaleDateString("en-US", {
-              month: "long",
-              year: "numeric",
-            })}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">Notice Schedule</h1>
           </div>
+
+          <div className="text-sm text-gray-600">{today.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</div>
         </div>
 
-        {/* DESKTOP CALENDAR */}
-
-        <div className="hidden md:block bg-white rounded-2xl shadow-lg border overflow-hidden">
-
-          <div className="grid grid-cols-7 bg-green-900 text-white text-sm font-semibold">
-            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d)=>(
-              <div key={d} className="py-3 text-center">{d}</div>
-            ))}
+        {/* Desktop slim calendar */}
+        <div className="hidden md:block bg-white rounded-2xl shadow-sm border">
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <div className="grid grid-cols-7 gap-2 w-full text-xs text-gray-600 font-medium">
+              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
+                <div key={d} className="text-center">{d}</div>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-7">
+          <div className="grid grid-cols-7 gap-1 p-2">
             {renderCalendar()}
           </div>
-
         </div>
 
-        {/* MOBILE GOOGLE CALENDAR STYLE */}
-
-        <div className="md:hidden space-y-5">
-
+        {/* Mobile slim list */}
+        <div className="md:hidden mt-4 space-y-3">
           {dates.length === 0 && (
-            <div className="bg-white border rounded-xl shadow p-8 text-center text-gray-500">
-              No scheduled notices
-            </div>
+            <div className="bg-white border rounded-xl shadow p-4 text-center text-gray-500 text-sm">No scheduled notices</div>
           )}
 
           {dates.map((date) => {
-
             const list = schedule[date];
             const d = new Date(date);
 
             return (
-              <div key={date} className="bg-white rounded-2xl shadow border">
-
-                {/* Date Header */}
-
-                <div className="flex justify-between items-center px-4 py-3 border-b">
-
+              <div key={date} className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3">
                   <div>
-                    <div className="text-xs text-gray-500">
-                      {d.toLocaleDateString("en-US",{weekday:"long"})}
-                    </div>
-
-                    <div className="text-lg font-semibold text-gray-900">
-                      {d.toLocaleDateString()}
-                    </div>
+                    <div className="text-xs text-gray-500">{d.toLocaleDateString("en-US", { weekday: "short" })}</div>
+                    <div className="text-sm font-semibold text-gray-900">{d.toLocaleDateString()}</div>
                   </div>
 
-                  <div className="w-7 h-7 bg-green-900 text-white text-xs rounded-full flex items-center justify-center">
-                    {list.length}
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm text-green-900 font-semibold bg-green-50 px-2 py-0.5 rounded-full">{list.length}</div>
+                    <button className="text-xs text-gray-500" onClick={() => setSelectedDate(date)}>View</button>
                   </div>
-
                 </div>
-
-                {/* Events */}
 
                 <div className="divide-y">
-
-                  {list.map((v)=>{
-
+                  {list.map((v) => {
                     const last = v.last_sent_time ? new Date(v.last_sent_time) : new Date();
                     const interval = v.interval_days ?? 7;
+                    const next = new Date(last.getTime() + interval * 24 * 60 * 60 * 1000);
 
-                    const next = new Date(
-                      last.getTime()+interval*24*60*60*1000
-                    );
-
-                    return(
-
-                      <div key={v.id} className="p-4 flex justify-between items-start">
-
-                        <div>
-
-                          <div className="font-semibold text-gray-900">
-                            {v.business_id}
-                          </div>
-
-                          <div className="text-sm text-gray-500">
-                            {v.violation}
-                          </div>
-
+                    return (
+                      <div key={v.id} className="p-3 flex items-start justify-between">
+                        <div className="pr-4">
+                          <div className="text-sm font-medium text-gray-900">{v.business_id}</div>
+                          <div className="text-[12px] text-gray-500 truncate w-[60vw]">{v.violation}</div>
                         </div>
 
-                        <div className="text-sm text-green-900 font-medium">
-                          {next.toLocaleTimeString()}
-                        </div>
-
+                        <div className="text-xs text-green-900 font-medium">{next.toLocaleTimeString()}</div>
                       </div>
-
-                    )
-
+                    );
                   })}
-
                 </div>
-
               </div>
-            )
-
+            );
           })}
-
         </div>
 
-        {/* DESKTOP EVENT LIST */}
-
+        {/* Desktop event list (right column feel but keeps within same flow) */}
         {selectedDate && (
-          <div className="hidden md:block bg-white rounded-2xl shadow border p-5">
+          <div className="hidden md:block bg-white rounded-2xl shadow-sm border p-4 mt-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-900">Schedule for {selectedDate}</h2>
+              <button className="text-xs text-gray-500" onClick={() => setSelectedDate(null)}>Close</button>
+            </div>
 
-            <h2 className="font-semibold text-green-900 mb-4">
-              Schedule for {selectedDate}
-            </h2>
+            <div className="space-y-3">
+              {schedule[selectedDate]?.map((v) => {
+                const last = v.last_sent_time ? new Date(v.last_sent_time) : new Date();
+                const interval = v.interval_days ?? 7;
+                const next = new Date(last.getTime() + interval * 24 * 60 * 60 * 1000);
 
-            {schedule[selectedDate]?.map((v)=>{
-
-              const last = v.last_sent_time ? new Date(v.last_sent_time) : new Date();
-              const interval = v.interval_days ?? 7;
-
-              const next = new Date(
-                last.getTime()+interval*24*60*60*1000
-              );
-
-              return(
-
-                <div key={v.id} className="border rounded-xl p-4 mb-3 flex justify-between">
-
-                  <div>
-
-                    <div className="font-semibold text-gray-900">
-                      {v.business_id}
+                return (
+                  <div key={v.id} className="flex items-center justify-between border rounded-lg p-3">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{v.business_id}</div>
+                      <div className="text-xs text-gray-500">{v.violation}</div>
                     </div>
 
-                    <div className="text-sm text-gray-500">
-                      {v.violation}
-                    </div>
-
+                    <div className="text-xs text-green-900 font-semibold">{next.toLocaleTimeString()}</div>
                   </div>
+                );
+              })}
 
-                  <div className="text-sm text-green-900 font-medium">
-                    {next.toLocaleTimeString()}
-                  </div>
-
-                </div>
-
-              )
-
-            })}
-
-            {!schedule[selectedDate] && (
-              <div className="text-gray-500 text-center py-6">
-                No data found
-              </div>
-            )}
-
+              {!schedule[selectedDate] && (
+                <div className="text-gray-500 text-center py-6">No data found</div>
+              )}
+            </div>
           </div>
         )}
-
       </div>
     </div>
   );
