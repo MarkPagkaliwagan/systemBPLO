@@ -10,7 +10,7 @@ import { FiUpload, FiFile, FiCheck, FiClock, FiX, FiDownload, FiTrash2, FiEye, F
 
 import Sidebar from "../../../../components/sidebar";
 
-import MasterlistFilters from "../../filters/masterlist-filters/page";
+import MasterlistFilters from "../../filters/masterlist-filters/masterlist-review";
 
 
 
