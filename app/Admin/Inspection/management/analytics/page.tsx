@@ -8,7 +8,7 @@ import {
 
 import {
   CheckCircle, AlertTriangle, ClipboardList, Building2,
-  Mail, Gavel, Ban, TrendingUp, Activity
+  Mail, Gavel, Ban, TrendingUp, Activity, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 import Sidebar from "../../../../components/sidebar";
@@ -25,6 +25,9 @@ export default function DashboardPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('compliance');
+
+  // ── NEW: calendar state ──
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // business_records counts
   const [compliantCount, setCompliantCount] = useState(0);
@@ -143,6 +146,28 @@ export default function DashboardPage() {
     { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban, color: "from-red-500 to-red-700" }
   ];
 
+  // ── Calendar helpers ──
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    return { firstDay, daysInMonth };
+  };
+
+  const prevMonth = () =>
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  const nextMonth = () =>
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+
+  const monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
+  const today = new Date();
+  const isToday = (day: number) =>
+    day === today.getDate() &&
+    currentMonth.getMonth() === today.getMonth() &&
+    currentMonth.getFullYear() === today.getFullYear();
+
   return (
     <>
       <Sidebar
@@ -174,7 +199,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KPI METRICS */}
+          {/* KPI METRICS — 2×2 on mobile, 4 cols on desktop */}
           <div className={`${isMobile ? "grid grid-cols-2 gap-4" : "grid grid-cols-4 gap-6"} mb-10`}>
             {kpiData.map((kpi, index) => (
               <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
@@ -203,12 +228,13 @@ export default function DashboardPage() {
             
             {/* LEFT SIDE - NOTICE STATS */}
             <div className={`${isMobile ? 'w-full' : 'w-1/5'}`}>
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 h-[600px]">
+              <div className={`bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 ${isMobile ? 'h-auto' : 'h-[600px]'}`}>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-slate-800">Notice Statistics</h2>
                   <Activity className="w-5 h-5 text-slate-400" />
                 </div>
-                <div className="space-y-4">
+                {/* 1 column on mobile, same stacked layout on desktop */}
+                <div className={`${isMobile ? 'grid grid-cols-1 gap-3' : 'space-y-4'}`}>
                   {noticeStats.map((stat, index) => (
                     <div key={index} className="group flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white hover:from-slate-100 hover:to-white transition-all duration-200 border border-slate-100">
                       <div className="flex items-center space-x-3">
@@ -226,6 +252,68 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+
+          {/* ── CALENDAR (mobile only, shown at bottom) ── */}
+          {isMobile && (
+            <div className="mt-6 bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
+              {/* Calendar header */}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-800">Calendar</h2>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={prevMonth}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+                  >
+                    <ChevronLeft size={18} className="text-slate-600" />
+                  </button>
+                  <span className="text-sm font-semibold text-slate-700 min-w-[130px] text-center">
+                    {monthLabel}
+                  </span>
+                  <button
+                    onClick={nextMonth}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+                  >
+                    <ChevronRight size={18} className="text-slate-600" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Day labels */}
+              <div className="grid grid-cols-7 mb-2">
+                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                  <div key={d} className="text-center text-xs font-semibold text-slate-400 py-1">
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Day grid */}
+              <div className="grid grid-cols-7 gap-y-1">
+                {/* Empty cells before first day */}
+                {Array.from({ length: firstDay }).map((_, i) => (
+                  <div key={`empty-${i}`} />
+                ))}
+                {/* Day cells */}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                  const day = i + 1;
+                  return (
+                    <div
+                      key={day}
+                      className={`
+                        flex items-center justify-center h-9 w-9 mx-auto rounded-full text-sm font-medium transition-colors
+                        ${isToday(day)
+                          ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md'
+                          : 'text-slate-700 hover:bg-slate-100'}
+                      `}
+                    >
+                      {day}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </>
