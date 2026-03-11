@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import Sidebar from "../../components/sidebar";
 import { FiRefreshCw, FiSearch, FiClock } from "react-icons/fi";
 
 import {
@@ -175,13 +174,6 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-col md:flex-row">
-      <Sidebar
-        isMobile={false}
-        isMobileMenuOpen={false}
-        setIsMobileMenuOpen={() => {}}
-        isCollapsed={false}
-        setIsCollapsed={() => {}}
-      />
 
       <div className="flex-1 px-3 md:py-4">
         <div className="max-w-full mx-auto flex flex-col gap-4">
