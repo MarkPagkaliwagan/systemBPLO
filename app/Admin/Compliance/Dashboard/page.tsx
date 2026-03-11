@@ -189,8 +189,8 @@ const getStatusText = (v: Violation) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
-      <Sidebar
+<div className="min-h-screen bg-gray-50 pt-6 md:pt-8 px-4 md:px-6 flex flex-col md:flex-row">
+        <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         isMobile={isMobile}
@@ -204,7 +204,7 @@ const getStatusText = (v: Violation) => {
   </div>
 
   {/* Header */}
-  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+  <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
     <div>
       <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
       <p className="text-gray-500 mt-1 text-sm max-w-xl">Track business violations and notices</p>

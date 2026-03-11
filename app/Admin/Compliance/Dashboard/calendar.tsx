@@ -64,7 +64,7 @@ export default function CalendarPage() {
     if (count <= 2) return "bg-green-200";
     if (count <= 4) return "bg-green-400";
     if (count <= 6) return "bg-green-600";
-    return "bg-green-900 text-white";
+    return "bg-emerald-900 text-white"; // improved green
   };
 
   const renderCalendar = () => {
@@ -85,7 +85,7 @@ export default function CalendarPage() {
           key={key}
           onClick={() => setSelectedDate(key)}
           className={`relative h-12 border rounded flex flex-col justify-center items-center cursor-pointer
-            ${selected ? "bg-green-200 border-green-500" : ""}
+            ${selected ? "bg-emerald-200 border-emerald-600" : ""}
             ${isToday ? "border-blue-500 border-2" : ""}
             ${count > 0 ? "bg-green-50" : ""}
             hover:bg-green-100`}
@@ -103,27 +103,27 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row px-4 md:px-6 py-6">
+    <div className="flex flex-col md:flex-row px-4 md:px-6 py-2"> {/* reduced top padding */}
       <div className="flex-1">
         <div className="max-w-full mx-auto flex flex-col gap-4">
-          {/* HEADER */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-green-900">Notice Calendar</h1>
-            <div className="flex items-center gap-2 justify-start sm:justify-end flex-wrap">
+          {/* SLIM HEADER */}
+          <div className="flex flex-col gap-1">
+            <h1 className="text-xl font-bold text-emerald-900">Notice Calendar</h1>
+            <div className="flex items-center justify-center gap-2">
               <button
                 onClick={handlePrevMonth}
-                className="px-2 py-1 border rounded text-gray-600 hover:bg-green-100 flex items-center gap-1"
+                className="flex items-center gap-1 px-2 py-1 border rounded text-gray-600 hover:bg-green-100 text-sm"
               >
-                <FiChevronLeft /> Prev
+                <FiChevronLeft />
               </button>
-              <span className="font-semibold text-gray-800 text-sm sm:text-base">
+              <span className="font-semibold text-gray-800 text-sm">
                 {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </span>
               <button
                 onClick={handleNextMonth}
-                className="px-2 py-1 border rounded text-gray-600 hover:bg-green-100 flex items-center gap-1"
+                className="flex items-center gap-1 px-2 py-1 border rounded text-gray-600 hover:bg-green-100 text-sm"
               >
-                Next <FiChevronRight />
+                <FiChevronRight />
               </button>
             </div>
           </div>
@@ -131,10 +131,8 @@ export default function CalendarPage() {
           {/* CALENDAR */}
           <div className="bg-white border rounded-xl shadow-sm p-3">
             <div className="grid grid-cols-7 text-center text-xs mb-1">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                <div key={d} className="font-semibold text-green-700">
-                  {d}
-                </div>
+              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
+                <div key={d} className="font-semibold text-emerald-900">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-[3px]">{renderCalendar()}</div>
@@ -143,7 +141,7 @@ export default function CalendarPage() {
           {/* DETAILS */}
           {selectedDate && (
             <div className="border rounded-xl p-4 bg-white shadow-sm">
-              <h2 className="text-sm font-semibold text-green-800 mb-3">{selectedDate}</h2>
+              <h2 className="text-sm font-semibold text-emerald-900 mb-3">{selectedDate}</h2>
               {(schedule[selectedDate] || []).length === 0 ? (
                 <p className="text-sm text-gray-500">No data for this date</p>
               ) : (
@@ -158,7 +156,7 @@ export default function CalendarPage() {
                         className="flex justify-between items-center border rounded p-2 text-sm hover:bg-green-50"
                       >
                         <div>
-                          <div className="font-medium text-green-900">{v.business_id}</div>
+                          <div className="font-medium text-emerald-900">{v.business_id}</div>
                           <div className="text-xs text-gray-600">{v.violation}</div>
                         </div>
                         <div className="text-right text-xs text-gray-700">
