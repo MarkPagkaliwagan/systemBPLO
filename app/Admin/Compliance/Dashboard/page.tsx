@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FiSearch, FiSend, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { createClient } from "@supabase/supabase-js";
 import Sidebar from "../../../components/sidebar";
+import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,32 +29,49 @@ export default function ViolationsPage() {
   const [sortKey, setSortKey] = useState<keyof Violation | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  // Mobile state
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) setIsMobileMenuOpen(false);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [autoSend, setAutoSend] = useState(false); // ✅ missing state
   const [editingInterval, setEditingInterval] = useState<number | null>(null);
   const [intervalValue, setIntervalValue] = useState<number>(7);
 
   const handleMarkResolved = async (id: number) => {
-  setLoading(true);
-  try {
-    const { error } = await supabase
-      .from("business_violations")
-      .update({ resolved: true })
-      .eq("id", id);
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("business_violations")
+        .update({ resolved: true })
+        .eq("id", id);
 
-    if (error) {
-      alert("Failed to mark as resolved.");
-      console.error(error);
-    } else {
-      fetchViolations(); // refresh table/cards
+      if (error) {
+        alert("Failed to mark as resolved.");
+        console.error(error);
+      } else {
+        fetchViolations(); // refresh table/cards
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating status.");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-    alert("Error updating status.");
-  } finally {
-    setLoading(false);
-  }
-};
-  
+  };
+
   const updateInterval = async (id: number) => {
     const { error } = await supabase
       .from("business_violations")
@@ -110,11 +128,12 @@ export default function ViolationsPage() {
     return "Pending";
   };
 
-  const getStatusText = (v: Violation) => {
-    if (v.resolved) return "Resolved";
-    if (v.cease_flag) return "Cease and Desist";
-    return "Pending";
-  };
+const getStatusText = (v: Violation) => {
+  if (v.resolved) return "Resolved";
+  // Cease and Desist kapag notice_level >= 3
+  if ((v.notice_level || 0) >= 3) return "Cease and Desist";
+  return "Pending";
+};
 
   const renderSortIcon = (key: keyof Violation) => {
     if (sortKey !== key) return <FiChevronDown className="inline ml-1 text-green-200" />;
@@ -170,13 +189,18 @@ export default function ViolationsPage() {
   };
 
   return (
+    
     <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
+         
+    <div className="flex-1 w-full max-w-7xl mx-auto">
+      <CalendarPage />
+    </div>
       <Sidebar
-        isCollapsed={false}
-        setIsCollapsed={() => { }}
-        isMobile={false}
-        isMobileMenuOpen={false}
-        setIsMobileMenuOpen={() => { }}
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isMobile={isMobile}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
       <div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
@@ -329,25 +353,23 @@ export default function ViolationsPage() {
                         </td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
                         <td className="px-6 py-4 align-top">
-  <button
-    onClick={() => handleSendNotice(v.id)}
-    disabled={autoSend || !canSendNotice(v)}
-    className={`px-2 py-1 text-xs rounded font-medium ${
-      autoSend || !canSendNotice(v) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
-    }`}
-  >
-    Send Notice
-  </button>
+                          <button
+                            onClick={() => handleSendNotice(v.id)}
+                            disabled={autoSend || !canSendNotice(v)}
+                            className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
+                              }`}
+                          >
+                            Send Notice
+                          </button>
 
-  <button
-    onClick={() => handleMarkResolved(v.id)}
-    disabled={v.resolved}
-    className={`ml-2 px-2 py-1 text-xs rounded font-medium ${
-      v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
-    }`}
-  >
-    Mark Resolved
-  </button>
+                          <button
+                            onClick={() => handleMarkResolved(v.id)}
+                            disabled={v.resolved}
+                            className={`ml-2 px-2 py-1 text-xs rounded font-medium ${v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+                              }`}
+                          >
+                            Mark Resolved
+                          </button>
 
                           {!canSendNotice(v) && v.last_sent_time && (
                             <div className="text-xs text-gray-500 mt-1">
@@ -461,14 +483,13 @@ export default function ViolationsPage() {
                       Send Notice
                     </button>
                     <button
-  onClick={() => handleMarkResolved(v.id)}
-  disabled={v.resolved}
-  className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${
-    v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
-  }`}
->
-  Mark Resolved
-</button>
+                      onClick={() => handleMarkResolved(v.id)}
+                      disabled={v.resolved}
+                      className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                    >
+                      Mark Resolved
+                    </button>
                     {!canSendNotice(v) && v.last_sent_time && (
                       <div className="text-xs text-gray-500 mt-1">
                         Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
