@@ -263,7 +263,7 @@ export default function ViolationsPage() {
                           </button>
                           {!canSendNotice(v) && v.last_sent_time && (
                             <div className="text-xs text-gray-500 mt-1">
-                              Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days || 7) * 24 * 60 * 60 * 1000).toLocaleString()}
+                              Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
                             </div>
                           )}
                         </td>
@@ -339,7 +339,7 @@ export default function ViolationsPage() {
                     </button>
                     {!canSendNotice(v) && v.last_sent_time && (
                       <div className="text-xs text-gray-500 mt-1">
-                        Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days || 7) * 24 * 60 * 60 * 1000).toLocaleString()}
+                       Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
                       </div>
                     )}
                   </div>
