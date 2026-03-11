@@ -32,6 +32,23 @@ export default function ViolationsPage() {
   const [editingInterval, setEditingInterval] = useState<number | null>(null);
   const [intervalValue, setIntervalValue] = useState<number>(7);
 
+  const handleResolve = async (id: number) => {
+    const confirmResolve = confirm("Mark this violation as resolved?");
+    if (!confirmResolve) return;
+
+    const { error } = await supabase
+      .from("business_violations")
+      .update({ resolved: true })
+      .eq("id", id);
+
+    if (error) {
+      console.error(error);
+      alert("Failed to mark as resolved.");
+    } else {
+      fetchViolations();
+    }
+  };
+
   const updateInterval = async (id: number) => {
     const { error } = await supabase
       .from("business_violations")
@@ -315,6 +332,15 @@ export default function ViolationsPage() {
                           >
                             Send Notice
                           </button>
+                          {!v.resolved && (
+                            <button
+                              onClick={() => handleResolve(v.id)}
+                              disabled={autoSend || !canSendNotice(v) || v.resolved}
+                              className="ml-2 px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                            >
+                              Resolve
+                            </button>
+                          )}
                           {!canSendNotice(v) && v.last_sent_time && (
                             <div className="text-xs text-gray-500 mt-1">
                               Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
@@ -426,6 +452,15 @@ export default function ViolationsPage() {
                     >
                       Send Notice
                     </button>
+                    {!v.resolved && (
+                      <button
+                        onClick={() => handleResolve(v.id)}
+                        disabled={autoSend || !canSendNotice(v) || v.resolved}
+                        className="ml-2 px-2 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Resolve
+                      </button>
+                    )}
                     {!canSendNotice(v) && v.last_sent_time && (
                       <div className="text-xs text-gray-500 mt-1">
                         Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
