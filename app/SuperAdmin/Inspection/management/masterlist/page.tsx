@@ -274,7 +274,7 @@ export default function CSVManager() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <div className="min-h-screen bg-gray-50 pt-1">
+      <div className="min-h-screen bg-gray-50 pt-1 pb-20 md:pb-0">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">CSV File Manager</h1>

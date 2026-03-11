@@ -17,6 +17,7 @@ import {
   FiKey,
   FiTrendingUp,
 } from "react-icons/fi";
+import MobileBottomNav from "./MobileBottomNav";
 
 interface SidebarItem {
   id: string;
@@ -336,6 +337,9 @@ export default function Sidebar({
         )}
 
         <div className="h-16"></div>
+        
+        {/* Add Mobile Bottom Navigation */}
+        <MobileBottomNav />
       </>
     );
   }

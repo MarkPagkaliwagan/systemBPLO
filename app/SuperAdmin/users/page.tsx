@@ -157,7 +157,7 @@ export default function SuperAdminUsersPage() {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-      <div className={`min-h-screen bg-gray-50 transition-all duration-300 ${isMobile ? 'p-3' : 'p-6'}`}>
+      <div className={`min-h-screen bg-gray-50 transition-all duration-300 pb-20 md:pb-0 ${isMobile ? 'p-3' : 'p-6'}`}>
         <div className={`mx-auto ${isMobile ? 'max-w-full' : 'max-w-7xl'}`}>
           <div className="mb-6">
             <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-2`}>User Management</h1>
