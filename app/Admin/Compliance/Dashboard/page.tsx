@@ -189,10 +189,12 @@ const getStatusText = (v: Violation) => {
   };
 
   return (
+    
     <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
-                <div>
-            <CalendarPage />
-          </div>
+         
+    <div className="flex-1 w-full max-w-7xl mx-auto">
+      <CalendarPage />
+    </div>
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
