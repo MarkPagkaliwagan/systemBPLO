@@ -52,12 +52,6 @@ const MobileBottomNav = () => {
           icon: <FiAlertCircle className="w-6 h-6" />,
           href: "/SuperAdmin/Compliance/Dashboard",
         },
-        {
-          id: "settings",
-          label: "Profile",
-          icon: <FiUser className="w-6 h-6" />,
-          href: "/module-2-inspection/notifCompliance",
-        },
       ];
     } else {
       return [
@@ -84,12 +78,6 @@ const MobileBottomNav = () => {
           label: "Compliance",
           icon: <FiAlertCircle className="w-6 h-6" />,
           href: "/Admin/Compliance/Dashboard",
-        },
-        {
-          id: "settings",
-          label: "Profile",
-          icon: <FiUser className="w-6 h-6" />,
-          href: "/module-2-inspection/notifCompliance",
         },
       ];
     }
@@ -166,6 +154,19 @@ const MobileBottomNav = () => {
         }
         return renderNavItem(item, index);
       })}
+      
+      {/* Add Profile/Settings button at the end */}
+      <button 
+        className="flex flex-col items-center flex-1 transition-all active:scale-90"
+        onClick={() => handleNavClick("/module-2-inspection/notifCompliance")}
+      >
+        <div className={activeTab === "settings" ? "text-green-500" : "text-gray-400"}>
+          <FiUser className="w-6 h-6" />
+        </div>
+        <span className={`text-[10px] font-medium mt-1 ${activeTab === 'settings' ? 'text-green-500' : 'text-gray-400'}`}>
+          Profile
+        </span>
+      </button>
     </nav>
   );
 };
