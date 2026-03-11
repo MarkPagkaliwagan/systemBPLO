@@ -2,57 +2,20 @@
 
 import { useState, useEffect } from "react";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from "recharts";
 
 import {
-  CheckCircle,
-  AlertTriangle,
-  ClipboardList,
-  Building2,
-  Mail,
-  Gavel,
-  Ban,
-  TrendingUp,
-  Users,
-  FileText,
-  Activity
+  CheckCircle, AlertTriangle, ClipboardList, Building2,
+  Mail, Gavel, Ban, TrendingUp, Activity, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 import Sidebar from "../../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
-import { LucideIcon } from "lucide-react";
 
-type NoticeData = {
-  notice: string;
-  sent: number;
-  pending: number;
-};
-
-type StatusData = {
-  name: string;
-  value: number;
-};
-
-const noticeData: NoticeData[] = [
-  { notice: "Notice 1", sent: 40, pending: 10 },
-  { notice: "Notice 2", sent: 20, pending: 8 },
-  { notice: "Notice 3", sent: 10, pending: 5 }
-];
-
-const statusData: StatusData[] = [
-  { name: "Cease & Desist", value: 5 },
-  { name: "Active Cases", value: 15 }
-];
+type NoticeData = { notice: string; sent: number; pending: number; };
+type StatusData = { name: string; value: number; };
 
 const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#3b82f6"];
 const STATUS_COLORS = ["#ef4444", "#f97316"];
@@ -63,20 +26,26 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('compliance');
 
-  // Fetched counts from business_records
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // business_records counts
   const [compliantCount, setCompliantCount] = useState(0);
   const [nonCompliantCount, setNonCompliantCount] = useState(0);
   const [forInspectionCount, setForInspectionCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
 
+  // business_violations counts
+  const [notice1Count, setNotice1Count] = useState(0);
+  const [notice2Count, setNotice2Count] = useState(0);
+  const [notice3Count, setNotice3Count] = useState(0);
+  const [activeCasesCount, setActiveCasesCount] = useState(0);
+  const [ceaseDesistCount, setCeaseDesistCount] = useState(0);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setIsMobileMenuOpen(false);
-      }
+      if (window.innerWidth >= 768) setIsMobileMenuOpen(false);
     };
-
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -106,15 +75,48 @@ export default function DashboardPage() {
       }
     };
 
+    const fetchViolationCounts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('business_violations')
+          .select('notice_level, resolved');
+
+        if (error) { console.error('❌ fetchViolationCounts error:', error); return; }
+
+        const violations = data ?? [];
+
+        setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
+        setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
+        setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
+
+        setActiveCasesCount(violations.filter(v => !v.resolved && v.notice_level <= 3).length);
+        setCeaseDesistCount(violations.filter(v => !v.resolved && v.notice_level > 3).length);
+      } catch (err) {
+        console.error('❌ fetchViolationCounts error:', err);
+      }
+    };
+
     fetchStatusCounts();
+    fetchViolationCounts();
   }, []);
 
-  // Derived from fetched data
+  // Derived data for charts
   const complianceData = [
     { name: "Compliant", value: compliantCount },
     { name: "Non-Compliant", value: nonCompliantCount },
     { name: "For Inspection", value: forInspectionCount },
     { name: "Active", value: activeCount },
+  ];
+
+  const noticeData: NoticeData[] = [
+    { notice: "Notice 1", sent: notice1Count, pending: Math.max(0, nonCompliantCount - notice1Count) },
+    { notice: "Notice 2", sent: notice2Count, pending: Math.max(0, notice1Count - notice2Count) },
+    { notice: "Notice 3", sent: notice3Count, pending: Math.max(0, notice2Count - notice3Count) },
+  ];
+
+  const statusData: StatusData[] = [
+    { name: "Cease & Desist", value: ceaseDesistCount },
+    { name: "Active Cases", value: activeCasesCount },
   ];
 
   const tabs = [
@@ -123,6 +125,7 @@ export default function DashboardPage() {
     { id: 'status', label: 'Status for Compliance', icon: Gavel },
   ];
 
+  // KPI: 2x2 on both mobile and desktop
   const kpiData = [
     { title: "Compliant", value: String(compliantCount), icon: CheckCircle, color: "from-green-400 to-green-600", trend: "+12%" },
     { title: "Non-Compliant", value: String(nonCompliantCount), icon: AlertTriangle, color: "from-red-400 to-red-600", trend: "-5%" },
@@ -131,12 +134,90 @@ export default function DashboardPage() {
   ];
 
   const noticeStats = [
-    { title: "Notice 1 Sent", value: "40", icon: Mail, color: "from-indigo-400 to-indigo-600" },
-    { title: "Notice 2 Sent", value: "20", icon: Mail, color: "from-purple-400 to-purple-600" },
-    { title: "Notice 3 Sent", value: "10", icon: Mail, color: "from-pink-400 to-pink-600" },
-    { title: "Active Cases", value: "15", icon: Gavel, color: "from-orange-400 to-orange-600" },
-    { title: "Cease & Desist", value: "5", icon: Ban, color: "from-red-500 to-red-700" }
+    { title: "Notice 1 Sent", value: String(notice1Count), icon: Mail, color: "from-indigo-400 to-indigo-600" },
+    { title: "Notice 2 Sent", value: String(notice2Count), icon: Mail, color: "from-purple-400 to-purple-600" },
+    { title: "Notice 3 Sent", value: String(notice3Count), icon: Mail, color: "from-pink-400 to-pink-600" },
+    { title: "Active Cases", value: String(activeCasesCount), icon: Gavel, color: "from-orange-400 to-orange-600" },
+    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban, color: "from-red-500 to-red-700" }
   ];
+
+  // ── Calendar helpers ──
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    return { firstDay, daysInMonth };
+  };
+
+  const prevMonth = () =>
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  const nextMonth = () =>
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+
+  const monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
+  const today = new Date();
+  const isToday = (day: number) =>
+    day === today.getDate() &&
+    currentMonth.getMonth() === today.getMonth() &&
+    currentMonth.getFullYear() === today.getFullYear();
+
+  // Shared calendar component
+  const CalendarWidget = () => (
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-slate-800">Calendar</h2>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={prevMonth}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <ChevronLeft size={18} className="text-slate-600" />
+          </button>
+          <span className="text-sm font-semibold text-slate-700 min-w-[130px] text-center">
+            {monthLabel}
+          </span>
+          <button
+            onClick={nextMonth}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <ChevronRight size={18} className="text-slate-600" />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 mb-2">
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+          <div key={d} className="text-center text-xs font-semibold text-slate-400 py-1">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-y-1">
+        {Array.from({ length: firstDay }).map((_, i) => (
+          <div key={`empty-${i}`} />
+        ))}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1;
+          return (
+            <div
+              key={day}
+              className={`
+                flex items-center justify-center h-9 w-9 mx-auto rounded-full text-sm font-medium transition-colors
+                ${isToday(day)
+                  ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md'
+                  : 'text-slate-700 hover:bg-slate-100'}
+              `}
+            >
+              {day}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -169,12 +250,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KPI METRICS */}
-          <div className={`${isMobile ? "grid grid-cols-2 gap-4" : "grid grid-cols-4 gap-6"} mb-10`}>
+          {/* KPI METRICS — always 2×2 grid, no responsive override */}
+          <div className="grid grid-cols-2 gap-4 mb-10">
             {kpiData.map((kpi, index) => (
               <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
-                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-300" style={{ backgroundImage: `linear-gradient(135deg, ${kpi.color})` }}></div>
-                
+                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-300 style={{ backgroundImage: linear-gradient(135deg, ${kpi.color}) }}"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${kpi.color} flex items-center justify-center shadow-lg`}>
@@ -185,7 +265,6 @@ export default function DashboardPage() {
                       <span>{kpi.trend}</span>
                     </div>
                   </div>
-                  
                   <div>
                     <p className="text-slate-500 text-sm font-medium mb-1">{kpi.title}</p>
                     <h3 className="text-3xl font-bold text-slate-800">{kpi.value}</h3>
@@ -195,18 +274,18 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* MAIN CONTENT - FIXED HEIGHT TO PREVENT MOVEMENT */}
+          {/* MAIN CONTENT */}
           <div className={`${isMobile ? 'space-y-6' : 'flex gap-6'}`}>
             
-            {/* LEFT SIDE - NOTICE STATS - FIXED HEIGHT */}
+            {/* LEFT SIDE - NOTICE STATS — always 1 column */}
             <div className={`${isMobile ? 'w-full' : 'w-1/5'}`}>
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 h-[600px]">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20 h-auto">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-slate-800">Notice Statistics</h2>
                   <Activity className="w-5 h-5 text-slate-400" />
                 </div>
-                
-                <div className="space-y-4">
+                {/* Notice stats — always 1 column */}
+                <div className="grid grid-cols-1 gap-3 w-full">
                   {noticeStats.map((stat, index) => (
                     <div key={index} className="group flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white hover:from-slate-100 hover:to-white transition-all duration-200 border border-slate-100">
                       <div className="flex items-center space-x-3">
@@ -224,278 +303,21 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* RIGHT SIDE - CHARTS WITH TABS - WIDER */}
-            <div className={`${isMobile ? 'w-full' : 'w-4/5'}`}>
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden h-[600px]">
-                
-                {/* TAB NAVIGATION */}
-                <div className="border-b border-slate-200 bg-slate-50/50">
-                  <div className="flex">
-                    {tabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center space-x-2 px-6 py-4 font-medium transition-all duration-200 relative ${
-                          activeTab === tab.id
-                            ? 'text-slate-800 bg-white'
-                            : 'text-slate-500 hover:text-slate-600 hover:bg-slate-100/50'
-                        }`}
-                      >
-                        <tab.icon size={18} />
-                        <span>{tab.label}</span>
-                        {activeTab === tab.id && (
-                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* CHART CONTENT - FIXED HEIGHT */}
-                <div className="p-4 h-[520px]">
-                  {activeTab === 'compliance' && (
-                    <div className="h-full flex flex-col">
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-800 mb-2">Inspection Overview</h3>
-                        <p className="text-slate-500 text-sm mb-6">Current Status of Business </p>
-                      </div>
-                      
-                      {/* PIE CHART WITH LEGEND - MOBILE FRIENDLY */}
-                      <div className="flex-1 flex items-center">
-                        {isMobile ? (
-                          <div className="w-full space-y-6">
-                            <div className="flex justify-center">
-                              <ResponsiveContainer width="100%" height={250}>
-                                <PieChart>
-                                  <Pie
-                                    data={complianceData}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    outerRadius={100}
-                                    innerRadius={50}
-                                    paddingAngle={2}
-                                  >
-                                    {complianceData.map((entry, index) => (
-                                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                  </Pie>
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                      border: '1px solid rgba(0, 0, 0, 0.1)',
-                                      borderRadius: '12px',
-                                      backdropFilter: 'blur(10px)'
-                                    }}
-                                  />
-                                </PieChart>
-                              </ResponsiveContainer>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                              {complianceData.map((item, index) => (
-                                <div key={index} className="flex items-center space-x-2 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                                  <div className={`w-4 h-4 rounded-full flex-shrink-0`} style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-slate-700 truncate">{item.name}</p>
-                                    <p className="text-sm font-bold text-slate-800">{item.value}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between gap-6 w-full">
-                            <div className="flex-1">
-                              <ResponsiveContainer width="100%" height={380}>
-                                <PieChart>
-                                  <Pie
-                                    data={complianceData}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    outerRadius={140}
-                                    innerRadius={70}
-                                    paddingAngle={2}
-                                  >
-                                    {complianceData.map((entry, index) => (
-                                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                  </Pie>
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                      border: '1px solid rgba(0, 0, 0, 0.1)',
-                                      borderRadius: '12px',
-                                      backdropFilter: 'blur(10px)'
-                                    }}
-                                  />
-                                </PieChart>
-                              </ResponsiveContainer>
-                            </div>
-
-                            <div className="space-y-3">
-                              {complianceData.map((item, index) => (
-                                <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                                  <div className={`w-4 h-4 rounded-full flex-shrink-0`} style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-slate-700 truncate">{item.name}</p>
-                                    <p className="text-lg font-bold text-slate-800">{item.value}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'notices' && (
-                    <div className="h-full flex flex-col">
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-800 mb-2">Notice Delivery Analytics</h3>
-                        <p className="text-slate-500 text-sm mb-6">Sent vs pending notices by type</p>
-                      </div>
-                      
-                      <div className="flex-1 flex items-center">
-                        <div className="w-full max-w-2xl mx-auto">
-                          <ResponsiveContainer width="100%" height={320}>
-                            <BarChart data={noticeData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 0, 0, 0.05)" />
-                              <XAxis 
-                                dataKey="notice" 
-                                tick={{ fill: '#64748b', fontSize: 12 }}
-                                axisLine={{ stroke: '#e2e8f0' }}
-                              />
-                              <YAxis 
-                                tick={{ fill: '#64748b', fontSize: 12 }}
-                                axisLine={{ stroke: '#e2e8f0' }}
-                              />
-                              <Tooltip 
-                                contentStyle={{ 
-                                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                                  borderRadius: '12px',
-                                  backdropFilter: 'blur(10px)'
-                                }}
-                              />
-                              <Bar dataKey="sent" fill="#10b981" radius={[8, 8, 0, 0]} />
-                              <Bar dataKey="pending" fill="#f59e0b" radius={[8, 8, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-center space-x-6 mt-6">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          <span className="text-sm text-slate-600">Sent</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                          <span className="text-sm text-slate-600">Pending</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === 'status' && (
-                    <div className="h-full flex flex-col">
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-800 mb-2">Compliance Status Overview</h3>
-                        <p className="text-slate-500 text-sm mb-6">Current cease & desist and active cases status</p>
-                      </div>
-                      
-                      <div className="flex-1 flex items-center">
-                        {isMobile ? (
-                          <div className="w-full space-y-6">
-                            <div className="flex justify-center">
-                              <ResponsiveContainer width="100%" height={250}>
-                                <PieChart>
-                                  <Pie
-                                    data={statusData}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    outerRadius={100}
-                                    innerRadius={50}
-                                    paddingAngle={2}
-                                  >
-                                    {statusData.map((entry, index) => (
-                                      <Cell key={index} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
-                                    ))}
-                                  </Pie>
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                      border: '1px solid rgba(0, 0, 0, 0.1)',
-                                      borderRadius: '12px',
-                                      backdropFilter: 'blur(10px)'
-                                    }}
-                                  />
-                                </PieChart>
-                              </ResponsiveContainer>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3">
-                              {statusData.map((item, index) => (
-                                <div key={index} className="flex items-center space-x-2 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                                  <div className={`w-4 h-4 rounded-full flex-shrink-0`} style={{ backgroundColor: STATUS_COLORS[index % STATUS_COLORS.length] }}></div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium text-slate-700 truncate">{item.name}</p>
-                                    <p className="text-sm font-bold text-slate-800">{item.value}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between gap-6 w-full">
-                            <div className="flex-1">
-                              <ResponsiveContainer width="100%" height={380}>
-                                <PieChart>
-                                  <Pie
-                                    data={statusData}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    outerRadius={140}
-                                    innerRadius={70}
-                                    paddingAngle={2}
-                                  >
-                                    {statusData.map((entry, index) => (
-                                      <Cell key={index} fill={STATUS_COLORS[index % STATUS_COLORS.length]} />
-                                    ))}
-                                  </Pie>
-                                  <Tooltip 
-                                    contentStyle={{ 
-                                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                      border: '1px solid rgba(0, 0, 0, 0.1)',
-                                      borderRadius: '12px',
-                                      backdropFilter: 'blur(10px)'
-                                    }}
-                                  />
-                                </PieChart>
-                              </ResponsiveContainer>
-                            </div>
-
-                            <div className="space-y-3">
-                              {statusData.map((item, index) => (
-                                <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                                  <div className={`w-4 h-4 rounded-full flex-shrink-0`} style={{ backgroundColor: STATUS_COLORS[index % STATUS_COLORS.length] }}></div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-slate-700 truncate">{item.name}</p>
-                                    <p className="text-lg font-bold text-slate-800">{item.value}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+            {/* RIGHT SIDE — Calendar on desktop, sits beside notice stats */}
+            {!isMobile && (
+              <div className="flex-1">
+                <CalendarWidget />
               </div>
-            </div>
+            )}
           </div>
+
+          {/* CALENDAR — at bottom on mobile */}
+          {isMobile && (
+            <div className="mt-6">
+              <CalendarWidget />
+            </div>
+          )}
+
         </div>
       </div>
     </>

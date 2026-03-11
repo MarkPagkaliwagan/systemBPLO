@@ -272,39 +272,39 @@ export default function ViolationsPage() {
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={2} v={v} /></td>
                         <td className="px-6 py-4 align-top"><NoticeBadge notice={3} v={v} /></td>
                         <td className="px-6 py-4 align-top">
-  {editingInterval === v.id ? (
-    <div className="flex gap-2 items-center">
-      <input
-        type="number"
-        value={intervalValue}
-        onChange={(e) => setIntervalValue(Number(e.target.value))}
-        className="w-16 border rounded px-1 py-0.5 text-xs"
-      />
-      <button
-        onClick={() => updateInterval(v.id)}
-        className="text-green-600 text-xs"
-      >
-        Save
-      </button>
-      <button
-        onClick={() => setEditingInterval(null)}
-        className="text-gray-500 text-xs"
-      >
-        Cancel
-      </button>
-    </div>
-  ) : (
-    <div
-      onClick={() => {
-        setEditingInterval(v.id);
-        setIntervalValue(v.interval_days ?? 7);
-      }}
-      className="cursor-pointer text-sm text-gray-700 hover:text-green-700"
-    >
-      {v.interval_days ?? 7} days
-    </div>
-  )}
-</td>
+                          {editingInterval === v.id ? (
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="number"
+                                value={intervalValue}
+                                onChange={(e) => setIntervalValue(Number(e.target.value))}
+                                className="w-16 border rounded px-1 py-0.5 text-xs"
+                              />
+                              <button
+                                onClick={() => updateInterval(v.id)}
+                                className="text-green-600 text-xs"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingInterval(null)}
+                                className="text-gray-500 text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => {
+                                setEditingInterval(v.id);
+                                setIntervalValue(v.interval_days ?? 7);
+                              }}
+                              className="cursor-pointer text-sm text-gray-700 hover:text-green-700"
+                            >
+                              {v.interval_days ?? 7} days
+                            </div>
+                          )}
+                        </td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
                         <td className="px-6 py-4 align-top">
                           <button
@@ -383,40 +383,40 @@ export default function ViolationsPage() {
                       <NoticeBadge notice={3} v={v} />
                     </div>
                     <div className="text-xs text-gray-500">
-  Interval:{" "}
-  {editingInterval === v.id ? (
-    <span className="flex items-center gap-2 mt-1">
-      <input
-        type="number"
-        value={intervalValue}
-        onChange={(e) => setIntervalValue(Number(e.target.value))}
-        className="w-16 border rounded px-1 py-0.5 text-xs"
-      />
-      <button
-        onClick={() => updateInterval(v.id)}
-        className="text-green-600 text-xs"
-      >
-        Save
-      </button>
-      <button
-        onClick={() => setEditingInterval(null)}
-        className="text-gray-500 text-xs"
-      >
-        Cancel
-      </button>
-    </span>
-  ) : (
-    <span
-      onClick={() => {
-        setEditingInterval(v.id);
-        setIntervalValue(v.interval_days ?? 7);
-      }}
-      className="cursor-pointer text-gray-700 hover:text-green-700"
-    >
-      {v.interval_days ?? 7} days
-    </span>
-  )}
-</div>
+                      Interval:{" "}
+                      {editingInterval === v.id ? (
+                        <span className="flex items-center gap-2 mt-1">
+                          <input
+                            type="number"
+                            value={intervalValue}
+                            onChange={(e) => setIntervalValue(Number(e.target.value))}
+                            className="w-16 border rounded px-1 py-0.5 text-xs"
+                          />
+                          <button
+                            onClick={() => updateInterval(v.id)}
+                            className="text-green-600 text-xs"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingInterval(null)}
+                            className="text-gray-500 text-xs"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <span
+                          onClick={() => {
+                            setEditingInterval(v.id);
+                            setIntervalValue(v.interval_days ?? 7);
+                          }}
+                          className="cursor-pointer text-gray-700 hover:text-green-700"
+                        >
+                          {v.interval_days ?? 7} days
+                        </span>
+                      )}
+                    </div>
                     {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
                     <button
                       onClick={() => handleSendNotice(v.id)}
