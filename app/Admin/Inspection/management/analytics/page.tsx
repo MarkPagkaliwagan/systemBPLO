@@ -87,7 +87,7 @@ export default function DashboardPage() {
 
         const violations = data ?? [];
 
-        // Notice sent = rows where notice_level >= that notice number
+        // Notice sent = rows where notice_level >= that notice numbe
         setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
         setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
         setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
