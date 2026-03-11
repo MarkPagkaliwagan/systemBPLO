@@ -2,11 +2,6 @@
 
 import { useState, useEffect } from "react";
 import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid
-} from "recharts";
-
-import {
   CheckCircle, AlertTriangle, ClipboardList, Building2,
   Mail, Gavel, Ban, TrendingUp, Activity
 } from "lucide-react";
@@ -16,9 +11,6 @@ import { supabase } from "@/lib/supabaseClient";
 
 type NoticeData = { notice: string; sent: number; pending: number; };
 type StatusData = { name: string; value: number; };
-
-const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#3b82f6"];
-const STATUS_COLORS = ["#ef4444", "#f97316"];
 
 export default function DashboardPage() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -103,14 +95,7 @@ export default function DashboardPage() {
     fetchViolationCounts();
   }, []);
 
-  // Derived data for charts
-  const complianceData = [
-    { name: "Compliant", value: compliantCount },
-    { name: "Non-Compliant", value: nonCompliantCount },
-    { name: "For Inspection", value: forInspectionCount },
-    { name: "Active", value: activeCount },
-  ];
-
+  // Derived data for stats
   const noticeData: NoticeData[] = [
     { notice: "Notice 1", sent: notice1Count, pending: Math.max(0, nonCompliantCount - notice1Count) },
     { notice: "Notice 2", sent: notice2Count, pending: Math.max(0, notice1Count - notice2Count) },
@@ -120,12 +105,6 @@ export default function DashboardPage() {
   const statusData: StatusData[] = [
     { name: "Cease & Desist", value: ceaseDesistCount },
     { name: "Active Cases", value: activeCasesCount },
-  ];
-
-  const tabs = [
-    { id: 'compliance', label: 'Compliance Overview', icon: CheckCircle },
-    { id: 'notices', label: 'Notice Analytics', icon: Mail },
-    { id: 'status', label: 'Status for Compliance', icon: Gavel },
   ];
 
   const kpiData = [
@@ -145,7 +124,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Sidebar
+            <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         isMobile={isMobile}
