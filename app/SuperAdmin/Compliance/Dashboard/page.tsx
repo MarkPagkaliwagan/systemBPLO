@@ -81,7 +81,7 @@ export default function ViolationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row pb-20 md:pb-0">
       <Sidebar 
         isCollapsed={false} 
         setIsCollapsed={() => {}} 

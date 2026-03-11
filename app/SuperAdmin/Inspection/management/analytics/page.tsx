@@ -148,7 +148,7 @@ export default function DashboardPage() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-20 md:pb-0">
         <div className={`${isMobile ? "px-4 py-6" : "px-8 py-10"}`}>
           
           {/* HEADER */}
