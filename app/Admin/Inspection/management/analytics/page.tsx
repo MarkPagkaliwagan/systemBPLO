@@ -402,7 +402,7 @@ export default function DashboardPage() {
                     <div className="h-full flex flex-col">
                       <div>
                         <h3 className="text-lg font-semibold text-slate-800 mb-2">Compliance Status Overview</h3>
-                        <p className="text-slate-500 text-sm mb-6">Current cease and desist and active cases status</p>
+                        <p className="text-slate-500 text-sm mb-6">Current cease & desist and active cases status</p>
                       </div>
                       
                       <div className="flex-1 flex items-center">
