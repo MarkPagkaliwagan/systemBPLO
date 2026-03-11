@@ -119,8 +119,8 @@ export default function DashboardPage() {
   // valueColor: colored numbers; iconBg: colored icon background; trendColor: colored trend badge
   const kpiData = [
     { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,  trend: "+12%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
-    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-slate-800",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
-    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-slate-800", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-red-500",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
+    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-yellow-500", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
     { title: "Active Businesses", value: String(activeCount),        icon: Building2,    trend: "+15%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
   ];
 
@@ -220,8 +220,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* KPI METRICS — 4 cols (1 row) on mobile, 2×2 on desktop */}
-          <div className={`grid ${isMobile ? "grid-cols-4 gap-2 mb-2 shrink-0" : "grid-cols-2 gap-3 mb-5"}`}>
+          {/* KPI METRICS — 4 cols (1 row) on desktop, 4 cols (1 row) on mobile */}
+          <div className={`grid ${isMobile ? "grid-cols-4 gap-2 mb-2 shrink-0" : "grid-cols-4 gap-4 mb-6"}`}>
             {kpiData.map((kpi, index) => (
               <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
                 <div className="relative z-10">
@@ -255,52 +255,64 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* NOTICE STATISTICS */}
-          <div className={`${isMobile ? "mb-2 shrink-0" : "mb-5"}`}>
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
-              <div className={`flex items-center justify-between ${isMobile ? "mb-2" : "mb-4"}`}>
-                <h2 className={`${isMobile ? "text-base" : "text-xl"} font-bold text-slate-800`}>Notice Statistics</h2>
-                <Activity className="w-5 h-5 text-slate-400" />
+          {/* NOTICE STATISTICS + CALENDAR — side by side on desktop, stacked on mobile */}
+          {isMobile ? (
+            <>
+              <div className="mb-2 shrink-0">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
+                    <Activity className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <div className="grid grid-cols-5 gap-1">
+                    {noticeStats.map((stat, index) => (
+                      <div key={index} className="flex flex-col items-center p-2 rounded-xl bg-gradient-to-b from-slate-50 to-white border border-slate-100">
+                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md mb-1`}>
+                          <stat.icon size={13} className="text-white" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-800 leading-none">{stat.value}</p>
+                        <p className="text-center text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-
-              {isMobile ? (
-                /* Mobile: all 5 in a single row */
-                <div className="grid grid-cols-5 gap-1">
-                  {noticeStats.map((stat, index) => (
-                    <div key={index} className="flex flex-col items-center p-2 rounded-xl bg-gradient-to-b from-slate-50 to-white border border-slate-100">
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md mb-1`}>
-                        <stat.icon size={13} className="text-white" />
-                      </div>
-                      <p className="text-sm font-bold text-slate-800 leading-none">{stat.value}</p>
-                      <p className="text-center text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                /* Desktop: 1 column */
-                <div className="grid grid-cols-1 gap-3 w-full">
-                  {noticeStats.map((stat, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white hover:from-slate-100 hover:to-white transition-all duration-200 border border-slate-100">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md`}>
-                          <stat.icon size={18} className="text-white" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-slate-600">{stat.title}</p>
-                          <p className="text-xl font-bold text-slate-800">{stat.value}</p>
+              <div className="flex-1 min-h-0">
+                <CalendarWidget />
+              </div>
+            </>
+          ) : (
+            <div className="flex gap-6">
+              {/* Notice Stats — fixed width left column */}
+              <div className="w-80 shrink-0">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-white/20 h-full">
+                  <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-xl font-bold text-slate-800">Notice Statistics</h2>
+                    <Activity className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 w-full">
+                    {noticeStats.map((stat, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-white hover:from-slate-100 hover:to-white transition-all duration-200 border border-slate-100">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md`}>
+                            <stat.icon size={18} className="text-white" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-slate-600">{stat.title}</p>
+                            <p className="text-xl font-bold text-slate-800">{stat.value}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              )}
+              </div>
+              {/* Calendar — fills remaining space */}
+              <div className="flex-1">
+                <CalendarWidget />
+              </div>
             </div>
-          </div>
-
-          {/* CALENDAR */}
-          <div className={isMobile ? "flex-1 min-h-0" : ""}>
-            <CalendarWidget />
-          </div>
+          )}
 
         </div>
       </div>
