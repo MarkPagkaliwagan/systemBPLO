@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FiSearch, FiSend, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { createClient } from "@supabase/supabase-js";
 import Sidebar from "../../../components/sidebar";
+import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -189,6 +190,9 @@ const getStatusText = (v: Violation) => {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 px-4 md:px-6 flex flex-col md:flex-row">
+                <div>
+            <CalendarPage />
+          </div>
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
