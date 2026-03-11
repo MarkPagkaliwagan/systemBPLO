@@ -278,7 +278,7 @@ export default function ViolationsPage() {
                                 type="number"
                                 value={intervalValue}
                                 onChange={(e) => setIntervalValue(Number(e.target.value))}
-                                className="w-16 border rounded px-1 py-0.5 text-xs"
+                                className="w-16 border text-black rounded px-1 py-0.5 text-xs"
                               />
                               <button
                                 onClick={() => updateInterval(v.id)}
