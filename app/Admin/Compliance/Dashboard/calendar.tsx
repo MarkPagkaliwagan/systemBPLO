@@ -1,6 +1,6 @@
 "use client";
 
-import React, { JSX, useEffect, useState } from "react";
+import React, { useEffect, useState, JSX } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
@@ -27,6 +27,7 @@ export default function CalendarPage() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const today = new Date();
+
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
