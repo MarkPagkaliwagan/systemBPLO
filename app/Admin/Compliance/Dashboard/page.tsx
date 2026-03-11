@@ -198,12 +198,11 @@ const getStatusText = (v: Violation) => {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-<div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
-
-  {/* Calendar */}
-  <div className="w-full bg-white rounded-2xl shadow border border-gray-200 p-4">
-    <CalendarPage />
-  </div>
+<div className="flex-1 max-w-7xl mx-auto space-y-0 w-full">
+ 
+ <div className="w-full bg-white shadow border border-gray-200 p-0">
+  <CalendarPage />
+</div>
 
   {/* Header */}
   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
