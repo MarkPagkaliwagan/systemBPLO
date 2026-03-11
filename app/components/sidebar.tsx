@@ -15,7 +15,6 @@ import {
   FiChevronRight,
   FiLogOut,
   FiKey,
-  FiTrendingUp,
 } from "react-icons/fi";
 
 interface SidebarItem {
@@ -80,32 +79,32 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       id: "dashboard",
       label: "Dashboard",
       icon: <FiHome className="w-5 h-5" />,
-      href: "/SuperAdmin/Inspection/management/analytics",
+      href: "/SuperAdmin/users",
     },
     {
-      id: "business-registry",
+      id: "masterlist",
       label: "Business Registry",
       icon: <FiBookOpen className="w-5 h-5" />,
       children: [
         {
-          id: "masterlist",
+          id: "csv-manager",
           label: "Masterlist",
           icon: <FiBookOpen className="w-4 h-4" />,
-          href: "/SuperAdmin/Inspection/management/masterlist",
+          href: "/Admin/Inspection/management/masterlist",
         },
         {
-          id: "scheduling",
+          id: "review",
           label: "Scheduling",
           icon: <FiBookOpen className="w-4 h-4" />,
-          href: "/SuperAdmin/Inspection/management/review",
+          href: "/Admin/Inspection/management/review",
         },
       ],
     },
     {
-      id: "compliance-notice",
+      id: "compliance-dashboard",
       label: "Compliance Notice",
       icon: <FiAlertCircle className="w-5 h-5" />,
-      href: "/SuperAdmin/Compliance/Dashboard",
+      href: "/Admin/Compliance/Dashboard",
     },
     {
       id: "user-management",
@@ -258,11 +257,9 @@ export default function Sidebar({
         <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-5 shadow-sm">
           <div className="flex items-center space-x-3">
             <Link href="/Admin/Inspection/management/analytics">
-              <img
-                src="/bplo-logo.png"
-                alt="BPLO Logo"
-                className="w-12 h-12 object-contain rounded-full"
-              />
+              <div className="w-12 h-9 bg-green-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer">
+                BPLO
+              </div>
             </Link>
             <div className="flex flex-col leading-tight">
               <span className="font-semibold text-gray-800 text-sm tracking-wide">
@@ -315,7 +312,7 @@ export default function Sidebar({
                 </div>
                 <div className="space-y-1">
                   <Link
-                    href="/change-password"
+                    href="/SuperAdmin/change-password"
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
                   >
@@ -345,11 +342,9 @@ export default function Sidebar({
       <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center space-x-4">
           <Link href="/Admin/Inspection/management/analytics">
-            <img
-              src="/bplo-logo.png"
-              alt="BPLO Logo"
-              className="w-12 h-12 object-contain rounded-full"
-            />
+            <div className="w-12 h-9 bg-green-700 hover:bg-green-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer">
+              BPLO
+            </div>
           </Link>
           <div className="flex flex-col leading-tight">
             <span className="font-semibold text-gray-800 text-sm tracking-wide">
@@ -387,7 +382,7 @@ export default function Sidebar({
                 </div>
                 <div className="space-y-1">
                   <Link
-                    href="/change-password"
+                    href="/SuperAdmin/change-password"
                     onClick={() => setIsDesktopMenuOpen(false)}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
                   >

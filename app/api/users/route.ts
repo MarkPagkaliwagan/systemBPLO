@@ -2,41 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { hashPassword, validatePassword } from '@/lib/passwordUtils';
 
-// Helper function to validate user role
-async function validateUserRole(request: NextRequest): Promise<{ valid: boolean; userRole?: string }> {
+export async function GET() {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { valid: false };
-    }
-
-    const sessionToken = authHeader.substring(7);
-    const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
-
-    // Check session expiration
-    if (Date.now() > sessionData.exp) {
-      return { valid: false };
-    }
-
-    return { 
-      valid: true, 
-      userRole: sessionData.role 
-    };
-  } catch (error) {
-    return { valid: false };
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    // Validate user role - only super_admin can access user management
-    const { valid, userRole } = await validateUserRole(request);
-    if (!valid || userRole !== 'super_admin') {
-      return NextResponse.json(
-        { error: 'Access denied. Super admin privileges required.' },
-        { status: 403 }
-      );
-    }
     const { data: users, error } = await supabase
       .from('users')
       .select('*')
@@ -71,15 +38,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate user role - only super_admin can create users
-    const { valid, userRole } = await validateUserRole(request);
-    if (!valid || userRole !== 'super_admin') {
-      return NextResponse.json(
-        { error: 'Access denied. Super admin privileges required.' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
     const { name, email, password, role } = body;
 
@@ -162,14 +120,6 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Validate user role - only super_admin can delete users
-    const { valid, userRole } = await validateUserRole(request);
-    if (!valid || userRole !== 'super_admin') {
-      return NextResponse.json(
-        { error: 'Access denied. Super admin privileges required.' },
-        { status: 403 }
-      );
-    }
     const body = await request.json();
     const { id } = body;
 
