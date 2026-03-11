@@ -44,23 +44,16 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       href: "/Admin/Inspection/management/analytics",
     },
     {
-      id: "masterlist",
+      id: "scheduling",
+      label: "Scheduling",
+      icon: <FiBookOpen className="w-5 h-5" />,
+      href: "/Admin/Inspection/management/review",
+    },
+    {
+      id: "business-registry",
       label: "Business Registry",
       icon: <FiBookOpen className="w-5 h-5" />,
-      children: [
-        {
-          id: "csv-manager",
-          label: "Masterlist",
-          icon: <FiBookOpen className="w-4 h-4" />,
-          href: "/Admin/Inspection/management/masterlist",
-        },
-        {
-          id: "review",
-          label: "Scheduling",
-          icon: <FiBookOpen className="w-4 h-4" />,
-          href: "/Admin/Inspection/management/review",
-        },
-      ],
+      href: "/Admin/Inspection/management/masterlist",
     },
     {
       id: "compliance-dashboard",
@@ -84,23 +77,16 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       href: "/SuperAdmin/Inspection/management/analytics",
     },
     {
+      id: "scheduling",
+      label: "Scheduling",
+      icon: <FiBookOpen className="w-5 h-5" />,
+      href: "/SuperAdmin/Inspection/management/review",
+    },
+    {
       id: "business-registry",
       label: "Business Registry",
       icon: <FiBookOpen className="w-5 h-5" />,
-      children: [
-        {
-          id: "masterlist",
-          label: "Masterlist",
-          icon: <FiBookOpen className="w-4 h-4" />,
-          href: "/SuperAdmin/Inspection/management/masterlist",
-        },
-        {
-          id: "scheduling",
-          label: "Scheduling",
-          icon: <FiBookOpen className="w-4 h-4" />,
-          href: "/SuperAdmin/Inspection/management/review",
-        },
-      ],
+      href: "/SuperAdmin/Inspection/management/masterlist",
     },
     {
       id: "compliance-notice",
@@ -134,6 +120,15 @@ const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => 
       }
     }
   }
+  
+  // Handle specific paths for new structure
+  if (pathname.includes("/review")) return "Scheduling";
+  if (pathname.includes("/masterlist")) return "Business Registry";
+  if (pathname.includes("/analytics")) return "Dashboard";
+  if (pathname.includes("/Compliance")) return "Compliance Notice";
+  if (pathname.includes("/users")) return "User Management";
+  if (pathname.includes("/notifCompliance")) return "Settings";
+  
   return "Dashboard";
 };
 
@@ -170,6 +165,11 @@ export default function Sidebar({
     );
     if (activeParent && !expandedItems.includes(activeParent.id)) {
       setExpandedItems(prev => [...prev, activeParent.id]);
+    }
+    
+    // Update expanded items based on current pathname for new structure
+    if (pathname.includes("/review") && !expandedItems.includes("scheduling")) {
+      setExpandedItems(prev => [...prev, "scheduling"]);
     }
   }, [pathname, sidebarItems]);
 
