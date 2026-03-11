@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, KeyboardEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
     FiArrowLeft,
@@ -29,17 +29,52 @@ export default function ManualAddBusiness() {
     const [showSuccess, setShowSuccess] = useState(false)
 
     const [form, setForm] = useState<any>({})
+    const [inspectorInput, setInspectorInput] = useState<string>("")
+    const [inspectorList, setInspectorList] = useState<string[]>([])
 
     /* ---------- HANDLE INPUT ---------- */
 
     const handleChange = (label: string, value: any) => {
-
         let v = value
         if (v === "") v = null
-
         setForm((prev: any) => ({
             ...prev,
             [label]: v
+        }))
+    }
+
+    /* ---------- HANDLE INSPECTOR CHIP INPUT ---------- */
+
+    const handleInspectorKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && inspectorInput.trim() !== "") {
+            e.preventDefault()
+            if (!inspectorList.includes(inspectorInput.trim())) {
+                const updatedList = [...inspectorList, inspectorInput.trim()]
+                setInspectorList(updatedList)
+                setForm((prev: any) => ({
+                    ...prev,
+                    assigned_inspector: updatedList
+                }))
+            }
+            setInspectorInput("")
+        }
+        if (e.key === "Backspace" && inspectorInput === "" && inspectorList.length > 0) {
+            const newList = [...inspectorList]
+            newList.pop()
+            setInspectorList(newList)
+            setForm((prev: any) => ({
+                ...prev,
+                assigned_inspector: newList
+            }))
+        }
+    }
+
+    const removeInspector = (email: string) => {
+        const newList = inspectorList.filter(e => e !== email)
+        setInspectorList(newList)
+        setForm((prev: any) => ({
+            ...prev,
+            assigned_inspector: newList
         }))
     }
 
@@ -47,48 +82,36 @@ export default function ManualAddBusiness() {
 
     const cleanData = (data: any) => {
         const cleaned: any = {}
-
         Object.keys(data).forEach(key => {
             let value = data[key]
             if (value === "" || value === undefined) value = null
             cleaned[key] = value
         })
-
         return cleaned
     }
 
     /* ---------- SAVE RECORD ---------- */
 
     const saveRecord = async () => {
-
         setLoading(true)
-
         const payload = cleanData(form)
-
         const { error } = await supabase
             .from("business_records")
             .insert([payload])
-
         setLoading(false)
-
         if (error) {
             alert(error.message)
             return
         }
-
         setShowConfirm(false)
         setShowSuccess(true)
-
     }
 
     return (
-
         <div className="min-h-screen bg-gray-50">
 
             {/* HEADER */}
-
             <div className="bg-white border-b px-6 py-4 flex items-center gap-4">
-
                 <button
                     onClick={() => router.back()}
                     className="flex items-center gap-2 text-gray-600 hover:text-green-900"
@@ -96,17 +119,14 @@ export default function ManualAddBusiness() {
                     <FiArrowLeft className="w-5 h-5" />
                     Back
                 </button>
-
                 <h1 className="text-xl font-bold text-green-900">
                     Manual Business Record Entry
                 </h1>
-
             </div>
 
             <div className="max-w-7xl mx-auto p-6 space-y-8">
 
                 {/* BUSINESS */}
-
                 <Section title="Business Information" icon={<FiBriefcase />}>
                     <Input label="Business Identification Number" onChange={handleChange} />
                     <Input label="Business Name" onChange={handleChange} />
@@ -119,7 +139,6 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* INCHARGE */}
-
                 <Section title="Incharge Information" icon={<FiUser />}>
                     <Input label="Incharge First Name" onChange={handleChange} />
                     <Input label="Incharge Middle Name" onChange={handleChange} />
@@ -131,7 +150,6 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* ADDRESS */}
-
                 <Section title="Office Address" icon={<FiMapPin />}>
                     <Input label="Office Street" onChange={handleChange} />
                     <Input label="Office Region" onChange={handleChange} />
@@ -142,7 +160,6 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* FINANCIAL */}
-
                 <Section title="Financial Information" icon={<FiDollarSign />}>
                     <Input label="Capital" type="number" onChange={handleChange} />
                     <Input label="Gross Amount" type="number" onChange={handleChange} />
@@ -151,7 +168,6 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* REQUESTOR */}
-
                 <Section title="Requestor Information" icon={<FiUser />}>
                     <Input label="Requestor First Name" onChange={handleChange} />
                     <Input label="Requestor Middle Name" onChange={handleChange} />
@@ -169,7 +185,6 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* TRANSACTION */}
-
                 <Section title="Transaction Information" icon={<FiFileText />}>
                     <Input label="Transaction ID" onChange={handleChange} />
                     <Input label="Reference No." onChange={handleChange} />
@@ -184,7 +199,6 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* PAYMENT */}
-
                 <Section title="Payment Information" icon={<FiClipboard />}>
                     <Input label="Annual Amount" type="number" onChange={handleChange} />
                     <Input label="Amount Paid" type="number" onChange={handleChange} />
@@ -196,7 +210,6 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* PERMIT */}
-
                 <Section title="Permit / Clearance" icon={<FiCheckCircle />}>
                     <Input label="Brgy. Clearance Status" onChange={handleChange} />
                     <Input label="Brgy. Clearance No." onChange={handleChange} />
@@ -205,7 +218,6 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* RETIREMENT */}
-
                 <Section title="Closure / Retirement" icon={<FiCalendar />}>
                     <Input label="Actual Closure Date" type="date" onChange={handleChange} />
                     <Input label="Retirement Reason" onChange={handleChange} />
@@ -213,174 +225,140 @@ export default function ManualAddBusiness() {
                 </Section>
 
                 {/* REVIEW */}
-
                 <Section title="Inspection / Review" icon={<FiClipboard />}>
                     <Input label="violation" onChange={handleChange} />
                     <Input label="review_action" onChange={handleChange} />
                     <Input label="review_date" type="date" onChange={handleChange} />
                     <Input label="reviewed_by" onChange={handleChange} />
                     <Input label="status" onChange={handleChange} />
-                    <Input label="assigned_inspector" onChange={handleChange} />
+                    
+                    {/* assigned_inspector chip input */}
+                    <div className="flex flex-col">
+                        <label className="text-sm text-gray-600 mb-1">assigned_inspector</label>
+                        <div className="flex flex-wrap gap-2 border rounded-lg px-3 py-2 min-h-[44px] items-center focus-within:ring-2 focus-within:ring-green-900">
+                            {inspectorList.map((email, idx) => (
+                                <div key={idx} className="flex items-center bg-green-100 text-green-900 px-2 py-1 rounded-full text-sm">
+                                    {email}
+                                    <button type="button" className="ml-1" onClick={() => removeInspector(email)}>×</button>
+                                </div>
+                            ))}
+                            <input
+                                type="text"
+                                value={inspectorInput}
+                                onChange={(e) => setInspectorInput(e.target.value)}
+                                onKeyDown={handleInspectorKeyDown}
+                                placeholder="Type and press Enter"
+                                className="flex-1 outline-none border-none text-black px-1 py-1 min-w-[120px]"
+                            />
+                        </div>
+                    </div>
+
                     <Input label="scheduled_date" type="date" onChange={handleChange} />
                 </Section>
 
                 {/* BUTTONS */}
-
                 <div className="flex justify-end gap-4 pt-6">
-
                     <button
                         onClick={() => router.back()}
                         className="px-6 py-2 border rounded-lg hover:bg-gray-100"
                     >
                         Cancel
                     </button>
-
                     <button
                         onClick={() => setShowConfirm(true)}
                         className="px-6 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800"
                     >
                         Save Record
                     </button>
-
                 </div>
 
             </div>
 
             {/* CONFIRM MODAL */}
-
             {showConfirm && (
-
                 <Modal>
-
                     <h2 className="text-lg font-semibold mb-4 text-green-900">
                         Confirm Save
                     </h2>
-
                     <p className="text-gray-600 mb-6">
                         Save this business record to database?
                     </p>
-
                     <div className="flex justify-end gap-3">
-
                         <button
                             onClick={() => setShowConfirm(false)}
                             className="px-4 py-2 border rounded"
                         >
                             Cancel
                         </button>
-
                         <button
                             onClick={saveRecord}
                             className="px-4 py-2 bg-green-900 text-white rounded"
                         >
                             {loading ? "Saving..." : "Confirm"}
                         </button>
-
                     </div>
-
                 </Modal>
-
             )}
 
             {/* SUCCESS MODAL */}
-
             {showSuccess && (
-
                 <Modal>
-
                     <div className="text-center">
-
                         <FiCheckCircle className="mx-auto text-green-900 w-12 h-12 mb-4" />
-
                         <h2 className="text-lg font-semibold text-green-900">
                             Record Saved Successfully
                         </h2>
-
                         <button
                             onClick={() => router.push("/Admin/Inspection/management/review")}
                             className="mt-6 px-6 py-2 bg-green-900 text-white rounded"
                         >
                             Done
                         </button>
-
                     </div>
-
                 </Modal>
-
             )}
 
         </div>
-
     )
-
 }
 
 /* ---------- UI COMPONENTS ---------- */
 
 function Section({ title, icon, children }: { title: string, icon: any, children: any }) {
-
     return (
-
         <div className="bg-white border rounded-xl p-6 shadow-sm">
-
             <div className="flex items-center gap-2 mb-5 font-semibold text-green-900">
-
                 {icon}
-
                 {title}
-
             </div>
-
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-
                 {children}
-
             </div>
-
         </div>
-
     )
-
 }
 
 function Input({ label, type = "text", onChange }: { label: string, type?: string, onChange: any }) {
-
     return (
-
         <div className="flex flex-col">
-
             <label className="text-sm text-gray-600 mb-1">
-
                 {label}
-
             </label>
-
             <input
                 type={type}
                 onChange={(e) => onChange(label, e.target.value)}
                 className="border rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-green-900 outline-none"
             />
-
         </div>
-
     )
-
 }
 
 function Modal({ children }: { children: any }) {
-
     return (
-
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
             <div className="bg-white rounded-xl p-6 w-[420px] shadow-xl">
-
                 {children}
-
             </div>
-
         </div>
-
     )
-
 }
