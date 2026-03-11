@@ -197,24 +197,24 @@ const getStatusText = (v: Violation) => {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-
-<div className="flex-1 max-w-7xl mx-auto space-y-0 w-full">
- 
- <div className="w-full bg-white shadow border border-gray-200 p-0">
-  <CalendarPage />
-</div>
+<div className="flex-1 max-w-7xl mx-auto space-y-6 w-full">
+  {/* Calendar */}
+  <div className="mb-8">
+    <CalendarPage />
+  </div>
 
   {/* Header */}
   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
-            <p className="text-gray-500 mt-1 text-sm max-w-xl">Track business violations and notices</p>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-gray-500">Total</div>
-            <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
-          </div>
-        </div>
+    <div>
+      <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
+      <p className="text-gray-500 mt-1 text-sm max-w-xl">Track business violations and notices</p>
+    </div>
+    <div className="text-right">
+      <div className="text-xs text-gray-500">Total</div>
+      <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
+    </div>
+  </div>
+
 
         {/* Search + Legend */}
         <div className="flex flex-col md:flex-row md:items-center text-black justify-between gap-4">
