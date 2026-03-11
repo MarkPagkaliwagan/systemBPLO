@@ -102,6 +102,7 @@ export default function CSVReview() {
   const [csvData, setCSVData] = useState<BusinessRecord[]>([]);
   const [selectedRow, setSelectedRow] = useState<BusinessRecord | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showScheduledOnly, setShowScheduledOnly] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -297,13 +298,20 @@ export default function CSVReview() {
   const isRowReviewed = (status: string | null) =>
     !!status && status !== 'not reviewed' && status !== 'not_reviewed';
 
-  const filteredCSVData = csvData.filter(row => {
-    if (!searchTerm.trim()) return true;
+const filteredCSVData = csvData.filter(row => {
+  // Search filter
+  if (searchTerm.trim()) {
     const searchLower = searchTerm.toLowerCase();
-    return Object.values(row).some(val =>
-      val != null && String(val).toLowerCase().includes(searchLower)
-    );
-  });
+    if (!Object.values(row).some(val => val != null && String(val).toLowerCase().includes(searchLower))) {
+      return false;
+    }
+  }
+
+  // Scheduled filter
+  if (showScheduledOnly && !row.scheduled_date) return false;
+
+  return true;
+});
 
   const reviewedCount = csvData.filter(row => isRowReviewed(row.status)).length;
   const notReviewedCount = csvData.filter(row => !isRowReviewed(row.status)).length;
@@ -354,8 +362,16 @@ export default function CSVReview() {
                           placeholder="Search rows..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent w-48"
+                          className="px-3 py-2 text-black border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent w-48"
                         />
+                        {/* Scheduled only toggle */}
+                        <button
+                          onClick={() => setShowScheduledOnly(!showScheduledOnly)}
+                          className={`ml-2 px-3 py-2 text-xs rounded border transition-colors ${showScheduledOnly ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300'
+                            }`}
+                        >
+                          Scheduled
+                        </button>
                       </div>
                       <span className={getStatusBadge(selectedFile?.status || 'processing')}>
                         {selectedFile?.status?.toUpperCase() || 'PROCESSING'}
