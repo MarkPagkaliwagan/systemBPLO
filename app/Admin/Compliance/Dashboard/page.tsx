@@ -30,10 +30,19 @@ export default function ViolationsPage() {
   const [loading, setLoading] = useState(false);
   const [autoSend, setAutoSend] = useState(false); // ✅ missing state
   // load persisted Auto Send state
-  useEffect(() => {
-    const saved = localStorage.getItem("autoSend");
-    if (saved === "true") setAutoSend(true);
-  }, []);
+ useEffect(() => {
+  const loadSetting = async () => {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "auto_send")
+      .single();
+
+    if (data) setAutoSend(data.value);
+  };
+
+  loadSetting();
+}, []);
 
   const fetchViolations = async () => {
     setLoading(true);
@@ -48,34 +57,7 @@ export default function ViolationsPage() {
   };
 
   useEffect(() => { fetchViolations(); }, [query, sortKey, sortAsc]);
-  useEffect(() => {
-    if (!autoSend) return;
 
-    const interval = setInterval(async () => {
-      // fetch violations
-      const { data: vs } = await supabase
-        .from("business_violations")
-        .select("*");
-
-      vs?.forEach(async (v) => {
-        const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
-        const intervalDays = v.interval_days || 7;
-        const nextSend = lastSent ? new Date(lastSent.getTime() + intervalDays * 24 * 60 * 60 * 1000) : new Date(0);
-
-        if (!v.resolved && new Date() >= nextSend) {
-          await fetch("/api/manual-send-notice", {
-            method: "POST",
-            body: JSON.stringify({ id: v.id }),
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-      });
-
-      fetchViolations(); // refresh table
-    }, 60 * 1000); // check every 60 seconds
-
-    return () => clearInterval(interval);
-  }, [autoSend]);
   const toggleSort = (key: keyof Violation) => {
     if (sortKey === key) setSortAsc(!sortAsc);
     else { setSortKey(key); setSortAsc(true); }
@@ -121,7 +103,7 @@ export default function ViolationsPage() {
 
   // Check if Send Notice button is allowed based on interval_days
   const canSendNotice = (v: Violation) => {
-    if (v.resolved) return false;
+    if (v.resolved || v.cease_flag) return false;
     const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
     const interval = v.interval_days || 7;
     if (!lastSent) return true;
@@ -222,12 +204,13 @@ export default function ViolationsPage() {
                             onChange={async (e) => {
                               const checked = e.target.checked;
                               setAutoSend(checked);
-                              localStorage.setItem("autoSend", checked ? "true" : "false");
-                              await fetch("/api/automatic-send", {
-                                method: "POST",
-                                body: JSON.stringify({ autoSend: checked }),
-                                headers: { "Content-Type": "application/json" },
-                              });
+
+                              await supabase
+                                .from("settings")
+                                .upsert({
+                                  key: "auto_send",
+                                  value: checked
+                                });
                             }}
                           />
                           <div className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`} />
@@ -304,12 +287,13 @@ export default function ViolationsPage() {
                     onChange={async (e) => {
                       const checked = e.target.checked;
                       setAutoSend(checked);
-                      localStorage.setItem("autoSend", checked ? "true" : "false");
-                      await fetch("/api/automatic-send", {
-                        method: "POST",
-                        body: JSON.stringify({ autoSend: checked }),
-                        headers: { "Content-Type": "application/json" },
-                      });
+
+                      await supabase
+                        .from("settings")
+                        .upsert({
+                          key: "auto_send",
+                          value: checked
+                        });
                     }}
                   />
                   <div className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`} />
