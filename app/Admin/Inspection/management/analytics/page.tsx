@@ -118,10 +118,10 @@ export default function DashboardPage() {
 
   // valueColor: colored numbers; iconBg: colored icon background; trendColor: colored trend badge
   const kpiData = [
-    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,  trend: "+12%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
-    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-red-500",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
-    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-yellow-500", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
     { title: "Active Businesses", value: String(activeCount),        icon: Building2,    trend: "+15%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
+    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,  trend: "+12%", valueColor: "text-slate-800",  iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
+    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList,trend: "+8%",  valueColor: "text-slate-800", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle,trend: "-5%",  valueColor: "text-slate-800",    iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
   ];
 
   const noticeStats = [
@@ -223,7 +223,7 @@ export default function DashboardPage() {
           {/* KPI METRICS — 4 cols (1 row) on desktop, 4 cols (1 row) on mobile */}
           <div className={`grid ${isMobile ? "grid-cols-4 gap-2 mb-2 shrink-0" : "grid-cols-4 gap-4 mb-6"}`}>
             {kpiData.map((kpi, index) => (
-              <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl p-3 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20">
+              <div key={index} className={`group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 ${isMobile ? "p-3" : "p-5 h-36 flex flex-col justify-between"}`}>
                 <div className="relative z-10">
                   <div className={`flex ${isMobile ? "flex-col items-center gap-1" : "items-center justify-between mb-3"}`}>
                     <div className={`${isMobile ? "w-8 h-8" : "w-12 h-12"} rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
@@ -307,9 +307,39 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-              {/* Calendar — fills remaining space */}
-              <div className="flex-1">
-                <CalendarWidget />
+              {/* Calendar — fills remaining space, constrained height */}
+              <div className="flex-1 min-h-0">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border-2 border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-slate-800">Calendar</h2>
+                    <div className="flex items-center space-x-2">
+                      <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                        <ChevronLeft size={18} className="text-slate-600" />
+                      </button>
+                      <span className="text-sm font-semibold text-slate-700 min-w-[130px] text-center">{monthLabel}</span>
+                      <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                        <ChevronRight size={18} className="text-slate-600" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-7 mb-2">
+                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                      <div key={d} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-y-1">
+                    {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      return (
+                        <div key={day} className={`flex items-center justify-center h-9 w-9 mx-auto rounded-full text-sm font-medium transition-colors
+                          ${isToday(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}`}>
+                          {day}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           )}
