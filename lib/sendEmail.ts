@@ -20,7 +20,7 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     },
   });
 
-  await transporter.verify();
+  // removed transporter.verify() — causes timeouts on Vercel serverless
 
   await transporter.sendMail({
     from: `"BPLO Inspection Management System" <${user}>`,
