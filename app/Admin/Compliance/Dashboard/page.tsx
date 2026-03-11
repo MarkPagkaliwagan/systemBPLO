@@ -174,10 +174,10 @@ export default function ViolationsPage() {
         </div>
 
 
-        {/* Table / Cards */}
+        {/* ....Table / Cards */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
 
-          {/* Desktop Table */}
+          {/* ...Desktop Table */}
           <div className="w-full overflow-x-auto hidden md:block">
             <table className="min-w-full table-fixed">
               <thead className="bg-green-900 text-white">
