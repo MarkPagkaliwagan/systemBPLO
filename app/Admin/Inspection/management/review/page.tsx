@@ -554,7 +554,7 @@ const filteredCSVData = csvData.filter(row => {
                             </td>
                           </tr>
                         ))}
-                        {/* Add Business row if search term not found */}
+                        {/* Add Business row     if search term not found */}
 {searchTerm && !filteredCSVData.some(row =>
     row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
 ) && (
