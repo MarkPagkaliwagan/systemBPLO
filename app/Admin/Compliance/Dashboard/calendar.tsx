@@ -55,7 +55,6 @@ export default function CalendarPage() {
   const handleNextMonth = () =>
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
 
-  // Calendar helper
   const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const today = new Date();
@@ -70,15 +69,15 @@ export default function CalendarPage() {
 
   const renderCalendar = () => {
     const cells: JSX.Element[] = [];
-
-    // Empty cells before first day
     for (let i = 0; i < firstDay; i++) cells.push(<div key={"empty" + i} className="h-12" />);
-
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), d);
       const key = date.toISOString().split("T")[0];
       const count = schedule[key]?.length || 0;
-      const isToday = today.getDate() === d && today.getMonth() === currentMonth.getMonth() && today.getFullYear() === currentMonth.getFullYear();
+      const isToday =
+        today.getDate() === d &&
+        today.getMonth() === currentMonth.getMonth() &&
+        today.getFullYear() === currentMonth.getFullYear();
       const selected = selectedDate === key;
 
       cells.push(
@@ -100,7 +99,6 @@ export default function CalendarPage() {
         </div>
       );
     }
-
     return cells;
   };
 
@@ -109,20 +107,34 @@ export default function CalendarPage() {
       <div className="flex-1">
         <div className="max-w-full mx-auto flex flex-col gap-4">
           {/* HEADER */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-green-900">Notice Calendar</h1>
-            <div className="flex items-center gap-2 mt-2">
-              <button onClick={handlePrevMonth} className="px-3 py-1 border text-gray-400 rounded hover:bg-green-100 text-sm">Prev</button>
-              <span className="font-semibold text-gray-800">{currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</span>
-              <button onClick={handleNextMonth} className="px-3 py-1 border text-gray-400 rounded hover:bg-green-100 text-sm">Next</button>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-green-900">Notice Calendar</h1>
+            <div className="flex items-center gap-2 justify-start sm:justify-end flex-wrap">
+              <button
+                onClick={handlePrevMonth}
+                className="px-2 py-1 border rounded text-gray-600 hover:bg-green-100 flex items-center gap-1"
+              >
+                <FiChevronLeft /> Prev
+              </button>
+              <span className="font-semibold text-gray-800 text-sm sm:text-base">
+                {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </span>
+              <button
+                onClick={handleNextMonth}
+                className="px-2 py-1 border rounded text-gray-600 hover:bg-green-100 flex items-center gap-1"
+              >
+                Next <FiChevronRight />
+              </button>
             </div>
           </div>
 
           {/* CALENDAR */}
           <div className="bg-white border rounded-xl shadow-sm p-3">
             <div className="grid grid-cols-7 text-center text-xs mb-1">
-              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d) => (
-                <div key={d} className="font-semibold text-green-700">{d}</div>
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                <div key={d} className="font-semibold text-green-700">
+                  {d}
+                </div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-[3px]">{renderCalendar()}</div>
@@ -132,7 +144,6 @@ export default function CalendarPage() {
           {selectedDate && (
             <div className="border rounded-xl p-4 bg-white shadow-sm">
               <h2 className="text-sm font-semibold text-green-800 mb-3">{selectedDate}</h2>
-
               {(schedule[selectedDate] || []).length === 0 ? (
                 <p className="text-sm text-gray-500">No data for this date</p>
               ) : (
@@ -142,7 +153,10 @@ export default function CalendarPage() {
                     const interval = v.interval_days ?? 7;
                     const next = new Date(last.getTime() + interval * 24 * 60 * 60 * 1000);
                     return (
-                      <div key={v.id} className="flex justify-between items-center border rounded p-2 text-sm hover:bg-green-50">
+                      <div
+                        key={v.id}
+                        className="flex justify-between items-center border rounded p-2 text-sm hover:bg-green-50"
+                      >
                         <div>
                           <div className="font-medium text-green-900">{v.business_id}</div>
                           <div className="text-xs text-gray-600">{v.violation}</div>
