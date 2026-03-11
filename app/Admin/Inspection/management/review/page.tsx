@@ -298,20 +298,20 @@ export default function CSVReview() {
   const isRowReviewed = (status: string | null) =>
     !!status && status !== 'not reviewed' && status !== 'not_reviewed';
 
-  const filteredCSVData = csvData.filter(row => {
-    // Search filter
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase();
-      if (!Object.values(row).some(val => val != null && String(val).toLowerCase().includes(searchLower))) {
-        return false;
-      }
+const filteredCSVData = csvData.filter(row => {
+  // Search filter
+  if (searchTerm.trim()) {
+    const searchLower = searchTerm.toLowerCase();
+    if (!Object.values(row).some(val => val != null && String(val).toLowerCase().includes(searchLower))) {
+      return false;
     }
+  }
 
-    // Scheduled filter
-    if (showScheduledOnly && !row.scheduled_date) return false;
+  // Scheduled filter
+  if (showScheduledOnly && !row.scheduled_date) return false;
 
-    return true;
-  });
+  return true;
+});
 
   const reviewedCount = csvData.filter(row => isRowReviewed(row.status)).length;
   const notReviewedCount = csvData.filter(row => !isRowReviewed(row.status)).length;
@@ -398,7 +398,6 @@ export default function CSVReview() {
                 {isMobile ? (
                   <div className="max-h-[400px] overflow-y-auto">
                     {filteredCSVData.map((row) => (
-
                       <div
                         key={row["Business Identification Number"]}
                         className={`border-b border-gray-200 p-4 cursor-pointer transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
@@ -438,17 +437,6 @@ export default function CSVReview() {
                         </div>
                       </div>
                     ))}
-                    {/* Add Business if search term not found */}
-                    {searchTerm && !filteredCSVData.some(row =>
-                      row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
-                    ) && (
-                        <div
-                          className="border-t border-gray-200 p-4 bg-green-100 cursor-pointer rounded mt-2 text-green-900 font-semibold text-center"
-                          onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
-                        >
-                          + Add "{searchTerm}"
-                        </div>
-                      )}
                   </div>
                 ) : (
                   /* Desktop Table */
@@ -554,17 +542,6 @@ export default function CSVReview() {
                             </td>
                           </tr>
                         ))}
-                        {/* Add Business row     if search term not found */}
-                        {searchTerm && !filteredCSVData.some(row =>
-                          row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
-                        ) && (
-                            <tr className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
-                              onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}>
-                              <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
-                                + Add "{searchTerm}"
-                              </td>
-                            </tr>
-                          )}
                       </tbody>
                     </table>
                   </div>
