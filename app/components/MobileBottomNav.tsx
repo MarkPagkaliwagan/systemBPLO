@@ -102,21 +102,7 @@ const MobileBottomNav = () => {
 
   const renderNavItem = (item: NavItem, index: number) => {
     const isActive = activeTab === item.id;
-    const isCentralButton = index === 2; // Central button is always at index 2 (3rd item)
     
-    if (isCentralButton) {
-      // Central action button (same for both roles now)
-      return (
-        <div key="action-button" className="relative flex-1 flex justify-center -top-6">
-          <button className="w-16 h-16 bg-[#00C853] rounded-full flex items-center justify-center shadow-xl shadow-green-200 border-[6px] border-white text-white active:scale-95 transition-transform">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-              <path d="M12 5v14M5 12h14"/>
-            </svg>
-          </button>
-        </div>
-      );
-    }
-
     return (
       <button 
         key={item.id} 
@@ -136,8 +122,8 @@ const MobileBottomNav = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-2 bg-white/90 backdrop-blur-lg border-t border-gray-100 flex justify-between items-center shadow-[0_-10px_30px_rgba(0,0,0,0.08)] md:hidden">
       {navItems.map((item, index) => {
-        // Insert central action button at index 2
-        if (index === 2) {
+        // Insert central action button after the second item (index 1)
+        if (index === 1) {
           return (
             <React.Fragment key={`nav-${index}`}>
               {renderNavItem(item, index)}
