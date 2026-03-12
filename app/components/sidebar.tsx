@@ -18,6 +18,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import MobileBottomNav from "./MobileBottomNav";
+import LogoutModal from "./LogoutModal";
 
 interface SidebarItem {
   id: string;
@@ -141,6 +142,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
@@ -182,12 +184,14 @@ export default function Sidebar({
   };
 
   const handleLogout = () => {
-    if (confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('user');
-      localStorage.removeItem('sessionToken');
-      localStorage.removeItem('sessionExpiry');
-      window.location.href = '/';
-    }
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('sessionToken');
+    localStorage.removeItem('sessionExpiry');
+    window.location.href = '/';
   };
 
   const renderNavItem = (item: SidebarItem, level: number = 0) => {
@@ -346,6 +350,13 @@ export default function Sidebar({
         
         {/* Add Mobile Bottom Navigation */}
         <MobileBottomNav />
+        
+        {/* Logout Modal */}
+        <LogoutModal
+          isOpen={isLogoutModalOpen}
+          onClose={() => setIsLogoutModalOpen(false)}
+          onConfirm={confirmLogout}
+        />
       </>
     );
   }
