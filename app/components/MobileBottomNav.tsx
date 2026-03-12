@@ -52,12 +52,13 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
   const navItems = getNavItems();
 
   const getActiveTab = (): string => {
-    if (pathname.includes("/analytics") || pathname.includes("/Dashboard")) return "home";
-    if (pathname.includes("/review"))     return "scheduling";
-    if (pathname.includes("/masterlist")) return "business-registry";
-    if (pathname.includes("/Compliance")) return "compliance";
-    return "home";
-  };
+  if (pathname.includes("/Compliance")) return "compliance";  
+  if (pathname.includes("/analytics") || pathname.includes("/Dashboard")) return "home";
+  if (pathname.includes("/review")) return "scheduling";
+  if (pathname.includes("/masterlist")) return "business-registry";
+  if (pathname.includes("/Compliance")) return "compliance ";
+  return "home";
+};
 
   const activeTab = getActiveTab();
 
@@ -92,7 +93,7 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
                 <div className="relative flex-1 flex justify-center -top-6">
                   <button
                     onClick={() => setModalOpen(true)}
-                    className="w-16 h-16 bg-[#00C853] rounded-full flex items-center justify-center shadow-xl shadow-green-200 border-[6px] border-white text-white active:scale-95 transition-transform"
+                    className="w-16 h-16 bg-green-900 rounded-full flex items-center justify-center shadow-xl shadow-green-200 border-[6px] border-white text-white active:scale-95 transition-transform"
                   >
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                       <path d="M12 5v14M5 12h14"/>
