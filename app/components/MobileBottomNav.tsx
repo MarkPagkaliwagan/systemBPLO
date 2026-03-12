@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FiHome, FiBookOpen, FiAlertCircle } from "react-icons/fi";
-import AddEventModal, { CalendarEvent } from "../Admin/Inspection/management/Modal/AddBusinessRecordModal;";
+import AddEventModal, { CalendarEvent } from "../Admin/Inspection/management/Modal/AddBusinessRecordModal";
 
 interface NavItem {
   id: string;
