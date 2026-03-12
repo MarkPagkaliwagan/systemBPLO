@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   CheckCircle, AlertTriangle, ClipboardList, Building2,
   Mail, Gavel, Ban, TrendingUp, Activity, ChevronLeft, ChevronRight,
-  CalendarDays, ListChecks
+  CalendarDays, ListChecks, ChevronDown
 } from "lucide-react";
 
 import Sidebar from "../../../../components/sidebar";
 import MobileBottomNav from "../../../../components/MobileBottomNav";
 import { supabase } from "@/lib/supabaseClient";
+
+type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
 export default function DashboardPage() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -18,7 +21,9 @@ export default function DashboardPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
   const [scheduleMonth, setScheduleMonth] = useState(new Date());
+  const [noticeRange, setNoticeRange] = useState<NoticeRange>('7d');
 
+  // ── Supabase state (from Code 2) ──────────────────────────────────────────
   const [compliantCount, setCompliantCount] = useState(0);
   const [nonCompliantCount, setNonCompliantCount] = useState(0);
   const [forInspectionCount, setForInspectionCount] = useState(0);
@@ -30,13 +35,34 @@ export default function DashboardPage() {
   const [activeCasesCount, setActiveCasesCount] = useState(0);
   const [ceaseDesistCount, setCeaseDesistCount] = useState(0);
 
-  // --- NEW: state to hold DB schedules and derived mappings ---
   const [dbSchedules, setDbSchedules] = useState<
-    { scheduled_date: string; "Business Identification Number": string; "Business Name": string | null }[]
-  >([]);
-  const [mockEventsByDate, setMockEventsByDate] = useState<Record<string, { title: string; time: string; color: string; colorDot: string }[]>>({});
-  const [desktopMockEvents, setDesktopMockEvents] = useState<Record<number, { title: string; time: string; color: string }[]>>({});
+  { scheduled_date: string; "Business Identification Number": string; "Business Name": string | null }[] >([]);
 
+  const [mockEventsByDate, setMockEventsByDate] = useState<
+  Record<string, { title: string; time: string; color: string; colorDot: string }[]>>({});
+
+  const [desktopMockEvents, setDesktopMockEvents] = useState<
+  Record<number, { title: string; time: string; color: string }[]>>({});
+
+  
+
+  // ── Dropdown portal state (from Code 1) ──────────────────────────────────
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+  const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileDropdownButtonRef = useRef<HTMLButtonElement>(null);
+
+  const rangeOptions: { value: NoticeRange; label: string }[] = [
+    { value: '7d',  label: 'Last 7 Days' },
+    { value: '1m',  label: 'Last 1 Month' },
+    { value: '3m',  label: 'Last 3 Months' },
+    { value: '6m',  label: 'Last 6 Months' },
+    { value: '1yr', label: 'Last 1 Year' },
+  ];
+
+  const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
+
+  // ── Responsive check ──────────────────────────────────────────────────────
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -47,6 +73,7 @@ export default function DashboardPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // ── Supabase: business_records status counts (from Code 2) ───────────────
   useEffect(() => {
     const fetchStatusCounts = async () => {
       try {
@@ -69,13 +96,33 @@ export default function DashboardPage() {
         console.error('fetchStatusCounts error:', err);
       }
     };
+    fetchStatusCounts();
+  }, []);
 
+  // ── Supabase: violation counts filtered by date range (from Code 1) ──────
+  useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
+        const now = new Date();
+        const start = new Date();
+        switch (noticeRange) {
+          case '7d':  start.setDate(now.getDate() - 7); break;
+          case '1m':  start.setMonth(now.getMonth() - 1); break;
+          case '3m':  start.setMonth(now.getMonth() - 3); break;
+          case '6m':  start.setMonth(now.getMonth() - 6); break;
+          case '1yr': start.setFullYear(now.getFullYear() - 1); break;
+        }
+        // Format as plain timestamp to match Postgres "timestamp without time zone"
+        const fmt = (d: Date) => d.toISOString().replace('T', ' ').replace('Z', '').slice(0, 19);
+
         const { data, error } = await supabase
           .from('business_violations')
-          .select('notice_level, resolved');
+          .select('notice_level, resolved, created_at')
+          .gte('created_at', fmt(start))
+          .lte('created_at', fmt(now));
+
         if (error) { console.error('fetchViolationCounts error:', error); return; }
+
         const violations = data ?? [];
         setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
         setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
@@ -86,68 +133,113 @@ export default function DashboardPage() {
         console.error('fetchViolationCounts error:', err);
       }
     };
-
-    fetchStatusCounts();
     fetchViolationCounts();
-  }, []);
-
-  // --- NEW: fetch schedules from DB and build event maps ---
+  }, [noticeRange]);
   useEffect(() => {
-    const fetchSchedules = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('business_records')
-          .select(`scheduled_date, "Business Identification Number", "Business Name"`)
-          .not('scheduled_date', 'is', null);
+  const fetchSchedules = async () => {
+    const { data, error } = await supabase
+      .from("business_records")
+      .select('scheduled_date, "Business Identification Number", "Business Name"')
+      .not("scheduled_date", "is", null);
 
-        if (error) {
-          console.error('fetchSchedules error:', error);
-          return;
-        }
+    if (error) {
+      console.error("Schedule fetch error:", error);
+      return;
+    }
 
-        const rows = (data ?? []) as { scheduled_date: string; "Business Identification Number": string; "Business Name": string | null }[];
-        setDbSchedules(rows);
+    const rows = data ?? [];
 
-        // Build mockEventsByDate: key = YYYY-MM-DD
-        const byDate: Record<string, { title: string; time: string; color: string; colorDot: string }[]> = {};
-        rows.forEach(r => {
-          // scheduled_date may be in ISO or just 'YYYY-MM-DD'
-          const dateOnly = (r.scheduled_date ?? '').split('T')[0]; // safe normalization
-          if (!dateOnly) return;
-          const title = `${r["Business Name"] ?? ""}${r["Business Name"] ? " — " : ""}${r["Business Identification Number"]}`;
-          const event = { title, time: "", color: "bg-blue-500", colorDot: "bg-blue-500" }; // no time in table, show as all-day
-          if (!byDate[dateOnly]) byDate[dateOnly] = [];
-          byDate[dateOnly].push(event);
+    const byDate: Record<string, any[]> = {};
+    const byDay: Record<number, any[]> = {};
+
+    rows.forEach((r) => {
+      const dateOnly = r.scheduled_date.split("T")[0];
+      const [y, m, d] = dateOnly.split("-").map(Number);
+
+      const title =
+        `${r["Business Name"] ?? ""}` +
+        (r["Business Name"] ? " — " : "") +
+        `${r["Business Identification Number"]}`;
+
+      const event = {
+        title,
+        time: "",
+        color: "bg-blue-500",
+        colorDot: "bg-blue-500",
+      };
+
+      if (!byDate[dateOnly]) byDate[dateOnly] = [];
+      byDate[dateOnly].push(event);
+
+      if (
+        y === currentMonth.getFullYear() &&
+        m - 1 === currentMonth.getMonth()
+      ) {
+        if (!byDay[d]) byDay[d] = [];
+        byDay[d].push({
+          title,
+          time: "",
+          color: "bg-blue-500",
         });
-        setMockEventsByDate(byDate);
+      }
+    });
 
-        // Build desktopMockEvents for current desktop month (keyed by day number)
-        const curr = new Date();
-        const desktopMonth = currentMonth.getMonth();
-        const desktopYear = currentMonth.getFullYear();
-        const byDay: Record<number, { title: string; time: string; color: string }[]> = {};
-        rows.forEach(r => {
-          const dateOnly = (r.scheduled_date ?? '').split('T')[0];
-          if (!dateOnly) return;
-          const [y, m, d] = dateOnly.split('-').map(Number);
-          if (y === desktopYear && (m - 1) === desktopMonth) {
-            const day = Number(d);
-            const title = `${r["Business Name"] ?? ""}${r["Business Name"] ? " — " : ""}${r["Business Identification Number"]}`;
-            if (!byDay[day]) byDay[day] = [];
-            byDay[day].push({ title, time: "", color: "bg-blue-500" });
-          }
-        });
-        setDesktopMockEvents(byDay);
+    setMockEventsByDate(byDate);
+    setDesktopMockEvents(byDay);
+  };
 
-      } catch (err) {
-        console.error('fetchSchedules unexpected error:', err);
+  fetchSchedules();
+}, [currentMonth]);
+
+  // ── Close dropdown on outside click ──────────────────────────────────────
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const portalEl = document.getElementById('range-dropdown-portal');
+      const clickedDesktop = desktopDropdownButtonRef.current?.contains(target);
+      const clickedMobile = mobileDropdownButtonRef.current?.contains(target);
+      const clickedPortal = portalEl?.contains(target);
+      if (!clickedDesktop && !clickedMobile && !clickedPortal) {
+        setDropdownOpen(false);
       }
     };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-    fetchSchedules();
-  // NOTE: we intentionally include currentMonth so desktopMockEvents rebuilds when user navigates months in the left mini calendar
-  }, [currentMonth]);
+  const handleDropdownToggle = (ref: React.RefObject<HTMLButtonElement | null>) => {
+    if (!dropdownOpen && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    }
+    setDropdownOpen(prev => !prev);
+  };
 
+  // ── Portal dropdown (from Code 1) ─────────────────────────────────────────
+  const PortalDropdown = () => {
+    if (!dropdownOpen || !dropdownPos) return null;
+    return createPortal(
+      <div
+        id="range-dropdown-portal"
+        style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, zIndex: 9999 }}
+        className="w-44 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden"
+      >
+        {rangeOptions.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => { setNoticeRange(option.value); setDropdownOpen(false); }}
+            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors
+              ${noticeRange === option.value ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>,
+      document.body
+    );
+  };
+
+  // ── Data arrays ───────────────────────────────────────────────────────────
   const kpiData = [
     { title: "Active Businesses", value: String(activeCount),        icon: Building2,     trend: "+15%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
     { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   trend: "+12%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
@@ -163,7 +255,7 @@ export default function DashboardPage() {
     { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   color: "from-red-500 to-red-700"      },
   ];
 
-  // Desktop calendar helpers
+  // ── Calendar helpers ──────────────────────────────────────────────────────
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -183,28 +275,9 @@ export default function DashboardPage() {
     day === today.getDate() &&
     currentMonth.getMonth() === today.getMonth() &&
     currentMonth.getFullYear() === today.getFullYear();
+
   const isSelected = (day: number) => day === selectedDay;
 
-  // --- NOTE: mockEventsByDate and desktopMockEvents are now state, built from DB ---
-  // Get all days of the scheduleMonth, each with their events (or empty)
-  const getScheduleDaysForMonth = (month: Date) => {
-    const year = month.getFullYear();
-    const m = month.getMonth();
-    const daysCount = new Date(year, m + 1, 0).getDate();
-    return Array.from({ length: daysCount }, (_, i) => {
-      const day = i + 1;
-      const key = `${year}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      // Use the live mapping (may be empty array)
-      return { day, date: new Date(year, m, day), events: mockEventsByDate[key] ?? [] };
-    });
-  };
-
-  const scheduleMonthLabel = scheduleMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
-  const prevScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() - 1, 1));
-  const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
-  const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
-
-  // Desktop events: use state that reflects DB rows for the currently displayed desktop month
   const selectedDayEvents = selectedDay ? (desktopMockEvents[selectedDay] ?? []) : [];
   const selectedDateLabel = selectedDay
     ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), selectedDay)
@@ -216,31 +289,38 @@ export default function DashboardPage() {
     return h <= 12 ? `${h} AM` : `${h - 12} PM`;
   });
 
-  // ── MOBILE Schedule Section ──────────────────────────────────────────────
+  // ── Schedule month helpers (from Code 1) ──────────────────────────────────
+  const getScheduleDaysForMonth = (month: Date) => {
+    const year = month.getFullYear();
+    const m = month.getMonth();
+    const daysCount = new Date(year, m + 1, 0).getDate();
+    return Array.from({ length: daysCount }, (_, i) => {
+      const day = i + 1;
+      const key = `${year}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      return { day, date: new Date(year, m, day), events: mockEventsByDate[key] ?? [] };
+    });
+  };
+
+  const scheduleMonthLabel = scheduleMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const prevScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() - 1, 1));
+  const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
+  const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
+
+  // ── Mobile Schedule Section (from Code 1) ─────────────────────────────────
   const MobileScheduleSection = () => (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
-
-      {/* Header with month picker */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
         <span className="text-base font-bold text-slate-800">Schedule</span>
         <div className="flex items-center space-x-1">
-          <button
-            onClick={prevScheduleMonth}
-            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
-          >
+          <button onClick={prevScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
             <ChevronLeft size={15} className="text-slate-600" />
           </button>
           <span className="text-xs font-semibold text-slate-600 min-w-[100px] text-center">{scheduleMonthLabel}</span>
-          <button
-            onClick={nextScheduleMonth}
-            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
-          >
+          <button onClick={nextScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
             <ChevronRight size={15} className="text-slate-600" />
           </button>
         </div>
       </div>
-
-      {/* All days of the month */}
       <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
         {scheduleDays.map(({ day, date, events }) => {
           const isDayToday =
@@ -248,29 +328,17 @@ export default function DashboardPage() {
             scheduleMonth.getMonth() === today.getMonth() &&
             scheduleMonth.getFullYear() === today.getFullYear();
           const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
-          const isPast =
-            date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
+          const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
           return (
-            <div
-              key={day}
-              className={`flex px-4 py-2.5 gap-3 ${isPast && !isDayToday ? 'opacity-50' : ''}`}
-            >
-              {/* Date column */}
+            <div key={day} className={`flex px-4 py-2.5 gap-3 ${isPast && !isDayToday ? 'opacity-50' : ''}`}>
               <div className="w-12 shrink-0 flex flex-col items-center justify-start pt-0.5">
                 <span className={`text-xs font-semibold uppercase tracking-wide ${isDayToday ? 'text-blue-600' : 'text-slate-400'}`}>
                   {dayLabel}
                 </span>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center mt-0.5
-                  ${isDayToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}
-                >
-                  <span className={`text-xs font-bold ${isDayToday ? 'text-white' : 'text-slate-700'}`}>
-                    {day}
-                  </span>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center mt-0.5 ${isDayToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
+                  <span className={`text-xs font-bold ${isDayToday ? 'text-white' : 'text-slate-700'}`}>{day}</span>
                 </div>
               </div>
-
-              {/* Events or empty line */}
               <div className="flex-1 space-y-1.5 min-w-0">
                 {events.length > 0 ? (
                   events.map((event, i) => (
@@ -292,7 +360,6 @@ export default function DashboardPage() {
           );
         })}
       </div>
-
     </div>
   );
 
@@ -305,6 +372,9 @@ export default function DashboardPage() {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
+
+      {/* Portal dropdown — renders above everything */}
+      <PortalDropdown />
 
       {/* ── MOBILE ── */}
       {isMobile && (
@@ -320,7 +390,7 @@ export default function DashboardPage() {
                 <p className="text-slate-500 text-xs mt-0.5">Real-time inspection and notice monitoring</p>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-sm text-slate-500">Live</span>
               </div>
             </div>
@@ -344,11 +414,18 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Notice Statistics */}
+            {/* Mobile Notice Statistics + range filter */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
-                <Activity className="w-5 h-5 text-slate-400" />
+                <button
+                  ref={mobileDropdownButtonRef}
+                  onClick={() => handleDropdownToggle(mobileDropdownButtonRef)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  {selectedLabel}
+                  <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
               </div>
               <div className="grid grid-cols-5 gap-1">
                 {noticeStats.map((stat, index) => (
@@ -367,7 +444,6 @@ export default function DashboardPage() {
             <MobileScheduleSection />
 
           </div>
-
           <MobileBottomNav />
         </div>
       )}
@@ -387,7 +463,7 @@ export default function DashboardPage() {
                   <p className="text-slate-500 text-sm mt-0.5">Real-time inspection and notice monitoring</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></div>
+                  <div className="w-2.5 h-2.5 bg-green-900 rounded-full animate-pulse" />
                   <span className="text-sm text-slate-500">Live</span>
                 </div>
               </div>
@@ -412,22 +488,38 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Notice Statistics row */}
-            <div className="grid grid-cols-5 gap-5 mb-5 shrink-0">
-              {noticeStats.map((stat, index) => (
-                <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 flex items-center space-x-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shrink-0`}>
-                    <stat.icon size={22} className="text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-slate-500 leading-tight truncate">{stat.title}</p>
-                    <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
-                  </div>
+            {/* Notice Statistics + range filter */}
+            <div className="mb-5 shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <Activity className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Notice Statistics</span>
                 </div>
-              ))}
+                <button
+                  ref={desktopDropdownButtonRef}
+                  onClick={() => handleDropdownToggle(desktopDropdownButtonRef)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-md transition-all duration-200"
+                >
+                  {selectedLabel}
+                  <ChevronDown size={15} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+              <div className="grid grid-cols-5 gap-5">
+                {noticeStats.map((stat, index) => (
+                  <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 flex items-center space-x-4">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shrink-0`}>
+                      <stat.icon size={22} className="text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-slate-500 leading-tight truncate">{stat.title}</p>
+                      <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Calendar — flex-1 fills remaining space */}
+            {/* Calendar — fills remaining space */}
             <div className="flex gap-5 flex-1 min-h-0">
 
               {/* LEFT — Mini Calendar */}
@@ -469,8 +561,6 @@ export default function DashboardPage() {
                       );
                     })}
                   </div>
-
-                  {/* Upcoming */}
                   <div className="mt-auto pt-4 border-t border-slate-100 space-y-2">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming</p>
                     {Object.entries(desktopMockEvents).slice(0, 3).map(([day, events]) => (
@@ -483,10 +573,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* RIGHT — Google Calendar Day View */}
+              {/* RIGHT — Day View */}
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden flex flex-col flex-1">
-
                   <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between shrink-0">
                     <div>
                       <h2 className="text-base font-bold text-slate-800">
@@ -505,16 +594,13 @@ export default function DashboardPage() {
                       Today
                     </button>
                   </div>
-
                   <div className="overflow-y-auto flex-1">
                     {hours.map((hour, i) => {
                       const hourNum = i + 8;
                       const eventsAtHour = selectedDayEvents.filter(e => {
-                        // Since DB has only date (no time), events' time is empty string.
-                        // This filter will therefore not match any hour — which keeps the current layout intact.
-                        const h = parseInt(e.time.split(':')[0]) || NaN;
+                        const h = parseInt(e.time.split(':')[0]);
                         const isPM = e.time.includes('PM') && h !== 12;
-                        const actual = isNaN(h) ? null : (isPM ? h + 12 : h);
+                        const actual = isPM ? h + 12 : h;
                         return actual === hourNum;
                       });
                       return (
@@ -539,10 +625,7 @@ export default function DashboardPage() {
                         </div>
                       );
                     })}
-                    {/* If you want the all-day events to appear in the day view, add a section above the hourly list.
-                        For now we keep the exact layout intact (no structural change). */}
                   </div>
-
                 </div>
               </div>
 
