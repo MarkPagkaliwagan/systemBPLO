@@ -230,7 +230,7 @@ export default function ManualAddBusiness() {
 
                     <div className="flex flex-col">
                         <label className="text-sm text-gray-600 mb-1">assigned_inspector</label>
-                        <div className="flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-[44px] items-center focus-within:ring-2 focus-within:ring-green-900">
+                        <div className="flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-11 items-center focus-within:ring-2 focus-within:ring-green-900">
                             {inspectorList.map((email, idx) => (
                                 <div key={idx} className="flex items-center bg-green-100 text-green-900 px-2 py-1 rounded-full text-xs sm:text-sm">
                                     {email}
@@ -243,7 +243,7 @@ export default function ManualAddBusiness() {
                                 onChange={(e) => setInspectorInput(e.target.value)}
                                 onKeyDown={handleInspectorKeyDown}
                                 placeholder="Type and press Enter"
-                                className="flex-1 outline-none border-none text-black px-1 py-1 min-w-[100px] sm:min-w-[120px]"
+                                className="flex-1 outline-none border-none text-black px-1 py-1 min-w-25 sm:min-w-30"
                             />
                         </div>
                     </div>
@@ -369,7 +369,7 @@ function Input({ label, type = "text", onChange }: { label: string, type?: strin
 function Modal({ children }: { children: any }) {
     return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 sm:p-0">
-            <div className="bg-white rounded-xl p-6 w-full sm:w-[420px] shadow-xl">
+            <div className="bg-white rounded-xl p-6 w-full sm:w-105 shadow-xl">
                 {children}
             </div>
         </div>
