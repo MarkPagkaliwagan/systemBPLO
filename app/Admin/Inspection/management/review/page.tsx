@@ -6,7 +6,7 @@ import { FiFile, FiCheck, FiClock, FiX, FiEdit, FiSearch } from "react-icons/fi"
 import { supabase } from "@/lib/supabaseClient";
 
 import Sidebar from "../../../../components/sidebar";
-import ReviewModal from "../Review Modal/page";
+import ReviewModal from "../Modal/reviewModal";
 
 interface BusinessRecord {
   id: string;
