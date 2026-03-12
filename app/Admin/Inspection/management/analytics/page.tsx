@@ -30,6 +30,13 @@ export default function DashboardPage() {
   const [activeCasesCount, setActiveCasesCount] = useState(0);
   const [ceaseDesistCount, setCeaseDesistCount] = useState(0);
 
+  // --- NEW: state to hold DB schedules and derived mappings ---
+  const [dbSchedules, setDbSchedules] = useState<
+    { scheduled_date: string; "Business Identification Number": string; "Business Name": string | null }[]
+  >([]);
+  const [mockEventsByDate, setMockEventsByDate] = useState<Record<string, { title: string; time: string; color: string; colorDot: string }[]>>({});
+  const [desktopMockEvents, setDesktopMockEvents] = useState<Record<number, { title: string; time: string; color: string }[]>>({});
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -84,6 +91,63 @@ export default function DashboardPage() {
     fetchViolationCounts();
   }, []);
 
+  // --- NEW: fetch schedules from DB and build event maps ---
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('business_records')
+          .select(`scheduled_date, "Business Identification Number", "Business Name"`)
+          .not('scheduled_date', 'is', null);
+
+        if (error) {
+          console.error('fetchSchedules error:', error);
+          return;
+        }
+
+        const rows = (data ?? []) as { scheduled_date: string; "Business Identification Number": string; "Business Name": string | null }[];
+        setDbSchedules(rows);
+
+        // Build mockEventsByDate: key = YYYY-MM-DD
+        const byDate: Record<string, { title: string; time: string; color: string; colorDot: string }[]> = {};
+        rows.forEach(r => {
+          // scheduled_date may be in ISO or just 'YYYY-MM-DD'
+          const dateOnly = (r.scheduled_date ?? '').split('T')[0]; // safe normalization
+          if (!dateOnly) return;
+          const title = `${r["Business Name"] ?? ""}${r["Business Name"] ? " — " : ""}${r["Business Identification Number"]}`;
+          const event = { title, time: "", color: "bg-blue-500", colorDot: "bg-blue-500" }; // no time in table, show as all-day
+          if (!byDate[dateOnly]) byDate[dateOnly] = [];
+          byDate[dateOnly].push(event);
+        });
+        setMockEventsByDate(byDate);
+
+        // Build desktopMockEvents for current desktop month (keyed by day number)
+        const curr = new Date();
+        const desktopMonth = currentMonth.getMonth();
+        const desktopYear = currentMonth.getFullYear();
+        const byDay: Record<number, { title: string; time: string; color: string }[]> = {};
+        rows.forEach(r => {
+          const dateOnly = (r.scheduled_date ?? '').split('T')[0];
+          if (!dateOnly) return;
+          const [y, m, d] = dateOnly.split('-').map(Number);
+          if (y === desktopYear && (m - 1) === desktopMonth) {
+            const day = Number(d);
+            const title = `${r["Business Name"] ?? ""}${r["Business Name"] ? " — " : ""}${r["Business Identification Number"]}`;
+            if (!byDay[day]) byDay[day] = [];
+            byDay[day].push({ title, time: "", color: "bg-blue-500" });
+          }
+        });
+        setDesktopMockEvents(byDay);
+
+      } catch (err) {
+        console.error('fetchSchedules unexpected error:', err);
+      }
+    };
+
+    fetchSchedules();
+  // NOTE: we intentionally include currentMonth so desktopMockEvents rebuilds when user navigates months in the left mini calendar
+  }, [currentMonth]);
+
   const kpiData = [
     { title: "Active Businesses", value: String(activeCount),        icon: Building2,     trend: "+15%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
     { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   trend: "+12%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
@@ -121,27 +185,7 @@ export default function DashboardPage() {
     currentMonth.getFullYear() === today.getFullYear();
   const isSelected = (day: number) => day === selectedDay;
 
-  // Mock events — keyed by "YYYY-MM-DD" for multi-month support
-  const mockEventsByDate: Record<string, { title: string; time: string; color: string; colorDot: string }[]> = {
-    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`]: [
-      { title: "Inspection: Rizal St. Businesses", time: "9:00 AM",  color: "bg-blue-500",   colorDot: "bg-blue-500"   },
-      { title: "Notice 2 Follow-up",               time: "11:00 AM", color: "bg-orange-500", colorDot: "bg-orange-500" },
-      { title: "Team Review Meeting",              time: "2:00 PM",  color: "bg-green-500",  colorDot: "bg-green-500"  },
-    ],
-    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(Math.min(today.getDate() + 2, 28)).padStart(2, '0')}`]: [
-      { title: "Barangay Clearance Check", time: "10:00 AM", color: "bg-purple-500", colorDot: "bg-purple-500" },
-    ],
-    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(Math.min(today.getDate() + 5, 28)).padStart(2, '0')}`]: [
-      { title: "Notice 3 Deadline Review", time: "3:00 PM", color: "bg-red-500", colorDot: "bg-red-500" },
-    ],
-    [`${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, '0')}-05`]: [
-      { title: "Monthly Compliance Review", time: "9:00 AM", color: "bg-blue-500", colorDot: "bg-blue-500" },
-    ],
-    [`${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, '0')}-12`]: [
-      { title: "Business Permit Follow-up", time: "1:00 PM", color: "bg-orange-500", colorDot: "bg-orange-500" },
-    ],
-  };
-
+  // --- NOTE: mockEventsByDate and desktopMockEvents are now state, built from DB ---
   // Get all days of the scheduleMonth, each with their events (or empty)
   const getScheduleDaysForMonth = (month: Date) => {
     const year = month.getFullYear();
@@ -150,6 +194,7 @@ export default function DashboardPage() {
     return Array.from({ length: daysCount }, (_, i) => {
       const day = i + 1;
       const key = `${year}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      // Use the live mapping (may be empty array)
       return { day, date: new Date(year, m, day), events: mockEventsByDate[key] ?? [] };
     });
   };
@@ -159,15 +204,7 @@ export default function DashboardPage() {
   const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
   const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
 
-  // Desktop mock events (keyed by day number, for current desktop month)
-  const desktopMockEvents: Record<number, { title: string; time: string; color: string }[]> = {
-    [today.getDate()]: [
-      { title: "Inspection: Rizal St. Businesses", time: "9:00 AM",  color: "bg-blue-500"   },
-      { title: "Notice 2 Follow-up",               time: "11:00 AM", color: "bg-orange-500" },
-      { title: "Team Review Meeting",              time: "2:00 PM",  color: "bg-green-500"  },
-    ],
-  };
-
+  // Desktop events: use state that reflects DB rows for the currently displayed desktop month
   const selectedDayEvents = selectedDay ? (desktopMockEvents[selectedDay] ?? []) : [];
   const selectedDateLabel = selectedDay
     ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), selectedDay)
@@ -473,9 +510,11 @@ export default function DashboardPage() {
                     {hours.map((hour, i) => {
                       const hourNum = i + 8;
                       const eventsAtHour = selectedDayEvents.filter(e => {
-                        const h = parseInt(e.time.split(':')[0]);
+                        // Since DB has only date (no time), events' time is empty string.
+                        // This filter will therefore not match any hour — which keeps the current layout intact.
+                        const h = parseInt(e.time.split(':')[0]) || NaN;
                         const isPM = e.time.includes('PM') && h !== 12;
-                        const actual = isPM ? h + 12 : h;
+                        const actual = isNaN(h) ? null : (isPM ? h + 12 : h);
                         return actual === hourNum;
                       });
                       return (
@@ -500,6 +539,8 @@ export default function DashboardPage() {
                         </div>
                       );
                     })}
+                    {/* If you want the all-day events to appear in the day view, add a section above the hourly list.
+                        For now we keep the exact layout intact (no structural change). */}
                   </div>
 
                 </div>
