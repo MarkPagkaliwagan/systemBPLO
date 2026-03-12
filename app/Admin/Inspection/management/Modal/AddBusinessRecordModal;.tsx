@@ -260,9 +260,11 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
     setSaveError(null);
 
     try {
+      const { file_id, ...recordWithoutFileId } = form;
+
       const { data, error } = await supabase
         .from("business_records")
-        .insert([form])
+        .insert([recordWithoutFileId])
         .select()
         .single();
 
