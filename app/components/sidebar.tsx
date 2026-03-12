@@ -276,7 +276,7 @@ export default function Sidebar({
           {/* Mobile Hamburger Button — green-500 bg, white icon */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-xl bg-green-900 hover:bg-green-900 transition text-white"
+            className="p-2 rounded-xl bg-green-900 hover:bg-green-900 transition"
           >
             {isMobileMenuOpen ? (
               <FiX className="w-5 h-5 text-white" />
@@ -292,45 +292,50 @@ export default function Sidebar({
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <div
-              className="fixed right-0 top-0 h-full w-72 bg-white shadow-2xl animate-slideIn p-4"
+              className="fixed right-0 top-0 h-full w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out p-4 slide-in-from-right"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-gray-800 tracking-wide">
-                  Navigation
-                </h2>
-              </div>
-
-              <nav className="space-y-2">
-                {sidebarItems.map(item => renderNavItem(item))}
-              </nav>
-
-              <div className="absolute bottom-4 left-4 right-4 border-t pt-4">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                    <FiUser className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{getUserData().name}</p>
-                    <p className="text-xs text-gray-500">{getUserData().email}</p>
-                  </div>
+              <div className="flex flex-col h-full pb-30">
+                {/* Header - fixed at top */}
+                <div className="flex-shrink-0 mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800 tracking-wide">
+                    Navigation
+                  </h2>
                 </div>
-                <div className="space-y-1">
-                  <Link
-                    href="/change-password"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-                  >
-                    <FiKey className="w-4 h-4 mr-3" />
-                    Change Password
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
-                  >
-                    <FiLogOut className="w-4 h-4 mr-3" />
-                    Logout
-                  </button>
+
+                {/* Navigation menu - scrollable */}
+                <nav className="flex-1 overflow-y-auto space-y-2">
+                  {sidebarItems.map(item => renderNavItem(item))}
+                </nav>
+
+                {/* User section - fixed at bottom */}
+                <div className="flex-shrink-0 border-t pt-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                      <FiUser className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{getUserData().name}</p>
+                      <p className="text-xs text-gray-500">{getUserData().email}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Link
+                      href="/change-password"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
+                    >
+                      <FiKey className="w-4 h-4 mr-3" />
+                      Change Password
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition"
+                    >
+                      <FiLogOut className="w-4 h-4 mr-3" />
+                      Logout
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -368,7 +373,7 @@ export default function Sidebar({
           {/* Desktop Hamburger Button — green-900 bg, white icon */}
           <button
             onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
-            className="p-2 rounded-xl bg-green-900 hover:bg-green-900 transition text-white"
+            className="p-2 rounded-xl bg-green-900 hover:bg-green-900 transition"
           >
             {isDesktopMenuOpen ? (
               <FiX className="w-5 h-5 text-white" />

@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [scheduleMonth, setScheduleMonth] = useState(new Date());
   const [noticeRange, setNoticeRange] = useState<NoticeRange>('7d');
 
+  // ── Supabase state (from Code 2) ──────────────────────────────────────────
   const [compliantCount, setCompliantCount] = useState(0);
   const [nonCompliantCount, setNonCompliantCount] = useState(0);
   const [forInspectionCount, setForInspectionCount] = useState(0);
@@ -34,6 +35,18 @@ export default function DashboardPage() {
   const [activeCasesCount, setActiveCasesCount] = useState(0);
   const [ceaseDesistCount, setCeaseDesistCount] = useState(0);
 
+  const [dbSchedules, setDbSchedules] = useState<
+  { scheduled_date: string; "Business Identification Number": string; "Business Name": string | null }[] >([]);
+
+  const [mockEventsByDate, setMockEventsByDate] = useState<
+  Record<string, { title: string; time: string; color: string; colorDot: string }[]>>({});
+
+  const [desktopMockEvents, setDesktopMockEvents] = useState<
+  Record<number, { title: string; time: string; color: string }[]>>({});
+
+  
+
+  // ── Dropdown portal state (from Code 1) ──────────────────────────────────
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
   const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
@@ -49,19 +62,7 @@ export default function DashboardPage() {
 
   const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
 
-  const getDateRange = (range: NoticeRange) => {
-    const now = new Date();
-    const start = new Date();
-    switch (range) {
-      case '7d':  start.setDate(now.getDate() - 7); break;
-      case '1m':  start.setMonth(now.getMonth() - 1); break;
-      case '3m':  start.setMonth(now.getMonth() - 3); break;
-      case '6m':  start.setMonth(now.getMonth() - 6); break;
-      case '1yr': start.setFullYear(now.getFullYear() - 1); break;
-    }
-    return { start: start.toISOString(), end: now.toISOString() };
-  };
-
+  // ── Responsive check ──────────────────────────────────────────────────────
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -72,6 +73,7 @@ export default function DashboardPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // ── Supabase: business_records status counts (from Code 2) ───────────────
   useEffect(() => {
     const fetchStatusCounts = async () => {
       try {
@@ -97,10 +99,10 @@ export default function DashboardPage() {
     fetchStatusCounts();
   }, []);
 
+  // ── Supabase: violation counts filtered by date range (from Code 1) ──────
   useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
-        // Compute date range inline so it's always fresh
         const now = new Date();
         const start = new Date();
         switch (noticeRange) {
@@ -110,24 +112,18 @@ export default function DashboardPage() {
           case '6m':  start.setMonth(now.getMonth() - 6); break;
           case '1yr': start.setFullYear(now.getFullYear() - 1); break;
         }
-        // Format as plain timestamp (no timezone) to match Postgres "timestamp without time zone"
+        // Format as plain timestamp to match Postgres "timestamp without time zone"
         const fmt = (d: Date) => d.toISOString().replace('T', ' ').replace('Z', '').slice(0, 19);
-        const startFmt = fmt(start);
-        const endFmt = fmt(now);
-
-        console.log('[Notice Stats] range:', noticeRange, '| from:', startFmt, '| to:', endFmt);
 
         const { data, error } = await supabase
           .from('business_violations')
           .select('notice_level, resolved, created_at')
-          .gte('created_at', startFmt)
-          .lte('created_at', endFmt);
+          .gte('created_at', fmt(start))
+          .lte('created_at', fmt(now));
 
         if (error) { console.error('fetchViolationCounts error:', error); return; }
 
         const violations = data ?? [];
-        console.log('[Notice Stats] rows returned:', violations.length, violations);
-
         setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
         setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
         setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
@@ -139,8 +135,63 @@ export default function DashboardPage() {
     };
     fetchViolationCounts();
   }, [noticeRange]);
+  useEffect(() => {
+  const fetchSchedules = async () => {
+    const { data, error } = await supabase
+      .from("business_records")
+      .select('scheduled_date, "Business Identification Number", "Business Name"')
+      .not("scheduled_date", "is", null);
 
-  // Close dropdown on outside click
+    if (error) {
+      console.error("Schedule fetch error:", error);
+      return;
+    }
+
+    const rows = data ?? [];
+
+    const byDate: Record<string, any[]> = {};
+    const byDay: Record<number, any[]> = {};
+
+    rows.forEach((r) => {
+      const dateOnly = r.scheduled_date.split("T")[0];
+      const [y, m, d] = dateOnly.split("-").map(Number);
+
+      const title =
+        `${r["Business Name"] ?? ""}` +
+        (r["Business Name"] ? " — " : "") +
+        `${r["Business Identification Number"]}`;
+
+      const event = {
+        title,
+        time: "",
+        color: "bg-blue-500",
+        colorDot: "bg-blue-500",
+      };
+
+      if (!byDate[dateOnly]) byDate[dateOnly] = [];
+      byDate[dateOnly].push(event);
+
+      if (
+        y === currentMonth.getFullYear() &&
+        m - 1 === currentMonth.getMonth()
+      ) {
+        if (!byDay[d]) byDay[d] = [];
+        byDay[d].push({
+          title,
+          time: "",
+          color: "bg-blue-500",
+        });
+      }
+    });
+
+    setMockEventsByDate(byDate);
+    setDesktopMockEvents(byDay);
+  };
+
+  fetchSchedules();
+}, [currentMonth]);
+
+  // ── Close dropdown on outside click ──────────────────────────────────────
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -159,15 +210,12 @@ export default function DashboardPage() {
   const handleDropdownToggle = (ref: React.RefObject<HTMLButtonElement | null>) => {
     if (!dropdownOpen && ref.current) {
       const rect = ref.current.getBoundingClientRect();
-      setDropdownPos({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
+      setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
     }
     setDropdownOpen(prev => !prev);
   };
 
-  // Shared portal dropdown
+  // ── Portal dropdown (from Code 1) ─────────────────────────────────────────
   const PortalDropdown = () => {
     if (!dropdownOpen || !dropdownPos) return null;
     return createPortal(
@@ -191,6 +239,7 @@ export default function DashboardPage() {
     );
   };
 
+  // ── Data arrays ───────────────────────────────────────────────────────────
   const kpiData = [
     { title: "Active Businesses", value: String(activeCount),        icon: Building2,     trend: "+15%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
     { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   trend: "+12%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
@@ -206,7 +255,7 @@ export default function DashboardPage() {
     { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   color: "from-red-500 to-red-700"      },
   ];
 
-  // Desktop calendar helpers
+  // ── Calendar helpers ──────────────────────────────────────────────────────
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -226,30 +275,21 @@ export default function DashboardPage() {
     day === today.getDate() &&
     currentMonth.getMonth() === today.getMonth() &&
     currentMonth.getFullYear() === today.getFullYear();
+
   const isSelected = (day: number) => day === selectedDay;
 
-  // Mock events keyed by "YYYY-MM-DD"
-  const mockEventsByDate: Record<string, { title: string; time: string; color: string; colorDot: string }[]> = {
-    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`]: [
-      { title: "Inspection: Rizal St. Businesses", time: "9:00 AM",  color: "bg-blue-500",   colorDot: "bg-blue-500"   },
-      { title: "Notice 2 Follow-up",               time: "11:00 AM", color: "bg-orange-500", colorDot: "bg-orange-500" },
-      { title: "Team Review Meeting",              time: "2:00 PM",  color: "bg-green-500",  colorDot: "bg-green-500"  },
-    ],
-    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(Math.min(today.getDate() + 2, 28)).padStart(2, '0')}`]: [
-      { title: "Barangay Clearance Check", time: "10:00 AM", color: "bg-purple-500", colorDot: "bg-purple-500" },
-    ],
-    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(Math.min(today.getDate() + 5, 28)).padStart(2, '0')}`]: [
-      { title: "Notice 3 Deadline Review", time: "3:00 PM", color: "bg-red-500", colorDot: "bg-red-500" },
-    ],
-    [`${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, '0')}-05`]: [
-      { title: "Monthly Compliance Review", time: "9:00 AM", color: "bg-blue-500", colorDot: "bg-blue-500" },
-    ],
-    [`${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, '0')}-12`]: [
-      { title: "Business Permit Follow-up", time: "1:00 PM", color: "bg-orange-500", colorDot: "bg-orange-500" },
-    ],
-  };
+  const selectedDayEvents = selectedDay ? (desktopMockEvents[selectedDay] ?? []) : [];
+  const selectedDateLabel = selectedDay
+    ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), selectedDay)
+        .toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    : '';
 
-  // Schedule month helpers
+  const hours = Array.from({ length: 12 }, (_, i) => {
+    const h = i + 8;
+    return h <= 12 ? `${h} AM` : `${h - 12} PM`;
+  });
+
+  // ── Schedule month helpers (from Code 1) ──────────────────────────────────
   const getScheduleDaysForMonth = (month: Date) => {
     const year = month.getFullYear();
     const m = month.getMonth();
@@ -266,27 +306,7 @@ export default function DashboardPage() {
   const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
   const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
 
-  // Desktop mock events (keyed by day number)
-  const desktopMockEvents: Record<number, { title: string; time: string; color: string }[]> = {
-    [today.getDate()]: [
-      { title: "Inspection: Rizal St. Businesses", time: "9:00 AM",  color: "bg-blue-500"   },
-      { title: "Notice 2 Follow-up",               time: "11:00 AM", color: "bg-orange-500" },
-      { title: "Team Review Meeting",              time: "2:00 PM",  color: "bg-green-500"  },
-    ],
-  };
-
-  const selectedDayEvents = selectedDay ? (desktopMockEvents[selectedDay] ?? []) : [];
-  const selectedDateLabel = selectedDay
-    ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), selectedDay)
-        .toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-    : '';
-
-  const hours = Array.from({ length: 12 }, (_, i) => {
-    const h = i + 8;
-    return h <= 12 ? `${h} AM` : `${h - 12} PM`;
-  });
-
-  // Mobile Schedule Section
+  // ── Mobile Schedule Section (from Code 1) ─────────────────────────────────
   const MobileScheduleSection = () => (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
@@ -353,7 +373,7 @@ export default function DashboardPage() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      {/* Shared portal dropdown — renders above everything */}
+      {/* Portal dropdown — renders above everything */}
       <PortalDropdown />
 
       {/* ── MOBILE ── */}
@@ -370,7 +390,7 @@ export default function DashboardPage() {
                 <p className="text-slate-500 text-xs mt-0.5">Real-time inspection and notice monitoring</p>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 bg-green-900 rounded-full animate-pulse" />
+                <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
                 <span className="text-sm text-slate-500">Live</span>
               </div>
             </div>
@@ -443,7 +463,7 @@ export default function DashboardPage() {
                   <p className="text-slate-500 text-sm mt-0.5">Real-time inspection and notice monitoring</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
+                  <div className="w-2.5 h-2.5 bg-green-900 rounded-full animate-pulse" />
                   <span className="text-sm text-slate-500">Live</span>
                 </div>
               </div>

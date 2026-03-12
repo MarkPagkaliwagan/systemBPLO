@@ -68,25 +68,30 @@ export async function POST(request: NextRequest) {
 
     const resetUrl = `https://system-bplo-nxbj.vercel.app/reset-password?token=${resetToken}`;
 
-    try {
-      await sendEmail(
-        user.email,
-        'Password Reset Request',
-        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Password Reset Request</h2>
-          <p>Hello ${user.name || user.email},</p>
-          <p>Click the link below to reset your password:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}"
-               style="background-color: #059669; color: white; padding: 12px 30px;
-                      text-decoration: none; border-radius: 6px; display: inline-block;">
-              Reset Password
-            </a>
-          </div>
-          <p>This link will expire in 24 hours.</p>
-          <p>If you didn't request this, please ignore this email.</p>
-        </div>`
-      );
+   try {
+  await sendEmail(
+    user.email,
+    'Password Reset Request',
+    `<div style="font-family: Arial, sans-serif; max-width: 600px; line-height: 1.6; color: #333;">
+      <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
+      
+      <p style="margin: 0 0 10px 0;">Hello ${user.email},</p>
+      
+      <p style="margin: 0 0 20px 0;">Click the link below to reset your password:</p>
+
+      <div style="margin: 25px 0;">
+        <a href="${resetUrl}"
+           style="background-color: #059669; color: white; padding: 12px 25px;
+                  text-decoration: none; border-radius: 5px; font-weight: bold; 
+                  display: inline-block;">
+          Reset Password
+        </a>
+      </div>
+
+      <p style="margin: 20px 0 5px 0;">This link will expire in 24 hours.</p>
+      <p style="margin: 0;">If you didn't request this, please ignore this email.</p>
+    </div>`
+  );
     } catch (emailError) {
       return NextResponse.json({
         error: 'EMAIL ERROR',
