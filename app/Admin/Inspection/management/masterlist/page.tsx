@@ -2,12 +2,12 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiUpload, FiFile, FiClock, FiDownload, FiTrash2, FiChevronLeft, FiChevronRight, FiAlertCircle, FiFilter } from "react-icons/fi";
+import { FiUpload, FiFile, FiClock, FiDownload, FiTrash2, FiChevronLeft, FiChevronRight, FiAlertCircle, FiFilter, FiPlus } from "react-icons/fi";
 import Papa from "papaparse";
 import Sidebar from "../../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
-
+import Link from "next/link";
 interface CSVFile {
   id: string;
   name: string;
@@ -522,6 +522,22 @@ export default function CSVManager() {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setFileToDelete(null)}
       />
+      {/* Floating Add Button (Desktop Only) */}
+{!isMobile && (
+  <Link
+    href="/Admin/Inspection/management/manual_add"
+    title="Manual Add Record"
+    className="fixed bottom-8 right-8 z-50 
+               w-14 h-14 rounded-full 
+               bg-green-600 hover:bg-green-700 
+               text-white shadow-lg 
+               flex items-center justify-center
+               transition-all duration-200
+               hover:scale-105"
+  >
+    <FiPlus className="w-6 h-6" />
+  </Link>
+)}
     </>
   );
 }
