@@ -62,12 +62,6 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       icon: <FiAlertCircle className="w-5 h-5" />,
       href: "/Admin/Compliance/Dashboard",
     },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <FiSettings className="w-5 h-5" />,
-      href: "/module-2-inspection/notifCompliance",
-    },
   ];
 
   const superAdminItems: SidebarItem[] = [
@@ -100,12 +94,6 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       label: "User Management",
       icon: <FiUser className="w-5 h-5" />,
       href: "/SuperAdmin/users",
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <FiSettings className="w-5 h-5" />,
-      href: "/module-2-inspection/notifCompliance",
     },
   ];
 
