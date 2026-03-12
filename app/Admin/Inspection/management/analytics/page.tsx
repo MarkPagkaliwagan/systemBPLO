@@ -11,7 +11,7 @@ import {
 import Sidebar from "../../../../components/sidebar";
 import MobileBottomNav from "../../../../components/MobileBottomNav";
 import { supabase } from "@/lib/supabaseClient";
-
+import InspectorSummary from "./inspectorsummary";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
 export default function DashboardPage() {
@@ -36,15 +36,15 @@ export default function DashboardPage() {
   const [ceaseDesistCount, setCeaseDesistCount] = useState(0);
 
   const [dbSchedules, setDbSchedules] = useState<
-  { scheduled_date: string; "Business Identification Number": string; "Business Name": string | null }[] >([]);
+    { scheduled_date: string; "Business Identification Number": string; "Business Name": string | null }[]>([]);
 
   const [mockEventsByDate, setMockEventsByDate] = useState<
-  Record<string, { title: string; time: string; color: string; colorDot: string }[]>>({});
+    Record<string, { title: string; time: string; color: string; colorDot: string }[]>>({});
 
   const [desktopMockEvents, setDesktopMockEvents] = useState<
-  Record<number, { title: string; time: string; color: string }[]>>({});
+    Record<number, { title: string; time: string; color: string }[]>>({});
 
-  
+
 
   // ── Dropdown portal state (from Code 1) ──────────────────────────────────
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -53,10 +53,10 @@ export default function DashboardPage() {
   const mobileDropdownButtonRef = useRef<HTMLButtonElement>(null);
 
   const rangeOptions: { value: NoticeRange; label: string }[] = [
-    { value: '7d',  label: 'Last 7 Days' },
-    { value: '1m',  label: 'Last 1 Month' },
-    { value: '3m',  label: 'Last 3 Months' },
-    { value: '6m',  label: 'Last 6 Months' },
+    { value: '7d', label: 'Last 7 Days' },
+    { value: '1m', label: 'Last 1 Month' },
+    { value: '3m', label: 'Last 3 Months' },
+    { value: '6m', label: 'Last 6 Months' },
     { value: '1yr', label: 'Last 1 Year' },
   ];
 
@@ -106,10 +106,10 @@ export default function DashboardPage() {
         const now = new Date();
         const start = new Date();
         switch (noticeRange) {
-          case '7d':  start.setDate(now.getDate() - 7); break;
-          case '1m':  start.setMonth(now.getMonth() - 1); break;
-          case '3m':  start.setMonth(now.getMonth() - 3); break;
-          case '6m':  start.setMonth(now.getMonth() - 6); break;
+          case '7d': start.setDate(now.getDate() - 7); break;
+          case '1m': start.setMonth(now.getMonth() - 1); break;
+          case '3m': start.setMonth(now.getMonth() - 3); break;
+          case '6m': start.setMonth(now.getMonth() - 6); break;
           case '1yr': start.setFullYear(now.getFullYear() - 1); break;
         }
         // Format as plain timestamp to match Postgres "timestamp without time zone"
@@ -136,60 +136,60 @@ export default function DashboardPage() {
     fetchViolationCounts();
   }, [noticeRange]);
   useEffect(() => {
-  const fetchSchedules = async () => {
-    const { data, error } = await supabase
-      .from("business_records")
-      .select('scheduled_date, "Business Identification Number", "Business Name"')
-      .not("scheduled_date", "is", null);
+    const fetchSchedules = async () => {
+      const { data, error } = await supabase
+        .from("business_records")
+        .select('scheduled_date, "Business Identification Number", "Business Name"')
+        .not("scheduled_date", "is", null);
 
-    if (error) {
-      console.error("Schedule fetch error:", error);
-      return;
-    }
+      if (error) {
+        console.error("Schedule fetch error:", error);
+        return;
+      }
 
-    const rows = data ?? [];
+      const rows = data ?? [];
 
-    const byDate: Record<string, any[]> = {};
-    const byDay: Record<number, any[]> = {};
+      const byDate: Record<string, any[]> = {};
+      const byDay: Record<number, any[]> = {};
 
-    rows.forEach((r) => {
-      const dateOnly = r.scheduled_date.split("T")[0];
-      const [y, m, d] = dateOnly.split("-").map(Number);
+      rows.forEach((r) => {
+        const dateOnly = r.scheduled_date.split("T")[0];
+        const [y, m, d] = dateOnly.split("-").map(Number);
 
-      const title =
-        `${r["Business Name"] ?? ""}` +
-        (r["Business Name"] ? " — " : "") +
-        `${r["Business Identification Number"]}`;
+        const title =
+          `${r["Business Name"] ?? ""}` +
+          (r["Business Name"] ? " — " : "") +
+          `${r["Business Identification Number"]}`;
 
-      const event = {
-        title,
-        time: "",
-        color: "bg-blue-500",
-        colorDot: "bg-blue-500",
-      };
-
-      if (!byDate[dateOnly]) byDate[dateOnly] = [];
-      byDate[dateOnly].push(event);
-
-      if (
-        y === currentMonth.getFullYear() &&
-        m - 1 === currentMonth.getMonth()
-      ) {
-        if (!byDay[d]) byDay[d] = [];
-        byDay[d].push({
+        const event = {
           title,
           time: "",
           color: "bg-blue-500",
-        });
-      }
-    });
+          colorDot: "bg-blue-500",
+        };
 
-    setMockEventsByDate(byDate);
-    setDesktopMockEvents(byDay);
-  };
+        if (!byDate[dateOnly]) byDate[dateOnly] = [];
+        byDate[dateOnly].push(event);
 
-  fetchSchedules();
-}, [currentMonth]);
+        if (
+          y === currentMonth.getFullYear() &&
+          m - 1 === currentMonth.getMonth()
+        ) {
+          if (!byDay[d]) byDay[d] = [];
+          byDay[d].push({
+            title,
+            time: "",
+            color: "bg-blue-500",
+          });
+        }
+      });
+
+      setMockEventsByDate(byDate);
+      setDesktopMockEvents(byDay);
+    };
+
+    fetchSchedules();
+  }, [currentMonth]);
 
   // ── Close dropdown on outside click ──────────────────────────────────────
   useEffect(() => {
@@ -241,18 +241,18 @@ export default function DashboardPage() {
 
   // ── Data arrays ───────────────────────────────────────────────────────────
   const kpiData = [
-    { title: "Active Businesses", value: String(activeCount),        icon: Building2,     trend: "+15%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
-    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   trend: "+12%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
-    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList, trend: "+8%",  iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
-    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle, trend: "-5%",  iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
+    { title: "Active Businesses", value: String(activeCount), icon: Building2, trend: "+15%", iconBg: "from-green-400 to-green-600", trendColor: "text-green-600" },
+    { title: "Compliant", value: String(compliantCount), icon: CheckCircle, trend: "+12%", iconBg: "from-green-400 to-green-600", trendColor: "text-green-600" },
+    { title: "For Inspection", value: String(forInspectionCount), icon: ClipboardList, trend: "+8%", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
+    { title: "Non-Compliant", value: String(nonCompliantCount), icon: AlertTriangle, trend: "-5%", iconBg: "from-red-400 to-red-600", trendColor: "text-red-500" },
   ];
 
   const noticeStats = [
-    { title: "Notice 1 Sent",  value: String(notice1Count),     icon: Mail,  color: "from-indigo-400 to-indigo-600" },
-    { title: "Notice 2 Sent",  value: String(notice2Count),     icon: Mail,  color: "from-purple-400 to-purple-600" },
-    { title: "Notice 3 Sent",  value: String(notice3Count),     icon: Mail,  color: "from-pink-400 to-pink-600"    },
-    { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, color: "from-orange-400 to-orange-600" },
-    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   color: "from-red-500 to-red-700"      },
+    { title: "Notice 1 Sent", value: String(notice1Count), icon: Mail, color: "from-indigo-400 to-indigo-600" },
+    { title: "Notice 2 Sent", value: String(notice2Count), icon: Mail, color: "from-purple-400 to-purple-600" },
+    { title: "Notice 3 Sent", value: String(notice3Count), icon: Mail, color: "from-pink-400 to-pink-600" },
+    { title: "Active Cases", value: String(activeCasesCount), icon: Gavel, color: "from-orange-400 to-orange-600" },
+    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban, color: "from-red-500 to-red-700" },
   ];
 
   // ── Calendar helpers ──────────────────────────────────────────────────────
@@ -281,7 +281,7 @@ export default function DashboardPage() {
   const selectedDayEvents = selectedDay ? (desktopMockEvents[selectedDay] ?? []) : [];
   const selectedDateLabel = selectedDay
     ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), selectedDay)
-        .toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+      .toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
     : '';
 
   const hours = Array.from({ length: 12 }, (_, i) => {
@@ -442,6 +442,10 @@ export default function DashboardPage() {
 
             {/* Schedule section */}
             <MobileScheduleSection />
+            {/* Inspector Summary Section */}
+            <div className="mt-4">
+              <InspectorSummary />
+            </div>
 
           </div>
           <MobileBottomNav />
@@ -519,28 +523,43 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Calendar — fills remaining space */}
+            {/* Calendar + Inspector Summary */}
             <div className="flex gap-5 flex-1 min-h-0">
 
-              {/* LEFT — Mini Calendar */}
-              <div className="w-72 shrink-0 flex flex-col">
+              {/* LEFT — Calendar 50% */}
+              <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-white/20 flex flex-col flex-1">
+
+                  {/* Month navigation */}
                   <div className="flex items-center justify-between mb-4">
-                    <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                    <button
+                      onClick={prevMonth}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+                    >
                       <ChevronLeft size={16} className="text-slate-600" />
                     </button>
+
                     <span className="text-sm font-bold text-slate-700">{monthLabel}</span>
-                    <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+
+                    <button
+                      onClick={nextMonth}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+                    >
                       <ChevronRight size={16} className="text-slate-600" />
                     </button>
                   </div>
+
+                  {/* Week labels */}
                   <div className="grid grid-cols-7 mb-2">
                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
                       <div key={i} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
                     ))}
                   </div>
-                  <div className="grid grid-cols-7 gap-y-1">
+
+                  {/* Days */}
+                  <div className="grid grid-cols-7 gap-y-2">
                     {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
+
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                       const day = i + 1;
                       const hasEvent = !!desktopMockEvents[day];
@@ -548,19 +567,21 @@ export default function DashboardPage() {
                         <div
                           key={day}
                           onClick={() => setSelectedDay(day)}
-                          className={`relative flex items-center justify-center h-9 w-9 mx-auto rounded-full text-sm font-medium cursor-pointer transition-all
-                            ${isToday(day) && !isSelected(day) ? 'bg-blue-100 text-blue-700 font-bold' : ''}
-                            ${isSelected(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
-                          `}
+                          className={`relative flex items-center justify-center h-12 w-12 mx-auto rounded-xl text-sm font-medium cursor-pointer transition-all
+                ${isToday(day) && !isSelected(day) ? 'bg-blue-100 text-blue-700 font-bold' : ''}
+                ${isSelected(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
+              `}
                         >
                           {day}
                           {hasEvent && (
-                            <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500'}`} />
+                            <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500'}`} />
                           )}
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* ── UPCOMING EVENTS — Huwag alisin! ── */}
                   <div className="mt-auto pt-4 border-t border-slate-100 space-y-2">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming</p>
                     {Object.entries(desktopMockEvents).slice(0, 3).map(([day, events]) => (
@@ -570,64 +591,13 @@ export default function DashboardPage() {
                       </div>
                     ))}
                   </div>
+
                 </div>
               </div>
 
-              {/* RIGHT — Day View */}
-              <div className="flex-1 flex flex-col min-h-0">
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden flex flex-col flex-1">
-                  <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between shrink-0">
-                    <div>
-                      <h2 className="text-base font-bold text-slate-800">
-                        {selectedDay ? selectedDateLabel : 'Select a day'}
-                      </h2>
-                      <p className="text-sm text-slate-500 mt-0.5">
-                        {selectedDayEvents.length > 0
-                          ? `${selectedDayEvents.length} event${selectedDayEvents.length > 1 ? 's' : ''} scheduled`
-                          : 'No events scheduled'}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => { setCurrentMonth(new Date()); setSelectedDay(today.getDate()); }}
-                      className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Today
-                    </button>
-                  </div>
-                  <div className="overflow-y-auto flex-1">
-                    {hours.map((hour, i) => {
-                      const hourNum = i + 8;
-                      const eventsAtHour = selectedDayEvents.filter(e => {
-                        const h = parseInt(e.time.split(':')[0]);
-                        const isPM = e.time.includes('PM') && h !== 12;
-                        const actual = isPM ? h + 12 : h;
-                        return actual === hourNum;
-                      });
-                      return (
-                        <div key={hour} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                          <div className="w-20 shrink-0 py-3 px-3 text-right">
-                            <span className="text-sm text-slate-400 font-medium">{hour}</span>
-                          </div>
-                          <div className="flex-1 py-1.5 px-3 min-h-[52px]">
-                            {eventsAtHour.length > 0 ? (
-                              <div className="space-y-1">
-                                {eventsAtHour.map((event, ei) => (
-                                  <div key={ei} className={`${event.color} text-white rounded-lg px-3 py-2 text-sm font-medium shadow-sm flex items-center justify-between`}>
-                                    <span>{event.title}</span>
-                                    <span className="opacity-80 ml-2 shrink-0 text-xs">{event.time}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="h-full border-l-2 border-transparent hover:border-blue-200 transition-colors" />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+             <div className="w-1/2 flex flex-col md:p-8">
+  <InspectorSummary />
+</div>
 
             </div>
           </div>

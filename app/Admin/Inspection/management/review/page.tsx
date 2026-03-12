@@ -90,23 +90,18 @@ export default function CSVReview() {
   const [isMobile, setIsMobile]                 = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Records
   const [csvData, setCSVData]       = useState<BusinessRecord[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading]       = useState(true);
 
-  // Search, filter & pagination
   const [searchTerm, setSearchTerm]               = useState('');
   const [debouncedSearch, setDebouncedSearch]     = useState('');
   const [currentPage, setCurrentPage]             = useState(1);
   const [showScheduledOnly, setShowScheduledOnly] = useState(false);
 
-  // Review modal
   const [selectedRow, setSelectedRow]         = useState<BusinessRecord | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
-
-  // Pending badge
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCount, setPendingCount]       = useState(0);
 
   // ── Responsive ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -178,7 +173,7 @@ export default function CSVReview() {
     fetchRecords();
   }, [currentPage, debouncedSearch, showScheduledOnly]);
 
-  // ── Fetch pending count for badge ─────────────────────────────────────────
+  // ── Fetch pending count ───────────────────────────────────────────────────
   useEffect(() => {
     const fetchPending = async () => {
       const { count } = await supabase
@@ -211,7 +206,6 @@ export default function CSVReview() {
   const isRowReviewed = (status: string | null) =>
     !!status && status !== 'not reviewed' && status !== 'not_reviewed';
 
-  // ── Row click / save review ───────────────────────────────────────────────
   const handleRowClick = (row: BusinessRecord) => {
     setSelectedRow(row);
     setShowReviewModal(true);
@@ -290,15 +284,15 @@ export default function CSVReview() {
     }
 
     return (
-      <div className={`${isMobile ? 'px-4 py-3' : 'px-6 py-3'} border-t border-gray-200 bg-gray-50 flex items-center justify-between`}>
-        <span className="text-sm text-gray-600">
+      <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-sm text-gray-600 text-center">
           {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalCount)} of {totalCount.toLocaleString()} records
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-center gap-1.5 flex-wrap">
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <FiChevronLeft className="w-4 h-4" />
           </button>
@@ -306,7 +300,7 @@ export default function CSVReview() {
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors
+              className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors
                 ${currentPage === page
                   ? 'bg-green-600 text-white'
                   : 'border border-gray-200 hover:bg-gray-100 text-gray-700'}`}
@@ -317,7 +311,7 @@ export default function CSVReview() {
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <FiChevronRight className="w-4 h-4" />
           </button>
@@ -337,57 +331,54 @@ export default function CSVReview() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <div className="min-h-screen bg-gray-50 pt-1">
-        <div className={isMobile ? 'px-4 py-6' : 'px-6 py-10'}>
+      <div className="min-h-screen bg-gray-50 pt-1" style={{ paddingBottom: isMobile ? 80 : 0 }}>
+        <div className={isMobile ? 'px-3 py-5' : 'px-6 py-10'}>
 
           {/* ── Header ── */}
-          <div className={isMobile ? 'mb-6' : 'mb-8'}>
-            <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 mb-2`}>
+          <div className="mb-5">
+            <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-gray-900 mb-1`}>
               Scheduling
             </h1>
-            <p className="text-gray-600">Reviewing and Scheduling</p>
+            <p className="text-sm text-gray-500">Reviewing and Scheduling</p>
             {pendingCount > 0 && (
-              <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+              <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                 {pendingCount.toLocaleString()} records pending review
               </div>
             )}
           </div>
 
-          {/* ── Table (full width) ── */}
+          {/* ── Table ── */}
           <div className="w-full">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
-              {/* Table header / search */}
-              <div className={`${isMobile ? 'px-4 py-3' : 'px-6 py-4'} border-b border-gray-200 bg-gray-50`}>
-                <div className={isMobile ? 'space-y-3' : 'flex items-center justify-between'}>
+              {/* Search / filter bar */}
+              <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 space-y-2">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h2 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>
-                      All Business Records
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {totalCount.toLocaleString()} total records
-                    </p>
+                    <h2 className="text-base font-semibold text-gray-900">All Business Records</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">{totalCount.toLocaleString()} total records</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <FiSearch className="w-4 h-4 text-gray-500" />
-                    <input
-                      type="text"
-                      placeholder="Search name, BIN, barangay..."
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent w-56"
-                    />
-                    <button
-                      onClick={() => setShowScheduledOnly(!showScheduledOnly)}
-                      className={`px-3 py-2 text-xs rounded border transition-colors ${
-                        showScheduledOnly
-                          ? 'bg-green-600 text-white border-green-600'
-                          : 'bg-white text-gray-700 border-gray-300'
-                      }`}
-                    >
-                      Scheduled
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setShowScheduledOnly(!showScheduledOnly)}
+                    className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
+                      showScheduledOnly
+                        ? 'bg-green-600 text-white border-green-600'
+                        : 'bg-white text-gray-700 border-gray-300'
+                    }`}
+                  >
+                    {showScheduledOnly ? '📅 Scheduled' : 'Scheduled'}
+                  </button>
+                </div>
+                {/* Search full width on mobile */}
+                <div className="relative w-full">
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search name, BIN, barangay..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
                 </div>
               </div>
 
@@ -398,12 +389,12 @@ export default function CSVReview() {
                 </div>
 
               ) : csvData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                  <p className="text-lg font-medium">No records found</p>
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-gray-400">
+                  <p className="text-base font-medium">No records found</p>
                   <p className="text-sm mt-1">Try adjusting your search</p>
                   {searchTerm && (
                     <div
-                      className="mt-4 px-6 py-3 bg-green-100 cursor-pointer rounded text-green-900 font-semibold hover:bg-green-200 transition-colors"
+                      className="mt-4 px-6 py-3 bg-green-100 cursor-pointer rounded-lg text-green-900 font-semibold hover:bg-green-200 transition-colors text-sm"
                       onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
                     >
                       + Add "{searchTerm}"
@@ -413,52 +404,85 @@ export default function CSVReview() {
 
               ) : isMobile ? (
                 /* ── Mobile Cards ── */
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-100">
                   {csvData.map((row, index) => (
                     <div
-                      key={row.id || `mobile-${currentPage}-${index}-${row["Business Identification Number"] || ''}`}
+                      key={row.id || `mobile-${currentPage}-${index}`}
                       onClick={() => handleRowClick(row)}
-                      className={`p-4 cursor-pointer transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
+                      className={`p-4 cursor-pointer active:bg-gray-50 transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1 min-w-0 pr-2">
-                          <h4 className="font-medium text-gray-900 text-sm truncate">{row["Business Name"]}</h4>
-                          <p className="text-xs text-gray-500 truncate">{row["Business Identification Number"]}</p>
-                          <p className="text-xs text-gray-400 truncate">
-                            {[row["Office Barangay"], row["Office Municipality"]].filter(Boolean).join(', ') || row["Office Street"] || '—'}
+                      {/* Top row: name + status badge */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">
+                            {row["Business Name"]}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5 truncate">
+                            {row["Business Identification Number"]}
                           </p>
                         </div>
-                        <span className={`shrink-0 px-2 py-1 rounded-full text-xs font-medium ${getRowStatusBadge(row.status)}`}>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${getRowStatusBadge(row.status)}`}>
                           {getRowStatusLabel(row.status)}
                         </span>
                       </div>
-                      <div className="space-y-1 text-xs">
-                        {row.review_action && <span className="text-green-600">✓ {row.review_action}</span>}
-                        {row.violation     && <div><span className="text-red-600">⚠ {row.violation}</span></div>}
-                        {row["SITE Transaction Status"] && (
-                          <div><span className="text-blue-600">📋 {row["SITE Transaction Status"]}</span></div>
+
+                      {/* Location */}
+                      {(row["Office Barangay"] || row["Office Municipality"]) && (
+                        <p className="text-xs text-gray-500 mb-2 truncate">
+                          📍 {[row["Office Barangay"], row["Office Municipality"]].filter(Boolean).join(', ')}
+                        </p>
+                      )}
+
+                      {/* Info pills row */}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {row["Business Nature"] && (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full truncate max-w-[120px]">
+                            {row["Business Nature"]}
+                          </span>
+                        )}
+                        {row["Business Type"] && (
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full truncate max-w-[120px]">
+                            {row["Business Type"]}
+                          </span>
+                        )}
+                        {row.scheduled_date && (
+                          <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
+                            📅 {row.scheduled_date}
+                          </span>
                         )}
                       </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <p className="text-xs text-gray-400 flex items-center">
-                          <FiClock className="w-3 h-3 mr-1" />
-                          {row.review_date || 'Not reviewed'}
+
+                      {/* Violations / review action */}
+                      {row.violation && (
+                        <p className="text-xs text-red-600 mb-1 line-clamp-1">⚠ {row.violation}</p>
+                      )}
+                      {row.review_action && (
+                        <p className="text-xs text-green-600 mb-1 line-clamp-1">✓ {row.review_action}</p>
+                      )}
+
+                      {/* Bottom row: date + edit button */}
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <FiClock className="w-3 h-3" />
+                          {row.review_date ?? 'Not reviewed'}
                         </p>
                         <button
                           onClick={e => { e.stopPropagation(); handleRowClick(row); }}
-                          className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                          className="flex items-center gap-1 text-xs text-blue-600 font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors active:scale-95"
                         >
-                          <FiEdit className="w-4 h-4" />
+                          <FiEdit className="w-3.5 h-3.5" />
+                          Review
                         </button>
                       </div>
                     </div>
                   ))}
-                  {/* Add if search has no match */}
+
+                  {/* + Add row */}
                   {searchTerm && !csvData.some(row =>
                     row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
                   ) && (
                     <div
-                      className="border-t border-gray-200 p-4 bg-green-100 cursor-pointer rounded mt-2 text-green-900 font-semibold text-center"
+                      className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
                       onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
                     >
                       + Add "{searchTerm}"
@@ -510,13 +534,11 @@ export default function CSVReview() {
                     <tbody className="divide-y divide-gray-300">
                       {csvData.map((row, index) => (
                         <tr
-                          key={row.id || `desktop-${currentPage}-${index}-${row["Business Identification Number"] || ''}`}
+                          key={row.id || `desktop-${currentPage}-${index}`}
                           onClick={() => handleRowClick(row)}
                           className={`hover:bg-blue-50 cursor-pointer transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
                         >
-                          <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium border-r border-gray-200">
-                            {(currentPage - 1) * PAGE_SIZE + index + 1}
-                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium border-r border-gray-200">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Identification Number"]}</td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Name"]}</td>
                           <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Trade Name"] ?? '-'}</td>
@@ -572,7 +594,6 @@ export default function CSVReview() {
                           </td>
                         </tr>
                       ))}
-                      {/* + Add row when search has no match */}
                       {searchTerm && !csvData.some(row =>
                         row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
                       ) && (
@@ -591,10 +612,10 @@ export default function CSVReview() {
               )}
 
               {/* Table Footer */}
-              <div className={`${isMobile ? 'px-4 py-2' : 'px-6 py-3'} border-t-2 border-gray-300 bg-gray-50`}>
-                <div className={`${isMobile ? 'flex-col space-y-1' : 'flex items-center justify-between'} text-sm text-gray-600`}>
+              <div className="px-4 py-2 border-t-2 border-gray-300 bg-gray-50">
+                <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500">
                   <span>Showing {csvData.length} of {totalCount.toLocaleString()} records</span>
-                  <span>Click any row to review</span>
+                  <span>Tap any row to review</span>
                 </div>
               </div>
 
