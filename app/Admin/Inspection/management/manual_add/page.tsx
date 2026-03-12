@@ -32,9 +32,15 @@ export default function ManualAddBusiness() {
     const [inspectorInput, setInspectorInput] = useState<string>("")
     const [inspectorList, setInspectorList] = useState<string[]>([])
 
-    /* ---------- HANDLE INPUT ---------- */
-    const handleChange = (label: string, value: any) => {
-        let v = value
+    /* ---------- HANDLE INPUT WITH VALIDATION ---------- */
+    const handleChange = (label: string, value: any, type: string = "text") => {
+        let v: any = value
+        // if type is number, only allow numbers
+        if (type === "number" && v !== "") {
+            const numberValue = Number(v)
+            if (isNaN(numberValue)) return // ignore invalid input
+            v = numberValue
+        }
         if (v === "") v = null
         setForm((prev: any) => ({
             ...prev,
@@ -169,8 +175,8 @@ export default function ManualAddBusiness() {
                     <Input label="Requestor Middle Name" onChange={handleChange} />
                     <Input label="Requestor Last Name" onChange={handleChange} />
                     <Input label="Requestor Extension Name" onChange={handleChange} />
-                    <Input label="Requestor Email" type="email" onChange={handleChange} />
-                    <Input label="Requestor Mobile No." type="number" onChange={handleChange} />
+                    <Input label="Requestor Email" onChange={handleChange} />
+                    <Input label="Requestor Mobile No." onChange={handleChange} />
                     <Input label="Requestor Sex" onChange={handleChange} />
                     <Input label="Civil Status" onChange={handleChange} />
                     <Input label="Requestor Street" onChange={handleChange} />
@@ -228,9 +234,10 @@ export default function ManualAddBusiness() {
                     <Input label="reviewed_by" onChange={handleChange} />
                     <Input label="status" onChange={handleChange} />
 
+                    {/* assigned_inspector chip input - responsive */}
                     <div className="flex flex-col">
                         <label className="text-sm text-gray-600 mb-1">assigned_inspector</label>
-                        <div className="flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-11 items-center focus-within:ring-2 focus-within:ring-green-900">
+                        <div className="flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-[44px] items-center focus-within:ring-2 focus-within:ring-green-900">
                             {inspectorList.map((email, idx) => (
                                 <div key={idx} className="flex items-center bg-green-100 text-green-900 px-2 py-1 rounded-full text-xs sm:text-sm">
                                     {email}
@@ -243,7 +250,7 @@ export default function ManualAddBusiness() {
                                 onChange={(e) => setInspectorInput(e.target.value)}
                                 onKeyDown={handleInspectorKeyDown}
                                 placeholder="Type and press Enter"
-                                className="flex-1 outline-none border-none text-black px-1 py-1 min-w-25 sm:min-w-30"
+                                className="flex-1 outline-none border-none text-black px-1 py-1 min-w-[100px] sm:min-w-[120px]"
                             />
                         </div>
                     </div>
@@ -251,6 +258,7 @@ export default function ManualAddBusiness() {
                     <Input label="scheduled_date" type="date" onChange={handleChange} />
                 </Section>
 
+                {/* BUTTONS */}
                 <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6">
                     <button
                         onClick={() => router.back()}
@@ -268,6 +276,7 @@ export default function ManualAddBusiness() {
 
             </div>
 
+            {/* CONFIRM MODAL */}
             {showConfirm && (
                 <Modal>
                     <h2 className="text-lg font-semibold mb-4 text-green-900">
@@ -293,6 +302,7 @@ export default function ManualAddBusiness() {
                 </Modal>
             )}
 
+            {/* SUCCESS MODAL */}
             {showSuccess && (
                 <Modal>
                     <div className="text-center">
@@ -315,7 +325,6 @@ export default function ManualAddBusiness() {
 }
 
 /* ---------- UI COMPONENTS ---------- */
-
 function Section({ title, icon, children }: { title: string, icon: any, children: any }) {
     return (
         <div className="bg-white border rounded-xl p-4 sm:p-6 shadow-sm">
@@ -331,35 +340,12 @@ function Section({ title, icon, children }: { title: string, icon: any, children
 }
 
 function Input({ label, type = "text", onChange }: { label: string, type?: string, onChange: any }) {
-
-    const handleInputChange = (value: string) => {
-
-        if (value === "") {
-            onChange(label, "")
-            return
-        }
-
-        if (type === "number") {
-            if (!/^-?\d*\.?\d*$/.test(value)) return
-        }
-
-        if (type === "email") {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-            if (value !== "" && !emailRegex.test(value)) {
-                onChange(label, value)
-                return
-            }
-        }
-
-        onChange(label, value)
-    }
-
     return (
         <div className="flex flex-col">
             <label className="text-sm text-gray-600 mb-1">{label}</label>
             <input
                 type={type}
-                onChange={(e) => handleInputChange(e.target.value)}
+                onChange={(e) => onChange(label, e.target.value, type)}
                 className="border rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-green-900 outline-none w-full"
             />
         </div>
@@ -369,7 +355,7 @@ function Input({ label, type = "text", onChange }: { label: string, type?: strin
 function Modal({ children }: { children: any }) {
     return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 sm:p-0">
-            <div className="bg-white rounded-xl p-6 w-full sm:w-105 shadow-xl">
+            <div className="bg-white rounded-xl p-6 w-full sm:w-[420px] shadow-xl">
                 {children}
             </div>
         </div>
