@@ -390,7 +390,7 @@ export default function DashboardPage() {
                 <p className="text-slate-500 text-xs mt-0.5">Real-time inspection and notice monitoring</p>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
+                <div className="w-2.5 h-2.5 bg-green-900 rounded-full animate-pulse" />
                 <span className="text-sm text-slate-500">Live</span>
               </div>
             </div>
