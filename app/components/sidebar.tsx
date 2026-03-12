@@ -213,7 +213,7 @@ export default function Sidebar({
             ${level > 0 ? "ml-6" : ""}
             ${
               isActive || hasActiveChild
-                ? "bg-green-100 text-green-700 font-semibold shadow-sm"
+                ? "bg-green-100 text-green-900 font-semibold shadow-sm"
                 : "hover:bg-green-50 text-gray-700"
             }`}
         >
@@ -256,7 +256,7 @@ export default function Sidebar({
   if (isMobile) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-5 shadow-sm">
+        <div className="fixed top-0 left-0 right-0 h-16 bg-green-900 border-b border-gray-200 z-50 flex items-center justify-between px-5 shadow-sm">
           <div className="flex items-center space-x-3">
             <Link href="/Admin/Inspection/management/analytics">
               <img
@@ -266,16 +266,17 @@ export default function Sidebar({
               />
             </Link>
             <div className="flex flex-col leading-tight">
-              <span className="font-semibold text-gray-800 text-sm tracking-wide">
+              <span className="font-semibold text-white text-sm tracking-wide">
                 Inspection Management System
               </span>
-              <span className="text-xs text-gray-800">{currentPageLabel}</span>
+              <span className="text-xs text-white">{currentPageLabel}</span>
             </div>
           </div>
 
+          {/* Mobile Hamburger Button — green-500 bg, white icon */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-xl bg-green-500 hover:bg-green-600 transition"
+            className="p-2 rounded-xl bg-green-900 hover:bg-green-900 transition text-white"
           >
             {isMobileMenuOpen ? (
               <FiX className="w-5 h-5 text-white" />
@@ -346,7 +347,7 @@ export default function Sidebar({
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-6 shadow-sm">
+      <div className="fixed top-0 left-0 right-0 h-16 bg-green-900 border-b border-gray-200 z-50 flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center space-x-4">
           <Link href="/Admin/Inspection/management/analytics">
             <img
@@ -356,17 +357,18 @@ export default function Sidebar({
             />
           </Link>
           <div className="flex flex-col leading-tight">
-            <span className="font-semibold text-gray-800 text-sm tracking-wide">
+            <span className="font-semibold text-white text-sm tracking-wide">
               Inspection Management System
             </span>
-            <span className="text-xs text-gray-800">{currentPageLabel}</span>
+            <span className="text-xs text-white">{currentPageLabel}</span>
           </div>
         </div>
 
         <div className="relative">
+          {/* Desktop Hamburger Button — green-900 bg, white icon */}
           <button
             onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
-            className="p-2 rounded-xl bg-green-500 hover:bg-green-600 transition"
+            className="p-2 rounded-xl bg-green-900 hover:bg-green-900 transition text-white"
           >
             {isDesktopMenuOpen ? (
               <FiX className="w-5 h-5 text-white" />

@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   CheckCircle, AlertTriangle, ClipboardList, Building2,
-  Mail, Gavel, Ban, TrendingUp, Activity, ChevronLeft, ChevronRight
+  Mail, Gavel, Ban, TrendingUp, Activity, ChevronLeft, ChevronRight,
+  CalendarDays, ListChecks, ChevronDown
 } from "lucide-react";
 
 import Sidebar from "../../../../components/sidebar";
+import MobileBottomNav from "../../../../components/MobileBottomNav";
 import { supabase } from "@/lib/supabaseClient";
+
+type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
 export default function DashboardPage() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -15,6 +20,8 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
+  const [scheduleMonth, setScheduleMonth] = useState(new Date());
+  const [noticeRange, setNoticeRange] = useState<NoticeRange>('7d');
 
   const [compliantCount, setCompliantCount] = useState(0);
   const [nonCompliantCount, setNonCompliantCount] = useState(0);
@@ -26,6 +33,34 @@ export default function DashboardPage() {
   const [notice3Count, setNotice3Count] = useState(0);
   const [activeCasesCount, setActiveCasesCount] = useState(0);
   const [ceaseDesistCount, setCeaseDesistCount] = useState(0);
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+  const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileDropdownButtonRef = useRef<HTMLButtonElement>(null);
+
+  const rangeOptions: { value: NoticeRange; label: string }[] = [
+    { value: '7d',  label: 'Last 7 Days' },
+    { value: '1m',  label: 'Last 1 Month' },
+    { value: '3m',  label: 'Last 3 Months' },
+    { value: '6m',  label: 'Last 6 Months' },
+    { value: '1yr', label: 'Last 1 Year' },
+  ];
+
+  const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
+
+  const getDateRange = (range: NoticeRange) => {
+    const now = new Date();
+    const start = new Date();
+    switch (range) {
+      case '7d':  start.setDate(now.getDate() - 7); break;
+      case '1m':  start.setMonth(now.getMonth() - 1); break;
+      case '3m':  start.setMonth(now.getMonth() - 3); break;
+      case '6m':  start.setMonth(now.getMonth() - 6); break;
+      case '1yr': start.setFullYear(now.getFullYear() - 1); break;
+    }
+    return { start: start.toISOString(), end: now.toISOString() };
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -59,14 +94,40 @@ export default function DashboardPage() {
         console.error('fetchStatusCounts error:', err);
       }
     };
+    fetchStatusCounts();
+  }, []);
 
+  useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
+        // Compute date range inline so it's always fresh
+        const now = new Date();
+        const start = new Date();
+        switch (noticeRange) {
+          case '7d':  start.setDate(now.getDate() - 7); break;
+          case '1m':  start.setMonth(now.getMonth() - 1); break;
+          case '3m':  start.setMonth(now.getMonth() - 3); break;
+          case '6m':  start.setMonth(now.getMonth() - 6); break;
+          case '1yr': start.setFullYear(now.getFullYear() - 1); break;
+        }
+        // Format as plain timestamp (no timezone) to match Postgres "timestamp without time zone"
+        const fmt = (d: Date) => d.toISOString().replace('T', ' ').replace('Z', '').slice(0, 19);
+        const startFmt = fmt(start);
+        const endFmt = fmt(now);
+
+        console.log('[Notice Stats] range:', noticeRange, '| from:', startFmt, '| to:', endFmt);
+
         const { data, error } = await supabase
           .from('business_violations')
-          .select('notice_level, resolved');
+          .select('notice_level, resolved, created_at')
+          .gte('created_at', startFmt)
+          .lte('created_at', endFmt);
+
         if (error) { console.error('fetchViolationCounts error:', error); return; }
+
         const violations = data ?? [];
+        console.log('[Notice Stats] rows returned:', violations.length, violations);
+
         setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
         setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
         setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
@@ -76,26 +137,76 @@ export default function DashboardPage() {
         console.error('fetchViolationCounts error:', err);
       }
     };
-
-    fetchStatusCounts();
     fetchViolationCounts();
+  }, [noticeRange]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const portalEl = document.getElementById('range-dropdown-portal');
+      const clickedDesktop = desktopDropdownButtonRef.current?.contains(target);
+      const clickedMobile = mobileDropdownButtonRef.current?.contains(target);
+      const clickedPortal = portalEl?.contains(target);
+      if (!clickedDesktop && !clickedMobile && !clickedPortal) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleDropdownToggle = (ref: React.RefObject<HTMLButtonElement | null>) => {
+    if (!dropdownOpen && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setDropdownOpen(prev => !prev);
+  };
+
+  // Shared portal dropdown
+  const PortalDropdown = () => {
+    if (!dropdownOpen || !dropdownPos) return null;
+    return createPortal(
+      <div
+        id="range-dropdown-portal"
+        style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, zIndex: 9999 }}
+        className="w-44 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden"
+      >
+        {rangeOptions.map((option) => (
+          <button
+            key={option.value}
+            onClick={() => { setNoticeRange(option.value); setDropdownOpen(false); }}
+            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors
+              ${noticeRange === option.value ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>,
+      document.body
+    );
+  };
+
   const kpiData = [
-    { title: "Active Businesses", value: String(activeCount), icon: Building2, trend: "+15%", iconBg: "from-green-400 to-green-600", trendColor: "text-green-600" },
-    { title: "Compliant", value: String(compliantCount), icon: CheckCircle, trend: "+12%", iconBg: "from-green-400 to-green-600", trendColor: "text-green-600" },
-    { title: "For Inspection", value: String(forInspectionCount), icon: ClipboardList, trend: "+8%", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
-    { title: "Non-Compliant", value: String(nonCompliantCount), icon: AlertTriangle, trend: "-5%", iconBg: "from-red-400 to-red-600", trendColor: "text-red-500" },
+    { title: "Active Businesses", value: String(activeCount),        icon: Building2,     trend: "+15%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
+    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   trend: "+12%", iconBg: "from-green-400 to-green-600",   trendColor: "text-green-600"  },
+    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList, trend: "+8%",  iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle, trend: "-5%",  iconBg: "from-red-400 to-red-600",       trendColor: "text-red-500"    },
   ];
 
   const noticeStats = [
-    { title: "Notice 1 Sent", value: String(notice1Count), icon: Mail, color: "from-indigo-400 to-indigo-600" },
-    { title: "Notice 2 Sent", value: String(notice2Count), icon: Mail, color: "from-purple-400 to-purple-600" },
-    { title: "Notice 3 Sent", value: String(notice3Count), icon: Mail, color: "from-pink-400 to-pink-600" },
-    { title: "Active Cases", value: String(activeCasesCount), icon: Gavel, color: "from-orange-400 to-orange-600" },
-    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban, color: "from-red-500 to-red-700" },
+    { title: "Notice 1 Sent",  value: String(notice1Count),     icon: Mail,  color: "from-indigo-400 to-indigo-600" },
+    { title: "Notice 2 Sent",  value: String(notice2Count),     icon: Mail,  color: "from-purple-400 to-purple-600" },
+    { title: "Notice 3 Sent",  value: String(notice3Count),     icon: Mail,  color: "from-pink-400 to-pink-600"    },
+    { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, color: "from-orange-400 to-orange-600" },
+    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   color: "from-red-500 to-red-700"      },
   ];
 
+  // Desktop calendar helpers
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -115,22 +226,59 @@ export default function DashboardPage() {
     day === today.getDate() &&
     currentMonth.getMonth() === today.getMonth() &&
     currentMonth.getFullYear() === today.getFullYear();
-
   const isSelected = (day: number) => day === selectedDay;
 
-  const mockEvents: Record<number, { title: string; time: string; color: string }[]> = {
-    [today.getDate()]: [
-      { title: "Inspection: Rizal St. Businesses", time: "9:00 AM", color: "bg-blue-500" },
-      { title: "Notice 2 Follow-up", time: "11:00 AM", color: "bg-orange-500" },
-      { title: "Team Review Meeting", time: "2:00 PM", color: "bg-green-500" },
+  // Mock events keyed by "YYYY-MM-DD"
+  const mockEventsByDate: Record<string, { title: string; time: string; color: string; colorDot: string }[]> = {
+    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`]: [
+      { title: "Inspection: Rizal St. Businesses", time: "9:00 AM",  color: "bg-blue-500",   colorDot: "bg-blue-500"   },
+      { title: "Notice 2 Follow-up",               time: "11:00 AM", color: "bg-orange-500", colorDot: "bg-orange-500" },
+      { title: "Team Review Meeting",              time: "2:00 PM",  color: "bg-green-500",  colorDot: "bg-green-500"  },
+    ],
+    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(Math.min(today.getDate() + 2, 28)).padStart(2, '0')}`]: [
+      { title: "Barangay Clearance Check", time: "10:00 AM", color: "bg-purple-500", colorDot: "bg-purple-500" },
+    ],
+    [`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(Math.min(today.getDate() + 5, 28)).padStart(2, '0')}`]: [
+      { title: "Notice 3 Deadline Review", time: "3:00 PM", color: "bg-red-500", colorDot: "bg-red-500" },
+    ],
+    [`${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, '0')}-05`]: [
+      { title: "Monthly Compliance Review", time: "9:00 AM", color: "bg-blue-500", colorDot: "bg-blue-500" },
+    ],
+    [`${today.getFullYear()}-${String(today.getMonth() + 2).padStart(2, '0')}-12`]: [
+      { title: "Business Permit Follow-up", time: "1:00 PM", color: "bg-orange-500", colorDot: "bg-orange-500" },
     ],
   };
 
-  const selectedDayEvents = selectedDay ? (mockEvents[selectedDay] ?? []) : [];
+  // Schedule month helpers
+  const getScheduleDaysForMonth = (month: Date) => {
+    const year = month.getFullYear();
+    const m = month.getMonth();
+    const daysCount = new Date(year, m + 1, 0).getDate();
+    return Array.from({ length: daysCount }, (_, i) => {
+      const day = i + 1;
+      const key = `${year}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      return { day, date: new Date(year, m, day), events: mockEventsByDate[key] ?? [] };
+    });
+  };
 
+  const scheduleMonthLabel = scheduleMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const prevScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() - 1, 1));
+  const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
+  const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
+
+  // Desktop mock events (keyed by day number)
+  const desktopMockEvents: Record<number, { title: string; time: string; color: string }[]> = {
+    [today.getDate()]: [
+      { title: "Inspection: Rizal St. Businesses", time: "9:00 AM",  color: "bg-blue-500"   },
+      { title: "Notice 2 Follow-up",               time: "11:00 AM", color: "bg-orange-500" },
+      { title: "Team Review Meeting",              time: "2:00 PM",  color: "bg-green-500"  },
+    ],
+  };
+
+  const selectedDayEvents = selectedDay ? (desktopMockEvents[selectedDay] ?? []) : [];
   const selectedDateLabel = selectedDay
     ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), selectedDay)
-      .toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+        .toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
     : '';
 
   const hours = Array.from({ length: 12 }, (_, i) => {
@@ -138,37 +286,56 @@ export default function DashboardPage() {
     return h <= 12 ? `${h} AM` : `${h - 12} PM`;
   });
 
-  // ── MOBILE CalendarWidget (original, untouched) ──────────────────────────
-  const CalendarWidget = () => (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border-2 border-slate-200 h-full overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-slate-800">Calendar</h2>
-        <div className="flex items-center space-x-2">
-          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-            <ChevronLeft size={18} className="text-slate-600" />
+  // Mobile Schedule Section
+  const MobileScheduleSection = () => (
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
+      <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
+        <span className="text-base font-bold text-slate-800">Schedule</span>
+        <div className="flex items-center space-x-1">
+          <button onClick={prevScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+            <ChevronLeft size={15} className="text-slate-600" />
           </button>
-          <span className="text-sm font-semibold text-slate-700 min-w-[130px] text-center">{monthLabel}</span>
-          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-            <ChevronRight size={18} className="text-slate-600" />
+          <span className="text-xs font-semibold text-slate-600 min-w-[100px] text-center">{scheduleMonthLabel}</span>
+          <button onClick={nextScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+            <ChevronRight size={15} className="text-slate-600" />
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 mb-2">
-        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-          <div key={d} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-y-1">
-        {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const day = i + 1;
+      <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+        {scheduleDays.map(({ day, date, events }) => {
+          const isDayToday =
+            day === today.getDate() &&
+            scheduleMonth.getMonth() === today.getMonth() &&
+            scheduleMonth.getFullYear() === today.getFullYear();
+          const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
+          const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
           return (
-            <div
-              key={day}
-              className={`flex items-center justify-center h-9 w-9 mx-auto rounded-full text-sm font-medium transition-colors
-                ${isToday(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}`}
-            >
-              {day}
+            <div key={day} className={`flex px-4 py-2.5 gap-3 ${isPast && !isDayToday ? 'opacity-50' : ''}`}>
+              <div className="w-12 shrink-0 flex flex-col items-center justify-start pt-0.5">
+                <span className={`text-xs font-semibold uppercase tracking-wide ${isDayToday ? 'text-blue-600' : 'text-slate-400'}`}>
+                  {dayLabel}
+                </span>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center mt-0.5 ${isDayToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
+                  <span className={`text-xs font-bold ${isDayToday ? 'text-white' : 'text-slate-700'}`}>{day}</span>
+                </div>
+              </div>
+              <div className="flex-1 space-y-1.5 min-w-0">
+                {events.length > 0 ? (
+                  events.map((event, i) => (
+                    <div key={i} className={`${event.color} rounded-xl px-3 py-2 flex items-center justify-between shadow-sm`}>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-white truncate">{event.title}</p>
+                        <p className="text-xs text-white/80 mt-0.5">{event.time}</p>
+                      </div>
+                      <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex items-center h-8">
+                    <div className="flex-1 border-t border-dashed border-slate-200" />
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -186,99 +353,138 @@ export default function DashboardPage() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      {/* Full viewport height, no scroll */}
-      <div className={`${isMobile ? "h-screen overflow-hidden" : "h-screen overflow-hidden"} bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50`}>
-        <div className={`${isMobile ? "px-3 py-3 h-full flex flex-col" : "px-8 py-6 h-full flex flex-col"}`}>
+      {/* Shared portal dropdown — renders above everything */}
+      <PortalDropdown />
 
-          {/* HEADER */}
-          <div className={`${isMobile ? "mb-2 shrink-0" : "mb-4 shrink-0"}`}>
+      {/* ── MOBILE ── */}
+      {isMobile && (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+          <div className="px-3 py-3 pb-28 flex flex-col gap-2">
+
+            {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className={`${isMobile ? "text-xl" : "text-3xl"} font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent`}>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                   Overview
                 </h1>
-                <p className={`text-slate-500 ${isMobile ? "text-xs" : "text-sm"} mt-0.5`}>
-                  Real-time inspection and notice monitoring
-                </p>
+                <p className="text-slate-500 text-xs mt-0.5">Real-time inspection and notice monitoring</p>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="w-2.5 h-2.5 bg-green-900 rounded-full animate-pulse" />
                 <span className="text-sm text-slate-500">Live</span>
               </div>
             </div>
-          </div>
 
-          {/* ── MOBILE LAYOUT (original, untouched) ──────────────────────── */}
-          {isMobile && (
-            <>
-              <div className="grid grid-cols-4 gap-2 mb-2 shrink-0">
-                {kpiData.map((kpi, index) => (
-                  <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-3">
-                    <div className="relative z-10">
-                      <div className="flex flex-col items-center gap-1">
-                        <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
-                          <kpi.icon size={16} className="text-white" />
-                        </div>
-                      </div>
-                      <div className="text-center mt-1">
-                        <p className="text-slate-500 text-xs font-medium mb-1 leading-tight">{kpi.title}</p>
-                        <h3 className="text-lg font-bold text-slate-800">{kpi.value}</h3>
+            {/* KPI — 4 cols */}
+            <div className="grid grid-cols-4 gap-2">
+              {kpiData.map((kpi, index) => (
+                <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-3">
+                  <div className="relative z-10">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
+                        <kpi.icon size={16} className="text-white" />
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mb-2 shrink-0">
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
-                    <Activity className="w-5 h-5 text-slate-400" />
-                  </div>
-                  <div className="grid grid-cols-5 gap-1">
-                    {noticeStats.map((stat, index) => (
-                      <div key={index} className="flex flex-col items-center p-2 rounded-xl bg-gradient-to-b from-slate-50 to-white border border-slate-100">
-                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md mb-1`}>
-                          <stat.icon size={13} className="text-white" />
-                        </div>
-                        <p className="text-sm font-bold text-slate-800 leading-none">{stat.value}</p>
-                        <p className="text-center text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
-                      </div>
-                    ))}
+                    <div className="text-center mt-1">
+                      <p className="text-slate-500 text-xs font-medium mb-1 leading-tight">{kpi.title}</p>
+                      <h3 className="text-lg font-bold text-slate-800">{kpi.value}</h3>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
+            </div>
 
-              <div className="flex-1 min-h-0">
-                <CalendarWidget />
+            {/* Mobile Notice Statistics + range filter */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
+                <button
+                  ref={mobileDropdownButtonRef}
+                  onClick={() => handleDropdownToggle(mobileDropdownButtonRef)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  {selectedLabel}
+                  <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
               </div>
-            </>
-          )}
-
-          {/* ── DESKTOP LAYOUT ───────────────────────────────────────────── */}
-          {!isMobile && (
-            <>
-              {/* KPI cards — taller, fills space nicely */}
-              <div className="grid grid-cols-4 gap-5 mb-5 shrink-0">
-                {kpiData.map((kpi, index) => (
-                  <div key={index} className="relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
-                        <kpi.icon size={22} className="text-white" />
-                      </div>
-                      <div className={`flex items-center space-x-1 ${kpi.trendColor} text-sm font-semibold`}>
-                        <TrendingUp size={13} />
-                        <span>{kpi.trend}</span>
-                      </div>
+              <div className="grid grid-cols-5 gap-1">
+                {noticeStats.map((stat, index) => (
+                  <div key={index} className="flex flex-col items-center p-2 rounded-xl bg-gradient-to-b from-slate-50 to-white border border-slate-100">
+                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md mb-1`}>
+                      <stat.icon size={13} className="text-white" />
                     </div>
-                    <p className="text-slate-500 text-sm font-medium mb-1">{kpi.title}</p>
-                    <h3 className="text-3xl font-bold text-slate-800">{kpi.value}</h3>
+                    <p className="text-sm font-bold text-slate-800 leading-none">{stat.value}</p>
+                    <p className="text-center text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* Notice Statistics row */}
-              <div className="grid grid-cols-5 gap-5 mb-5 shrink-0">
+            {/* Schedule section */}
+            <MobileScheduleSection />
+
+          </div>
+          <MobileBottomNav />
+        </div>
+      )}
+
+      {/* ── DESKTOP ── */}
+      {!isMobile && (
+        <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+          <div className="px-8 py-6 h-full flex flex-col">
+
+            {/* Header */}
+            <div className="mb-4 shrink-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    Overview
+                  </h1>
+                  <p className="text-slate-500 text-sm mt-0.5">Real-time inspection and notice monitoring</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-sm text-slate-500">Live</span>
+                </div>
+              </div>
+            </div>
+
+            {/* KPI cards */}
+            <div className="grid grid-cols-4 gap-5 mb-5 shrink-0">
+              {kpiData.map((kpi, index) => (
+                <div key={index} className="relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
+                      <kpi.icon size={22} className="text-white" />
+                    </div>
+                    <div className={`flex items-center space-x-1 ${kpi.trendColor} text-sm font-semibold`}>
+                      <TrendingUp size={13} />
+                      <span>{kpi.trend}</span>
+                    </div>
+                  </div>
+                  <p className="text-slate-500 text-sm font-medium mb-1">{kpi.title}</p>
+                  <h3 className="text-3xl font-bold text-slate-800">{kpi.value}</h3>
+                </div>
+              ))}
+            </div>
+
+            {/* Notice Statistics + range filter */}
+            <div className="mb-5 shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <Activity className="w-4 h-4 text-slate-400" />
+                  <span className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Notice Statistics</span>
+                </div>
+                <button
+                  ref={desktopDropdownButtonRef}
+                  onClick={() => handleDropdownToggle(desktopDropdownButtonRef)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-md transition-all duration-200"
+                >
+                  {selectedLabel}
+                  <ChevronDown size={15} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+              <div className="grid grid-cols-5 gap-5">
                 {noticeStats.map((stat, index) => (
                   <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 flex items-center space-x-4">
                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shrink-0`}>
@@ -291,130 +497,122 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* Calendar — flex-1 so it fills ALL remaining space */}
-              <div className="flex gap-5 flex-1 min-h-0">
+            {/* Calendar — fills remaining space */}
+            <div className="flex gap-5 flex-1 min-h-0">
 
-                {/* LEFT — Mini Calendar — full height */}
-                <div className="w-72 shrink-0 flex flex-col">
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-white/20 flex flex-col flex-1">
-                    <div className="flex items-center justify-between mb-4">
-                      <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-                        <ChevronLeft size={16} className="text-slate-600" />
-                      </button>
-                      <span className="text-sm font-bold text-slate-700">{monthLabel}</span>
-                      <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-                        <ChevronRight size={16} className="text-slate-600" />
-                      </button>
+              {/* LEFT — Mini Calendar */}
+              <div className="w-72 shrink-0 flex flex-col">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-white/20 flex flex-col flex-1">
+                  <div className="flex items-center justify-between mb-4">
+                    <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                      <ChevronLeft size={16} className="text-slate-600" />
+                    </button>
+                    <span className="text-sm font-bold text-slate-700">{monthLabel}</span>
+                    <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                      <ChevronRight size={16} className="text-slate-600" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-7 mb-2">
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                      <div key={i} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-y-1">
+                    {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      const hasEvent = !!desktopMockEvents[day];
+                      return (
+                        <div
+                          key={day}
+                          onClick={() => setSelectedDay(day)}
+                          className={`relative flex items-center justify-center h-9 w-9 mx-auto rounded-full text-sm font-medium cursor-pointer transition-all
+                            ${isToday(day) && !isSelected(day) ? 'bg-blue-100 text-blue-700 font-bold' : ''}
+                            ${isSelected(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
+                          `}
+                        >
+                          {day}
+                          {hasEvent && (
+                            <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500'}`} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-auto pt-4 border-t border-slate-100 space-y-2">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming</p>
+                    {Object.entries(desktopMockEvents).slice(0, 3).map(([day, events]) => (
+                      <div key={day} className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                        <p className="text-xs text-slate-600 truncate">{events[0].title}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* RIGHT — Day View */}
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden flex flex-col flex-1">
+                  <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between shrink-0">
+                    <div>
+                      <h2 className="text-base font-bold text-slate-800">
+                        {selectedDay ? selectedDateLabel : 'Select a day'}
+                      </h2>
+                      <p className="text-sm text-slate-500 mt-0.5">
+                        {selectedDayEvents.length > 0
+                          ? `${selectedDayEvents.length} event${selectedDayEvents.length > 1 ? 's' : ''} scheduled`
+                          : 'No events scheduled'}
+                      </p>
                     </div>
-                    <div className="grid grid-cols-7 mb-2">
-                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                        <div key={i} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-7 gap-y-1">
-                      {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
-                      {Array.from({ length: daysInMonth }).map((_, i) => {
-                        const day = i + 1;
-                        const hasEvent = !!mockEvents[day];
-                        return (
-                          <div
-                            key={day}
-                            onClick={() => setSelectedDay(day)}
-                            className={`relative flex items-center justify-center h-9 w-9 mx-auto rounded-full text-sm font-medium cursor-pointer transition-all
-                              ${isToday(day) && !isSelected(day) ? 'bg-blue-100 text-blue-700 font-bold' : ''}
-                              ${isSelected(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
-                            `}
-                          >
-                            {day}
-                            {hasEvent && (
-                              <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500'}`} />
+                    <button
+                      onClick={() => { setCurrentMonth(new Date()); setSelectedDay(today.getDate()); }}
+                      className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Today
+                    </button>
+                  </div>
+                  <div className="overflow-y-auto flex-1">
+                    {hours.map((hour, i) => {
+                      const hourNum = i + 8;
+                      const eventsAtHour = selectedDayEvents.filter(e => {
+                        const h = parseInt(e.time.split(':')[0]);
+                        const isPM = e.time.includes('PM') && h !== 12;
+                        const actual = isPM ? h + 12 : h;
+                        return actual === hourNum;
+                      });
+                      return (
+                        <div key={hour} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                          <div className="w-20 shrink-0 py-3 px-3 text-right">
+                            <span className="text-sm text-slate-400 font-medium">{hour}</span>
+                          </div>
+                          <div className="flex-1 py-1.5 px-3 min-h-[52px]">
+                            {eventsAtHour.length > 0 ? (
+                              <div className="space-y-1">
+                                {eventsAtHour.map((event, ei) => (
+                                  <div key={ei} className={`${event.color} text-white rounded-lg px-3 py-2 text-sm font-medium shadow-sm flex items-center justify-between`}>
+                                    <span>{event.title}</span>
+                                    <span className="opacity-80 ml-2 shrink-0 text-xs">{event.time}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="h-full border-l-2 border-transparent hover:border-blue-200 transition-colors" />
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Upcoming — pushes to bottom */}
-                    <div className="mt-auto pt-4 border-t border-slate-100 space-y-2">
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming</p>
-                      {Object.entries(mockEvents).slice(0, 3).map(([day, events]) => (
-                        <div key={day} className="flex items-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                          <p className="text-xs text-slate-600 truncate">{events[0].title}</p>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
-
-                {/* RIGHT — Google Calendar Day View — full height */}
-                <div className="flex-1 flex flex-col min-h-0">
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden flex flex-col flex-1">
-
-                    {/* Day header */}
-                    <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between shrink-0">
-                      <div>
-                        <h2 className="text-base font-bold text-slate-800">
-                          {selectedDay ? selectedDateLabel : 'Select a day'}
-                        </h2>
-                        <p className="text-sm text-slate-500 mt-0.5">
-                          {selectedDayEvents.length > 0
-                            ? `${selectedDayEvents.length} event${selectedDayEvents.length > 1 ? 's' : ''} scheduled`
-                            : 'No events scheduled'}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => { setCurrentMonth(new Date()); setSelectedDay(today.getDate()); }}
-                        className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Today
-                      </button>
-                    </div>
-
-                    {/* Time slots — fills remaining height */}
-                    <div className="overflow-y-auto flex-1">
-                      {hours.map((hour, i) => {
-                        const hourNum = i + 8;
-                        const eventsAtHour = selectedDayEvents.filter(e => {
-                          const h = parseInt(e.time.split(':')[0]);
-                          const isPM = e.time.includes('PM') && h !== 12;
-                          const actual = isPM ? h + 12 : h;
-                          return actual === hourNum;
-                        });
-                        return (
-                          <div key={hour} className="flex border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                            <div className="w-20 shrink-0 py-3 px-3 text-right">
-                              <span className="text-sm text-slate-400 font-medium">{hour}</span>
-                            </div>
-                            <div className="flex-1 py-1.5 px-3 min-h-[52px]">
-                              {eventsAtHour.length > 0 ? (
-                                <div className="space-y-1">
-                                  {eventsAtHour.map((event, ei) => (
-                                    <div key={ei} className={`${event.color} text-white rounded-lg px-3 py-2 text-sm font-medium shadow-sm flex items-center justify-between`}>
-                                      <span>{event.title}</span>
-                                      <span className="opacity-80 ml-2 shrink-0 text-xs">{event.time}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="h-full border-l-2 border-transparent hover:border-blue-200 transition-colors" />
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                  </div>
-                </div>
-
               </div>
-            </>
-          )}
 
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
