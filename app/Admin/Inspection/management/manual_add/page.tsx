@@ -169,8 +169,8 @@ export default function ManualAddBusiness() {
                     <Input label="Requestor Middle Name" onChange={handleChange} />
                     <Input label="Requestor Last Name" onChange={handleChange} />
                     <Input label="Requestor Extension Name" onChange={handleChange} />
-                    <Input label="Requestor Email" onChange={handleChange} />
-                    <Input label="Requestor Mobile No." onChange={handleChange} />
+                    <Input label="Requestor Email" type="email" onChange={handleChange} />
+                    <Input label="Requestor Mobile No." type="number" onChange={handleChange} />
                     <Input label="Requestor Sex" onChange={handleChange} />
                     <Input label="Civil Status" onChange={handleChange} />
                     <Input label="Requestor Street" onChange={handleChange} />
@@ -228,7 +228,6 @@ export default function ManualAddBusiness() {
                     <Input label="reviewed_by" onChange={handleChange} />
                     <Input label="status" onChange={handleChange} />
 
-                    {/* assigned_inspector chip input - responsive */}
                     <div className="flex flex-col">
                         <label className="text-sm text-gray-600 mb-1">assigned_inspector</label>
                         <div className="flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-[44px] items-center focus-within:ring-2 focus-within:ring-green-900">
@@ -252,7 +251,6 @@ export default function ManualAddBusiness() {
                     <Input label="scheduled_date" type="date" onChange={handleChange} />
                 </Section>
 
-                {/* BUTTONS */}
                 <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6">
                     <button
                         onClick={() => router.back()}
@@ -270,7 +268,6 @@ export default function ManualAddBusiness() {
 
             </div>
 
-            {/* CONFIRM MODAL */}
             {showConfirm && (
                 <Modal>
                     <h2 className="text-lg font-semibold mb-4 text-green-900">
@@ -296,7 +293,6 @@ export default function ManualAddBusiness() {
                 </Modal>
             )}
 
-            {/* SUCCESS MODAL */}
             {showSuccess && (
                 <Modal>
                     <div className="text-center">
@@ -319,6 +315,7 @@ export default function ManualAddBusiness() {
 }
 
 /* ---------- UI COMPONENTS ---------- */
+
 function Section({ title, icon, children }: { title: string, icon: any, children: any }) {
     return (
         <div className="bg-white border rounded-xl p-4 sm:p-6 shadow-sm">
@@ -334,12 +331,35 @@ function Section({ title, icon, children }: { title: string, icon: any, children
 }
 
 function Input({ label, type = "text", onChange }: { label: string, type?: string, onChange: any }) {
+
+    const handleInputChange = (value: string) => {
+
+        if (value === "") {
+            onChange(label, "")
+            return
+        }
+
+        if (type === "number") {
+            if (!/^-?\d*\.?\d*$/.test(value)) return
+        }
+
+        if (type === "email") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            if (value !== "" && !emailRegex.test(value)) {
+                onChange(label, value)
+                return
+            }
+        }
+
+        onChange(label, value)
+    }
+
     return (
         <div className="flex flex-col">
             <label className="text-sm text-gray-600 mb-1">{label}</label>
             <input
                 type={type}
-                onChange={(e) => onChange(label, e.target.value)}
+                onChange={(e) => handleInputChange(e.target.value)}
                 className="border rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-green-900 outline-none w-full"
             />
         </div>
