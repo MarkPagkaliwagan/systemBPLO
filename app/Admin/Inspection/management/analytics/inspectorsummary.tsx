@@ -107,7 +107,7 @@ export default function InspectorSummary() {
       <div className="bg-white rounded-lg shadow border w-full max-w-[220px]">
 
         {/* HEADER */}
-        <div className="flex items-center gap-1 bg-green-900 text-white px-2 py-1 rounded-t-lg text-xs">
+        <div className="flex items-center gap-1 bg-green-500 text-white px-2 py-1 rounded-t-lg text-xs">
           <FiClipboard />
           Inspector Workload
         </div>
@@ -121,7 +121,7 @@ export default function InspectorSummary() {
               className="flex justify-between items-center px-2 py-1 cursor-pointer hover:bg-green-50"
             >
               <span className="font-medium text-black">{inspector.name}</span>
-              <span className="bg-green-900 text-white text-xs px-2 py-1 rounded">
+              <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">
                 {inspector.total}
               </span>
             </div>
@@ -137,7 +137,7 @@ export default function InspectorSummary() {
           <div className="bg-white w-full max-w-3xl rounded-lg shadow flex flex-col max-h-[90vh]">
 
             {/* MODAL HEADER */}
-            <div className="flex justify-between items-center bg-green-900 text-white px-4 py-3 rounded-t-lg">
+            <div className="flex justify-between items-center bg-green-500 text-white px-4 py-3 rounded-t-lg">
               <h3 className="font-semibold text-sm">
                 Inspection Assignments — {selectedInspector}
               </h3>
