@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FiHome, FiBookOpen, FiAlertCircle } from "react-icons/fi";
-import AddEventModal, { CalendarEvent } from "../Admin/Inspection/management/Modal/AddBusinessRecordModal";
+import AddEventModal, { BusinessRecord } from "../Admin/Inspection/management/Modal/AddBusinessRecordModal;";
 
 interface NavItem {
   id: string;
@@ -13,7 +13,7 @@ interface NavItem {
 }
 
 interface MobileBottomNavProps {
-  onAddEvent?: (event: CalendarEvent) => void;
+  onAddEvent?: (event: BusinessRecord) => void;
 }
 
 const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
@@ -110,7 +110,7 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
       <AddEventModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSave={(event: CalendarEvent) => {
+        onSaved={(event: BusinessRecord) => {
           onAddEvent?.(event);
           setModalOpen(false);
         }}
