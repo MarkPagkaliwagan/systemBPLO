@@ -103,13 +103,13 @@ export default function InspectorSummary() {
 
   return (
     <>
-      {/* SMALL DASHBOARD CARD */}
-      <div className="bg-white rounded-lg shadow border w-full max-w-[220px]">
+      {/* FULL WIDTH DASHBOARD CARD */}
+      <div className="bg-white rounded-2xl shadow-lg border w-full max-w-[800px] mx-auto">
 
         {/* HEADER */}
-        <div className="flex items-center gap-1 bg-green-500 text-white px-2 py-1 rounded-t-lg text-xs">
-          <FiClipboard />
-          Inspector Workload
+        <div className="flex items-center gap-4 bg-green-700 text-white px-8 py-5 rounded-t-2xl text-2xl">
+          <FiClipboard size={32} />
+          <span className="font-bold">Inspector Workload</span>
         </div>
 
         {/* INSPECTOR LIST */}
@@ -118,10 +118,10 @@ export default function InspectorSummary() {
             <div
               key={inspector.name}
               onClick={() => openInspector(inspector.name)}
-              className="flex justify-between items-center px-2 py-1 cursor-pointer hover:bg-green-50"
+              className="flex justify-between items-center px-8 py-5 cursor-pointer hover:bg-green-50"
             >
-              <span className="font-medium text-black">{inspector.name}</span>
-              <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">
+              <span className="font-semibold text-black text-xl">{inspector.name}</span>
+              <span className="bg-green-700 text-white text-lg px-5 py-2 rounded-lg">
                 {inspector.total}
               </span>
             </div>
@@ -130,32 +130,32 @@ export default function InspectorSummary() {
 
       </div>
 
-      {/* MODAL */}
+      {/* FULL WIDTH MODAL */}
       {selectedInspector && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-8 z-50">
 
-          <div className="bg-white w-full max-w-3xl rounded-lg shadow flex flex-col max-h-[90vh]">
+          <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
 
             {/* MODAL HEADER */}
-            <div className="flex justify-between items-center bg-green-500 text-white px-4 py-3 rounded-t-lg">
-              <h3 className="font-semibold text-sm">
+            <div className="flex justify-between items-center bg-green-700 text-white px-10 py-6 rounded-t-2xl">
+              <h3 className="font-bold text-3xl">
                 Inspection Assignments — {selectedInspector}
               </h3>
-              <button onClick={closeModal}><FiX size={20} /></button>
+              <button onClick={closeModal}><FiX size={32} /></button>
             </div>
 
             {/* FILTER BAR */}
-            <div className="p-3 flex flex-col md:flex-row gap-2 border-b">
+            <div className="p-6 flex flex-col md:flex-row gap-6 border-b">
 
               {/* SEARCH */}
-              <div className="flex items-center border rounded px-2 w-full md:w-1/2">
-                <FiSearch />
+              <div className="flex items-center border rounded px-4 w-full md:w-1/2">
+                <FiSearch size={26} />
                 <input
                   type="text"
                   placeholder="Search..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-2 py-2 text-sm outline-none text-black"
+                  className="w-full px-5 py-5 text-xl outline-none text-black"
                 />
               </div>
 
@@ -164,42 +164,42 @@ export default function InspectorSummary() {
                 type="month"
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(e.target.value)}
-                className="border rounded px-2 py-2 text-sm text-black"
+                className="border rounded px-5 py-5 text-xl text-black"
               />
 
               {/* SORT */}
               <button
                 onClick={() => setSortAsc(!sortAsc)}
-                className="flex items-center gap-1 border px-3 py-2 rounded text-sm text-black"
+                className="flex items-center gap-4 border px-6 py-5 rounded text-xl text-black"
               >
-                {sortAsc ? <FiArrowUp /> : <FiArrowDown />} Date
+                {sortAsc ? <FiArrowUp size={26} /> : <FiArrowDown size={26} />} Date
               </button>
 
             </div>
 
             {/* TABLE */}
             <div className="overflow-auto">
-              <table className="w-full text-sm text-black">
-                <thead className="bg-green-50">
+              <table className="w-full text-xl text-black">
+                <thead className="bg-green-100">
                   <tr>
-                    <th className="p-3 text-left">BIN</th>
-                    <th className="p-3 text-left">Business Name</th>
-                    <th className="p-3 text-left">Scheduled Date</th>
+                    <th className="p-6 text-left">BIN</th>
+                    <th className="p-6 text-left">Business Name</th>
+                    <th className="p-6 text-left">Scheduled Date</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {filteredRecords.map((row, i) => (
                     <tr key={i} className="border-b hover:bg-green-50">
-                      <td className="p-3">{row["Business Identification Number"]}</td>
-                      <td className="p-3">{row["Business Name"]}</td>
-                      <td className="p-3">{row.scheduled_date}</td>
+                      <td className="p-6">{row["Business Identification Number"]}</td>
+                      <td className="p-6">{row["Business Name"]}</td>
+                      <td className="p-6">{row.scheduled_date}</td>
                     </tr>
                   ))}
 
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="text-center p-6 text-black">
+                      <td colSpan={3} className="text-center p-12 text-black">
                         No records found
                       </td>
                     </tr>

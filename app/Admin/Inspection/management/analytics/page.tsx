@@ -11,7 +11,7 @@ import {
 import Sidebar from "../../../../components/sidebar";
 import MobileBottomNav from "../../../../components/MobileBottomNav";
 import { supabase } from "@/lib/supabaseClient";
-
+import InspectorSummary from "./inspectorsummary";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
 export default function DashboardPage() {
@@ -519,13 +519,14 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Calendar */}
+            {/* Calendar + Inspector Summary */}
             <div className="flex gap-5 flex-1 min-h-0">
 
               {/* LEFT — Calendar 50% */}
               <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-white/20 flex flex-col flex-1">
 
+                  {/* Month navigation */}
                   <div className="flex items-center justify-between mb-4">
                     <button
                       onClick={prevMonth}
@@ -534,9 +535,7 @@ export default function DashboardPage() {
                       <ChevronLeft size={16} className="text-slate-600" />
                     </button>
 
-                    <span className="text-sm font-bold text-slate-700">
-                      {monthLabel}
-                    </span>
+                    <span className="text-sm font-bold text-slate-700">{monthLabel}</span>
 
                     <button
                       onClick={nextMonth}
@@ -549,33 +548,27 @@ export default function DashboardPage() {
                   {/* Week labels */}
                   <div className="grid grid-cols-7 mb-2">
                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                      <div key={i} className="text-center text-xs font-semibold text-slate-400 py-1">
-                        {d}
-                      </div>
+                      <div key={i} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
                     ))}
                   </div>
 
                   {/* Days */}
                   <div className="grid grid-cols-7 gap-y-2">
-                    {Array.from({ length: firstDay }).map((_, i) => (
-                      <div key={`e-${i}`} />
-                    ))}
+                    {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
 
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                       const day = i + 1;
                       const hasEvent = !!desktopMockEvents[day];
-
                       return (
                         <div
                           key={day}
                           onClick={() => setSelectedDay(day)}
                           className={`relative flex items-center justify-center h-12 w-12 mx-auto rounded-xl text-sm font-medium cursor-pointer transition-all
                 ${isToday(day) && !isSelected(day) ? 'bg-blue-100 text-blue-700 font-bold' : ''}
-                ${isSelected(day) ? 'bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
+                ${isSelected(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
               `}
                         >
                           {day}
-
                           {hasEvent && (
                             <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500'}`} />
                           )}
@@ -584,7 +577,23 @@ export default function DashboardPage() {
                     })}
                   </div>
 
+                  {/* ── UPCOMING EVENTS — Huwag alisin! ── */}
+                  <div className="mt-auto pt-4 border-t border-slate-100 space-y-2">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming</p>
+                    {Object.entries(desktopMockEvents).slice(0, 3).map(([day, events]) => (
+                      <div key={day} className="flex items-center space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                        <p className="text-xs text-slate-600 truncate">{events[0].title}</p>
+                      </div>
+                    ))}
+                  </div>
+
                 </div>
+              </div>
+
+              {/* RIGHT — Inspector Summary 50% */}
+              <div className="w-1/2 flex flex-col">
+                <InspectorSummary />
               </div>
 
             </div>
