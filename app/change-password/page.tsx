@@ -167,9 +167,6 @@ export default function ChangePasswordPage() {
             <form onSubmit={handleSubmit} className={`space-y-${isMobile ? '4' : '6'}`}>
               {/* Current Password */}
               <div>
-                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                  Current Password
-                </label>
                 <div className="relative">
                   <input
                     type={showPasswords.current ? "text" : "password"}
@@ -193,9 +190,6 @@ export default function ChangePasswordPage() {
 
               {/* New Password */}
               <div>
-                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                  New Password
-                </label>
                 <div className="relative">
                   <input
                     type={showPasswords.new ? "text" : "password"}
@@ -222,9 +216,6 @@ export default function ChangePasswordPage() {
 
               {/* Confirm New Password */}
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm New Password
-                </label>
                 <div className="relative">
                   <input
                     type={showPasswords.confirm ? "text" : "password"}

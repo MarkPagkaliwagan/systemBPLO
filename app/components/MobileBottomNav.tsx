@@ -69,10 +69,10 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
         className="flex flex-col items-center flex-1 transition-all active:scale-90"
         onClick={() => router.push(item.href)}
       >
-        <div className={isActive ? "text-green-500" : "text-gray-400"}>
+        <div className={`transition-colors ${isActive ? "text-green-900" : "text-gray-400 group-hover:text-white"}`}>
           {item.icon}
         </div>
-        <span className={`text-[10px] font-medium mt-1 ${isActive ? 'text-green-500' : 'text-gray-400'}`}>
+        <span className={`text-[10px] font-medium mt-1 transition-colors ${isActive ? 'text-green-900' : 'text-gray-400 group-hover:text-white'}`}>
           {item.label}
         </span>
       </button>

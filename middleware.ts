@@ -4,7 +4,6 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Get session token from cookies or headers
   const sessionToken = request.cookies.get('session-token')?.value || 
                       request.headers.get('authorization')?.replace('Bearer ', '');
 
@@ -27,15 +26,12 @@ export function middleware(request: NextRequest) {
 
   // Check if user is authenticated
   if (!sessionToken) {
-    // Redirect to login for protected routes
     return NextResponse.redirect(new URL('/', request.url));
   }
 
   try {
-    // Decode session token
     const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
     
-    // Check if session is expired
     if (Date.now() > sessionData.exp) {
       // Clear session and redirect to login
       const response = NextResponse.redirect(new URL('/', request.url));
@@ -46,7 +42,6 @@ export function middleware(request: NextRequest) {
     // Super Admin routes protection
     if (pathname.startsWith('/SuperAdmin')) {
       if (sessionData.role !== 'super_admin') {
-        // Redirect admins to their dashboard
         return NextResponse.redirect(new URL('/Admin/Inspection/management/analytics', request.url));
       }
     }
@@ -54,7 +49,6 @@ export function middleware(request: NextRequest) {
     // Admin routes protection (both roles can access)
     if (pathname.startsWith('/Admin')) {
       if (sessionData.role !== 'admin' && sessionData.role !== 'super_admin') {
-        // Redirect to login if not admin or super_admin
         return NextResponse.redirect(new URL('/', request.url));
       }
     }
@@ -69,13 +63,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 };
