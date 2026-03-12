@@ -27,33 +27,146 @@ export default function ManualAddBusiness() {
     const [loading, setLoading] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const [showSuccess, setShowSuccess] = useState(false)
+    const [showErrorModal, setShowErrorModal] = useState(false)
 
     const [form, setForm] = useState<any>({})
     const [inspectorInput, setInspectorInput] = useState<string>("")
     const [inspectorList, setInspectorList] = useState<string[]>([])
+    const [inspectorError, setInspectorError] = useState<string | null>(null)
 
-    /* ---------- HANDLE INPUT WITH VALIDATION ---------- */
-    const handleChange = (label: string, value: any, type: string = "text") => {
-        let v: any = value
-        // if type is number, only allow numbers
-        if (type === "number" && v !== "") {
-            const numberValue = Number(v)
-            if (isNaN(numberValue)) return // ignore invalid input
-            v = numberValue
-        }
+    // live validation errors state (key -> message)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+
+    /* ---------- HANDLE INPUT ---------- */
+    const handleChange = (label: string, value: any) => {
+        let v = value
         if (v === "") v = null
+
+        // update form (keep original behaviour)
         setForm((prev: any) => ({
             ...prev,
             [label]: v
         }))
+
+        // run live validation as soon as user types (but only if there's content)
+        const validationMessage = validateField(label, value)
+        setErrors((prev) => {
+            const copy = { ...prev }
+            if (validationMessage) copy[label] = validationMessage
+            else delete copy[label]
+            return copy
+        })
+    }
+
+    /* ---------- VALIDATION RULES ---------- */
+    const validateField = (label: string, value: any): string | null => {
+        // If empty or null -> not required by default, so no error
+        if (value === null || value === "" || value === undefined) return null
+
+        const v = String(value).trim()
+
+        // common numeric-only labels
+        const integerOnlyLabels = [
+            "Business Identification Number",
+            "Transaction ID",
+            "Reference No.",
+            "Brgy. Clearance No.",
+            "SOA No.",
+            "Transmittal No.",
+            "O.R. No.",
+            "Business Plate No.",
+            "Office Zipcode",
+            "Requestor Zipcode",
+            "Year"
+        ]
+
+        // decimal-allowed numeric labels (amounts)
+        const decimalAllowedLabels = [
+            "Capital",
+            "Gross Amount",
+            "Gross Amount Essential",
+            "Gross Amount Non-Essential",
+            "Annual Amount",
+            "Amount Paid",
+            "Balance"
+        ]
+
+        // phone labels
+        const phoneLabels = [
+            "Requestor Mobile No."
+        ]
+
+        // email labels
+        const emailLabels = [
+            "Requestor Email"
+        ]
+
+        // basic checks
+        if (integerOnlyLabels.includes(label)) {
+            if (!/^\d+$/.test(v)) return `${label} must contain only numbers (no letters or symbols)`
+            return null
+        }
+
+        if (decimalAllowedLabels.includes(label)) {
+            if (!/^\d+(\.\d+)?$/.test(v)) return `${label} must be a valid number`
+            return null
+        }
+
+        if (phoneLabels.includes(label)) {
+            // accept digits only, length check (7-15)
+            const digits = v.replace(/\D/g, "")
+            if (!/^\d+$/.test(digits)) return `${label} must contain only digits`
+            if (digits.length < 7 || digits.length > 15) return `${label} looks too short/long`
+            return null
+        }
+
+        if (emailLabels.includes(label)) {
+            // simple email regex
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            if (!re.test(v)) return `Invalid email format`
+            return null
+        }
+
+        // default: no validation for other fields (non-required)
+        return null
+    }
+
+    const validateAll = (): Record<string, string> => {
+        const foundErrors: Record<string, string> = {}
+
+        // validate every field currently present in the form
+        Object.keys(form).forEach((key) => {
+            const val = form[key]
+            const msg = validateField(key, val)
+            if (msg) foundErrors[key] = msg
+        })
+
+        // also validate inspector list items (if any)
+        inspectorList.forEach((email, idx) => {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            if (!re.test(email)) {
+                foundErrors[`assigned_inspector[${idx}]`] = `Invalid inspector email: ${email}`
+            }
+        })
+
+        // return object of errors (empty object => no errors)
+        return foundErrors
     }
 
     /* ---------- HANDLE INSPECTOR CHIP INPUT ---------- */
     const handleInspectorKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && inspectorInput.trim() !== "") {
             e.preventDefault()
-            if (!inspectorList.includes(inspectorInput.trim())) {
-                const updatedList = [...inspectorList, inspectorInput.trim()]
+            const candidate = inspectorInput.trim()
+            // basic email validation (inspectors usually emails)
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            if (!re.test(candidate)) {
+                setInspectorError("Invalid email format for inspector")
+                return
+            }
+            setInspectorError(null)
+            if (!inspectorList.includes(candidate)) {
+                const updatedList = [...inspectorList, candidate]
                 setInspectorList(updatedList)
                 setForm((prev: any) => ({
                     ...prev,
@@ -95,6 +208,15 @@ export default function ManualAddBusiness() {
 
     /* ---------- SAVE RECORD ---------- */
     const saveRecord = async () => {
+        // safety re-validate before saving
+        const allErrors = validateAll()
+        if (Object.keys(allErrors).length > 0) {
+            setErrors(allErrors)
+            setShowErrorModal(true)
+            setShowConfirm(false)
+            return
+        }
+
         setLoading(true)
         const payload = cleanData(form)
         const { error } = await supabase
@@ -107,6 +229,20 @@ export default function ManualAddBusiness() {
         }
         setShowConfirm(false)
         setShowSuccess(true)
+    }
+
+    /* ---------- SAVE BUTTON CLICK (first gate) ---------- */
+    const handleSaveClick = () => {
+        const allErrors = validateAll()
+        if (Object.keys(allErrors).length > 0) {
+            // show error modal instead of confirm
+            setErrors(allErrors)
+            setShowErrorModal(true)
+            setShowConfirm(false)
+            return
+        }
+        // no errors -> show confirm modal
+        setShowConfirm(true)
     }
 
     return (
@@ -237,7 +373,7 @@ export default function ManualAddBusiness() {
                     {/* assigned_inspector chip input - responsive */}
                     <div className="flex flex-col">
                         <label className="text-sm text-gray-600 mb-1">assigned_inspector</label>
-                        <div className="flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-[44px] items-center focus-within:ring-2 focus-within:ring-green-900">
+                        <div className={`flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-[44px] items-center focus-within:ring-2 ${Object.keys(errors).some(k => k.startsWith("assigned_inspector")) ? "ring-1 ring-red-400" : "focus-within:ring-green-900"}`}>
                             {inspectorList.map((email, idx) => (
                                 <div key={idx} className="flex items-center bg-green-100 text-green-900 px-2 py-1 rounded-full text-xs sm:text-sm">
                                     {email}
@@ -247,12 +383,23 @@ export default function ManualAddBusiness() {
                             <input
                                 type="text"
                                 value={inspectorInput}
-                                onChange={(e) => setInspectorInput(e.target.value)}
+                                onChange={(e) => {
+                                    setInspectorInput(e.target.value)
+                                    // live check for format as they type (basic)
+                                    if (e.target.value.trim() === "") {
+                                        setInspectorError(null)
+                                    } else {
+                                        const maybe = e.target.value.trim()
+                                        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                                        setInspectorError(re.test(maybe) ? null : "Invalid email format")
+                                    }
+                                }}
                                 onKeyDown={handleInspectorKeyDown}
                                 placeholder="Type and press Enter"
                                 className="flex-1 outline-none border-none text-black px-1 py-1 min-w-[100px] sm:min-w-[120px]"
                             />
                         </div>
+                        {inspectorError && <p className="text-xs text-red-600 mt-1">{inspectorError}</p>}
                     </div>
 
                     <Input label="scheduled_date" type="date" onChange={handleChange} />
@@ -267,7 +414,7 @@ export default function ManualAddBusiness() {
                         Cancel
                     </button>
                     <button
-                        onClick={() => setShowConfirm(true)}
+                        onClick={() => handleSaveClick()}
                         className="px-6 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800 w-full sm:w-auto"
                     >
                         Save Record
@@ -297,6 +444,31 @@ export default function ManualAddBusiness() {
                             className="px-4 py-2 bg-green-900 text-white rounded w-full sm:w-auto"
                         >
                             {loading ? "Saving..." : "Confirm"}
+                        </button>
+                    </div>
+                </Modal>
+            )}
+
+            {/* ERROR MODAL (shows validation errors) */}
+            {showErrorModal && (
+                <Modal>
+                    <h2 className="text-lg font-semibold mb-4 text-red-600">
+                        Validation Errors
+                    </h2>
+                    <div className="max-h-[300px] overflow-auto mb-4">
+                        <ul className="list-disc list-inside space-y-2 text-sm text-gray-700">
+                            {Object.keys(errors).length === 0 && <li>No validation errors found.</li>}
+                            {Object.entries(errors).map(([k, v]) => (
+                                <li key={k}><strong className="text-red-600">{k}:</strong> {v}</li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div className="flex justify-end">
+                        <button
+                            onClick={() => setShowErrorModal(false)}
+                            className="px-4 py-2 bg-red-600 text-white rounded"
+                        >
+                            Close
                         </button>
                     </div>
                 </Modal>
@@ -345,7 +517,7 @@ function Input({ label, type = "text", onChange }: { label: string, type?: strin
             <label className="text-sm text-gray-600 mb-1">{label}</label>
             <input
                 type={type}
-                onChange={(e) => onChange(label, e.target.value, type)}
+                onChange={(e) => onChange(label, e.target.value)}
                 className="border rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-green-900 outline-none w-full"
             />
         </div>
