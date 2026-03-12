@@ -148,7 +148,7 @@ const inputCls = (hasError?: boolean) =>
 const selectCls = inputCls();
 
 // ── Empty record ──────────────────────────────────────────────────────────────
-const emptyRecord = (): Omit<BusinessRecord, 'file_id'> & { file_id: null } => ({
+const emptyRecord = () => ({
   "Business Identification Number": "",
   "Business Name": "",
   "Trade Name": null,
@@ -218,7 +218,6 @@ const emptyRecord = (): Omit<BusinessRecord, 'file_id'> & { file_id: null } => (
   status: "not reviewed",
   assigned_inspector: null,
   scheduled_date: null,
-  file_id: null,
 });
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -245,13 +244,20 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
 
   const num = (v: string) => (v === "" ? null : parseFloat(v));
 
+  // ── Validate ──────────────────────────────────────────────────────────────
   const validate = () => {
     const e: Partial<Record<string, string>> = {};
-    if (!form["Business Identification Number"].trim()) e["bin"] = "BIN is required.";
+    const bin = form["Business Identification Number"].trim();
+    if (!bin) {
+      e["bin"] = "BIN is required.";
+    } else if (!/^[0-9-]+$/.test(bin)) {
+      e["bin"] = "BIN must contain numbers only (e.g. 2024-00123).";
+    }
     if (!form["Business Name"].trim()) e["name"] = "Business Name is required.";
     return e;
   };
 
+  // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
@@ -260,7 +266,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
     setSaveError(null);
 
     try {
-      const { file_id, ...recordWithoutFileId } = form;
+      const { file_id, ...recordWithoutFileId } = form as any;
 
       const { data, error } = await supabase
         .from("business_records")
@@ -358,7 +364,13 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
                 type="text"
                 placeholder="e.g. 2024-00123"
                 value={form["Business Identification Number"]}
-                onChange={e => setForm(p => ({ ...p, "Business Identification Number": e.target.value }))}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (/^[0-9-]*$/.test(val)) {
+                    setForm(p => ({ ...p, "Business Identification Number": val }));
+                    if (errors["bin"]) setErrors(prev => ({ ...prev, bin: undefined }));
+                  }
+                }}
                 className={inputCls(!!errors["bin"])}
               />
             </Field>
@@ -367,7 +379,10 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
                 type="text"
                 placeholder="Official registered name"
                 value={form["Business Name"]}
-                onChange={e => setForm(p => ({ ...p, "Business Name": e.target.value }))}
+                onChange={e => {
+                  setForm(p => ({ ...p, "Business Name": e.target.value }));
+                  if (errors["name"]) setErrors(prev => ({ ...prev, name: undefined }));
+                }}
                 className={inputCls(!!errors["name"])}
               />
             </Field>
