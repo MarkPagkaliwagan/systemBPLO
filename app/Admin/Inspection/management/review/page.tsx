@@ -414,9 +414,9 @@ export default function CSVReview() {
               ) : isMobile ? (
                 /* ── Mobile Cards ── */
                 <div className="divide-y divide-gray-200">
-                  {csvData.map(row => (
+                  {csvData.map((row, index) => (
                     <div
-                      key={row.id}
+                      key={row.id || `mobile-${currentPage}-${index}-${row["Business Identification Number"] || ''}`}
                       onClick={() => handleRowClick(row)}
                       className={`p-4 cursor-pointer transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
                     >
@@ -510,7 +510,7 @@ export default function CSVReview() {
                     <tbody className="divide-y divide-gray-300">
                       {csvData.map((row, index) => (
                         <tr
-                          key={row.id}
+                          key={row.id || `desktop-${currentPage}-${index}-${row["Business Identification Number"] || ''}`}
                           onClick={() => handleRowClick(row)}
                           className={`hover:bg-blue-50 cursor-pointer transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
                         >
