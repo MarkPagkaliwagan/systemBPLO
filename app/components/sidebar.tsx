@@ -62,12 +62,6 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       icon: <FiAlertCircle className="w-5 h-5" />,
       href: "/Admin/Compliance/Dashboard",
     },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <FiSettings className="w-5 h-5" />,
-      href: "/module-2-inspection/notifCompliance",
-    },
   ];
 
   const superAdminItems: SidebarItem[] = [
@@ -100,12 +94,6 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       label: "User Management",
       icon: <FiUser className="w-5 h-5" />,
       href: "/SuperAdmin/users",
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <FiSettings className="w-5 h-5" />,
-      href: "/module-2-inspection/notifCompliance",
     },
   ];
 
@@ -143,6 +131,7 @@ export default function Sidebar({
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
@@ -187,7 +176,12 @@ export default function Sidebar({
     setIsLogoutModalOpen(true);
   };
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    
+    // Simulate logout process with delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
     localStorage.removeItem('user');
     localStorage.removeItem('sessionToken');
     localStorage.removeItem('sessionExpiry');
@@ -356,6 +350,7 @@ export default function Sidebar({
           isOpen={isLogoutModalOpen}
           onClose={() => setIsLogoutModalOpen(false)}
           onConfirm={confirmLogout}
+          isLoading={isLoggingOut}
         />
       </>
     );
@@ -431,6 +426,14 @@ export default function Sidebar({
       </div>
 
       <div className="h-16"></div>
+      
+      {/* Logout Modal */}
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        isLoading={isLoggingOut}
+      />
     </>
   );
 }
