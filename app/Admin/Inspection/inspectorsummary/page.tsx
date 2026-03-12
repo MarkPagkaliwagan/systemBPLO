@@ -2,13 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import {
-  FiClipboard,
-  FiX,
-  FiSearch,
-  FiArrowUp,
-  FiArrowDown
-} from "react-icons/fi";
+import { FiClipboard, FiX, FiSearch, FiArrowUp, FiArrowDown } from "react-icons/fi";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,7 +35,7 @@ export default function InspectorSummary() {
   }, []);
 
   async function fetchData() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("business_records")
       .select(
         `assigned_inspector,
@@ -50,11 +44,6 @@ export default function InspectorSummary() {
         scheduled_date`
       );
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
     const rows = data || [];
     setRecords(rows);
 
@@ -62,11 +51,7 @@ export default function InspectorSummary() {
 
     rows.forEach((r) => {
       if (!r.assigned_inspector) return;
-
-      if (!grouped[r.assigned_inspector]) {
-        grouped[r.assigned_inspector] = 0;
-      }
-
+      if (!grouped[r.assigned_inspector]) grouped[r.assigned_inspector] = 0;
       grouped[r.assigned_inspector]++;
     });
 
@@ -76,7 +61,6 @@ export default function InspectorSummary() {
     }));
 
     list.sort((a, b) => b.total - a.total);
-
     setInspectors(list);
   }
 
@@ -91,13 +75,10 @@ export default function InspectorSummary() {
   }
 
   const filteredRecords = useMemo(() => {
-    let list = records.filter(
-      (r) => r.assigned_inspector === selectedInspector
-    );
+    let list = records.filter((r) => r.assigned_inspector === selectedInspector);
 
     if (search) {
       const s = search.toLowerCase();
-
       list = list.filter(
         (r) =>
           r["Business Name"]?.toLowerCase().includes(s) ||
@@ -106,16 +87,14 @@ export default function InspectorSummary() {
     }
 
     if (monthFilter) {
-      list = list.filter((r) => {
-        if (!r.scheduled_date) return false;
-        return r.scheduled_date.startsWith(monthFilter);
-      });
+      list = list.filter((r) =>
+        r.scheduled_date?.startsWith(monthFilter)
+      );
     }
 
     list.sort((a, b) => {
       const da = new Date(a.scheduled_date || "").getTime();
       const db = new Date(b.scheduled_date || "").getTime();
-
       return sortAsc ? da - db : db - da;
     });
 
@@ -124,72 +103,60 @@ export default function InspectorSummary() {
 
   return (
     <>
-      {/* CARD */}
-      <div className="bg-white rounded-xl shadow border w-full">
+      {/* SMALL DASHBOARD CARD */}
+      <div className="bg-white rounded-lg shadow border w-full max-w-[220px]">
 
         {/* HEADER */}
-        <div className="flex items-center gap-2 bg-green-900 text-white px-4 py-3 rounded-t-xl">
+        <div className="flex items-center gap-1 bg-green-900 text-white px-2 py-1 rounded-t-lg text-xs">
           <FiClipboard />
-          <h2 className="font-semibold text-sm">
-            Inspector Workload
-          </h2>
+          Inspector Workload
         </div>
 
-        {/* LIST */}
+        {/* INSPECTOR LIST */}
         <div className="divide-y">
           {inspectors.map((inspector) => (
             <div
               key={inspector.name}
               onClick={() => openInspector(inspector.name)}
-              className="flex justify-between items-center px-4 py-3 hover:bg-green-50 cursor-pointer text-sm"
+              className="flex justify-between items-center px-2 py-1 cursor-pointer hover:bg-green-50"
             >
-              <span className="font-medium text-gray-700">
-                {inspector.name}
-              </span>
-
-              <span className="bg-green-900 text-white text-xs px-3 py-1 rounded-full">
+              <span className="font-medium text-black">{inspector.name}</span>
+              <span className="bg-green-900 text-white text-xs px-2 py-1 rounded">
                 {inspector.total}
               </span>
             </div>
           ))}
         </div>
+
       </div>
 
       {/* MODAL */}
       {selectedInspector && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
 
-          <div className="bg-white w-full max-w-3xl rounded-xl shadow-lg flex flex-col max-h-[90vh]">
+          <div className="bg-white w-full max-w-3xl rounded-lg shadow flex flex-col max-h-[90vh]">
 
-            {/* HEADER */}
-            <div className="flex justify-between items-center bg-green-900 text-white px-4 py-3 rounded-t-xl">
-
+            {/* MODAL HEADER */}
+            <div className="flex justify-between items-center bg-green-900 text-white px-4 py-3 rounded-t-lg">
               <h3 className="font-semibold text-sm">
                 Inspection Assignments — {selectedInspector}
               </h3>
-
-              <button onClick={closeModal}>
-                <FiX size={20} />
-              </button>
-
+              <button onClick={closeModal}><FiX size={20} /></button>
             </div>
 
-            {/* FILTERS */}
-            <div className="p-4 flex flex-col md:flex-row gap-3 border-b">
+            {/* FILTER BAR */}
+            <div className="p-3 flex flex-col md:flex-row gap-2 border-b">
 
               {/* SEARCH */}
               <div className="flex items-center border rounded px-2 w-full md:w-1/2">
-
-                <FiSearch className="text-gray-400" />
-
+                <FiSearch />
                 <input
                   type="text"
-                  placeholder="Search business or BIN..."
+                  placeholder="Search..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-2 py-2 text-sm outline-none"
+                  className="w-full px-2 py-2 text-sm outline-none text-black"
                 />
-
               </div>
 
               {/* MONTH FILTER */}
@@ -197,69 +164,49 @@ export default function InspectorSummary() {
                 type="month"
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(e.target.value)}
-                className="border rounded px-2 py-2 text-sm"
+                className="border rounded px-2 py-2 text-sm text-black"
               />
 
               {/* SORT */}
               <button
                 onClick={() => setSortAsc(!sortAsc)}
-                className="flex items-center gap-1 border px-3 py-2 rounded text-sm"
+                className="flex items-center gap-1 border px-3 py-2 rounded text-sm text-black"
               >
-                {sortAsc ? <FiArrowUp /> : <FiArrowDown />}
-                Date
+                {sortAsc ? <FiArrowUp /> : <FiArrowDown />} Date
               </button>
 
             </div>
 
             {/* TABLE */}
             <div className="overflow-auto">
-
-              <table className="w-full text-sm">
-
-                <thead className="bg-gray-50 text-left">
+              <table className="w-full text-sm text-black">
+                <thead className="bg-green-50">
                   <tr>
-                    <th className="p-3">BIN</th>
-                    <th className="p-3">Business Name</th>
-                    <th className="p-3">Scheduled Date</th>
+                    <th className="p-3 text-left">BIN</th>
+                    <th className="p-3 text-left">Business Name</th>
+                    <th className="p-3 text-left">Scheduled Date</th>
                   </tr>
                 </thead>
 
                 <tbody>
-
                   {filteredRecords.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="border-b hover:bg-gray-50"
-                    >
-                      <td className="p-3">
-                        {row["Business Identification Number"]}
-                      </td>
-
-                      <td className="p-3">
-                        {row["Business Name"]}
-                      </td>
-
-                      <td className="p-3">
-                        {row.scheduled_date}
-                      </td>
+                    <tr key={i} className="border-b hover:bg-green-50">
+                      <td className="p-3">{row["Business Identification Number"]}</td>
+                      <td className="p-3">{row["Business Name"]}</td>
+                      <td className="p-3">{row.scheduled_date}</td>
                     </tr>
                   ))}
 
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={3}
-                        className="text-center p-6 text-gray-500"
-                      >
+                      <td colSpan={3} className="text-center p-6 text-black">
                         No records found
                       </td>
                     </tr>
                   )}
-
                 </tbody>
 
               </table>
-
             </div>
 
           </div>
