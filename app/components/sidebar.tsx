@@ -143,6 +143,7 @@ export default function Sidebar({
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
@@ -187,7 +188,12 @@ export default function Sidebar({
     setIsLogoutModalOpen(true);
   };
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    
+    // Simulate logout process with delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
     localStorage.removeItem('user');
     localStorage.removeItem('sessionToken');
     localStorage.removeItem('sessionExpiry');
@@ -356,6 +362,7 @@ export default function Sidebar({
           isOpen={isLogoutModalOpen}
           onClose={() => setIsLogoutModalOpen(false)}
           onConfirm={confirmLogout}
+          isLoading={isLoggingOut}
         />
       </>
     );
@@ -431,6 +438,14 @@ export default function Sidebar({
       </div>
 
       <div className="h-16"></div>
+      
+      {/* Logout Modal */}
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        isLoading={isLoggingOut}
+      />
     </>
   );
 }
