@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { FiClipboard, FiX, FiSearch, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import {
+  FiClipboard,
+  FiX,
+  FiSearch,
+  FiArrowUp,
+  FiArrowDown,
+} from "react-icons/fi";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +30,9 @@ type InspectorCount = {
 export default function InspectorSummary() {
   const [records, setRecords] = useState<RecordType[]>([]);
   const [inspectors, setInspectors] = useState<InspectorCount[]>([]);
-  const [selectedInspector, setSelectedInspector] = useState<string | null>(null);
+  const [selectedInspector, setSelectedInspector] = useState<string | null>(
+    null
+  );
 
   const [search, setSearch] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
@@ -48,34 +56,24 @@ export default function InspectorSummary() {
     setRecords(rows);
 
     const grouped: Record<string, number> = {};
-
     rows.forEach((r) => {
       if (!r.assigned_inspector) return;
-      if (!grouped[r.assigned_inspector]) grouped[r.assigned_inspector] = 0;
-      grouped[r.assigned_inspector]++;
+      grouped[r.assigned_inspector] = (grouped[r.assigned_inspector] || 0) + 1;
     });
 
     const list = Object.keys(grouped).map((name) => ({
       name,
-      total: grouped[name]
+      total: grouped[name],
     }));
 
     list.sort((a, b) => b.total - a.total);
     setInspectors(list);
   }
 
-  function openInspector(name: string) {
-    setSelectedInspector(name);
-    setSearch("");
-    setMonthFilter("");
-  }
-
-  function closeModal() {
-    setSelectedInspector(null);
-  }
-
   const filteredRecords = useMemo(() => {
-    let list = records.filter((r) => r.assigned_inspector === selectedInspector);
+    let list = records.filter(
+      (r) => r.assigned_inspector === selectedInspector
+    );
 
     if (search) {
       const s = search.toLowerCase();
@@ -87,9 +85,7 @@ export default function InspectorSummary() {
     }
 
     if (monthFilter) {
-      list = list.filter((r) =>
-        r.scheduled_date?.startsWith(monthFilter)
-      );
+      list = list.filter((r) => r.scheduled_date?.startsWith(monthFilter));
     }
 
     list.sort((a, b) => {
@@ -101,116 +97,142 @@ export default function InspectorSummary() {
     return list;
   }, [records, selectedInspector, search, monthFilter, sortAsc]);
 
+  const maxTasks =
+    inspectors.length > 0
+      ? Math.max(...inspectors.map((i) => i.total))
+      : 1;
+
   return (
     <>
-      {/* FULL WIDTH DASHBOARD CARD */}
-      <div className="bg-white rounded-2xl shadow-lg border w-full max-w-[800px] mx-auto">
-
-        {/* HEADER */}
-        <div className="flex items-center gap-4 bg-green-700 text-white px-8 py-5 rounded-t-2xl text-2xl">
-          <FiClipboard size={32} />
-          <span className="font-bold">Inspector Workload</span>
-        </div>
-
-        {/* INSPECTOR LIST */}
-        <div className="divide-y">
-          {inspectors.map((inspector) => (
-            <div
-              key={inspector.name}
-              onClick={() => openInspector(inspector.name)}
-              className="flex justify-between items-center px-8 py-5 cursor-pointer hover:bg-green-50"
-            >
-              <span className="font-semibold text-black text-xl">{inspector.name}</span>
-              <span className="bg-green-700 text-white text-lg px-5 py-2 rounded-lg">
-                {inspector.total}
-              </span>
+     {/* Outer Card */}
+<div className="bg-gray-50 flex justify-center items-start pt-6 pb-0 md:pt-8 md:pb-8 px-4 min-h-auto md:min-h-screen">
+        <div className="w-full max-w-225">
+          {/* Main Card */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center gap-3 bg-linear-to-r from-emerald-500 to-emerald-700 text-white px-5 py-3 text-lg font-semibold">
+              <FiClipboard size={22} />
+              <span>Inspector Workload</span>
             </div>
-          ))}
-        </div>
 
+            {/* Inspector Inner Cards */}
+            <div className="p-4 grid gap-3">
+              {inspectors.length > 0 ? (
+                inspectors.map((inspector) => {
+                  const progress = (inspector.total / maxTasks) * 100;
+                  return (
+                    <div
+                      key={inspector.name}
+                      onClick={() => setSelectedInspector(inspector.name)}
+                      className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 cursor-pointer hover:shadow-md transition-all"
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-gray-900 font-medium text-sm md:text-base">
+                          {inspector.name}
+                        </span>
+                        <span className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-xs px-2 py-0.5 rounded-md">
+                          {inspector.total}
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-1.5 rounded-full transition-all"
+                          style={{
+                            width: `${progress}%`,
+                            background:
+                              "linear-gradient(to right, #10B981, #047857)",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-4 text-center text-gray-400 text-sm">
+                  No inspectors found
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* FULL WIDTH MODAL */}
+      {/* Modal */}
       {selectedInspector && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-8 z-50">
-
-          <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
-
-            {/* MODAL HEADER */}
-            <div className="flex justify-between items-center bg-green-700 text-white px-10 py-6 rounded-t-2xl">
-              <h3 className="font-bold text-3xl">
-                Inspection Assignments — {selectedInspector}
-              </h3>
-              <button onClick={closeModal}><FiX size={32} /></button>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center bg-gradient-to-r from-emerald-500 to-emerald-700 text-white px-6 py-3 text-lg font-semibold">
+              <h3>Inspection Assignments — {selectedInspector}</h3>
+              <button onClick={() => setSelectedInspector(null)}>
+                <FiX size={24} />
+              </button>
             </div>
 
-            {/* FILTER BAR */}
-            <div className="p-6 flex flex-col md:flex-row gap-6 border-b">
-
-              {/* SEARCH */}
-              <div className="flex items-center border rounded px-4 w-full md:w-1/2">
-                <FiSearch size={26} />
+            {/* Filter Bar */}
+            <div className="p-3 flex flex-col md:flex-row gap-2 border-b">
+              <div className="flex items-center border rounded px-2 py-1 w-full md:w-1/2 text-sm">
+                <FiSearch size={18} />
                 <input
                   type="text"
                   placeholder="Search..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-5 py-5 text-xl outline-none text-black"
+                  className="w-full ml-2 outline-none text-gray-900 text-sm"
                 />
               </div>
 
-              {/* MONTH FILTER */}
               <input
                 type="month"
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(e.target.value)}
-                className="border rounded px-5 py-5 text-xl text-black"
+                className="border rounded px-2 py-1 text-gray-900 text-sm w-full md:w-auto"
               />
 
-              {/* SORT */}
               <button
                 onClick={() => setSortAsc(!sortAsc)}
-                className="flex items-center gap-4 border px-6 py-5 rounded text-xl text-black"
+                className="flex items-center gap-1 border px-2 py-1 rounded text-gray-900 text-sm"
               >
-                {sortAsc ? <FiArrowUp size={26} /> : <FiArrowDown size={26} />} Date
+                {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />} Date
               </button>
-
             </div>
 
-            {/* TABLE */}
+            {/* Table */}
             <div className="overflow-auto">
-              <table className="w-full text-xl text-black">
-                <thead className="bg-green-100">
+              <table className="w-full text-gray-900 text-sm border-collapse">
+                <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <th className="p-6 text-left">BIN</th>
-                    <th className="p-6 text-left">Business Name</th>
-                    <th className="p-6 text-left">Scheduled Date</th>
+                    <th className="p-2 text-left">BIN</th>
+                    <th className="p-2 text-left">Business Name</th>
+                    <th className="p-2 text-left">Scheduled Date</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {filteredRecords.map((row, i) => (
-                    <tr key={i} className="border-b hover:bg-green-50">
-                      <td className="p-6">{row["Business Identification Number"]}</td>
-                      <td className="p-6">{row["Business Name"]}</td>
-                      <td className="p-6">{row.scheduled_date}</td>
+                    <tr
+                      key={i}
+                      className="border-b hover:bg-emerald-50 transition-colors"
+                    >
+                      <td className="p-2">{row["Business Identification Number"]}</td>
+                      <td className="p-2">{row["Business Name"]}</td>
+                      <td className="p-2">{row.scheduled_date}</td>
                     </tr>
                   ))}
 
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="text-center p-12 text-black">
+                      <td
+                        colSpan={3}
+                        className="text-center p-4 text-gray-400 text-sm"
+                      >
                         No records found
                       </td>
                     </tr>
                   )}
                 </tbody>
-
               </table>
             </div>
-
           </div>
-
         </div>
       )}
     </>

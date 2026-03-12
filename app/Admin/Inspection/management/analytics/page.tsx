@@ -442,6 +442,10 @@ export default function DashboardPage() {
 
             {/* Schedule section */}
             <MobileScheduleSection />
+            {/* Inspector Summary Section */}
+            <div className="mt-4">
+              <InspectorSummary />
+            </div>
 
           </div>
           <MobileBottomNav />
@@ -591,10 +595,9 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* RIGHT — Inspector Summary 50% */}
-              <div className="w-1/2 flex flex-col">
-                <InspectorSummary />
-              </div>
+             <div className="w-1/2 flex flex-col md:p-8">
+  <InspectorSummary />
+</div>
 
             </div>
           </div>
