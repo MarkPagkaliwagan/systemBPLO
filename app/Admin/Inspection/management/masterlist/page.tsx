@@ -8,6 +8,7 @@ import Sidebar from "../../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import Link from "next/link";
+
 interface CSVFile {
   id: string;
   name: string;
@@ -196,11 +197,6 @@ export default function CSVManager() {
     router.push(`/Admin/management/review?fileId=${file.id}`);
   };
 
-  const handleActionClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  // Delete: removes business_records rows first, then the csv_uploads record
   const handleDeleteConfirm = async () => {
     if (!fileToDelete) return;
     setIsDeleting(true);
@@ -228,7 +224,6 @@ export default function CSVManager() {
     }
   };
 
-  // Download: fetches all rows for this file with review data and exports as CSV
   const handleDownload = async (e: React.MouseEvent, file: CSVFile) => {
     e.stopPropagation();
     try {
@@ -254,9 +249,18 @@ export default function CSVManager() {
     }
   };
 
+  const getStatusStyle = (status?: string) => {
+    switch (status) {
+      case 'completed':    return 'bg-green-100 text-green-800';
+      case 'processing':   return 'bg-yellow-100 text-yellow-800';
+      case 'not_reviewed': return 'bg-gray-100 text-gray-800';
+      case 'error':        return 'bg-red-100 text-red-800';
+      default:             return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const filteredFiles = csvFiles.filter(file => {
-    const statusMatch = !selectedStatus || file.status === selectedStatus;
-    return statusMatch;
+    return !selectedStatus || file.status === selectedStatus;
   });
 
   const totalPages = Math.ceil(filteredFiles.length / itemsPerPage);
@@ -274,14 +278,18 @@ export default function CSVManager() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <div className="min-h-screen bg-gray-50 pt-1">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">CSV File Manager</h1>
-            <p className="text-gray-600">Upload and manage your CSV data files</p>
+      <div className="min-h-screen bg-gray-50 pt-1" style={{ paddingBottom: isMobile ? 80 : 0 }}>
+        <div className={`${isMobile ? 'px-3 py-5' : 'max-w-7xl mx-auto px-4 py-6'}`}>
+
+          {/* ── Header ── */}
+          <div className="mb-5">
+            <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-1`}>
+              CSV File Manager
+            </h1>
+            <p className="text-sm text-gray-500">Upload and manage your CSV data files</p>
           </div>
 
-          {/* Upload Progress Banner */}
+          {/* ── Upload Progress Banner ── */}
           {uploadProgress && (
             <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
@@ -301,11 +309,12 @@ export default function CSVManager() {
             </div>
           )}
 
-          {/* Upload Area */}
-          <div className="mb-6">
+          {/* ── Upload Area ── */}
+          <div className="mb-5">
             <div
-              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors ${dragActive ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-white hover:border-green-400'
-                }`}
+              className={`relative border-2 border-dashed rounded-xl p-5 text-center transition-colors ${
+                dragActive ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-white hover:border-green-400'
+              }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
@@ -318,38 +327,39 @@ export default function CSVManager() {
                 onChange={handleFileInput}
                 className="hidden"
               />
-
               <div className="flex flex-col items-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
-                  <FiUpload className="w-6 h-6 text-green-600" />
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                  <FiUpload className="w-5 h-5 text-green-600" />
                 </div>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">Drop CSV files here</h3>
-                <p className="text-gray-600 mb-3 text-sm">or click to browse</p>
-
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                  {isMobile ? 'Tap to upload CSV' : 'Drop CSV files here'}
+                </h3>
+                {!isMobile && <p className="text-gray-500 mb-3 text-xs">or click to browse</p>}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={!!uploadProgress}
-                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm"
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm mt-1"
                 >
-                  {uploadProgress ? 'Uploading...' : 'Select Files'}
+                  {uploadProgress ? 'Uploading...' : 'Select File'}
                 </button>
               </div>
             </div>
           </div>
 
+          {/* ── Files Section ── */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-gray-900">Uploaded Files</h2>
 
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <FiFilter className="w-4 h-4 text-gray-500" />
-                    <label className="text-sm font-medium text-gray-700">Status</label>
+            {/* Header + Filter */}
+            <div className="px-4 py-3 border-b border-gray-200">
+              <div className={`${isMobile ? 'space-y-2' : 'flex items-center justify-between'}`}>
+                <h2 className="text-base font-semibold text-gray-900">Uploaded Files</h2>
+                <div className={`${isMobile ? 'flex items-center gap-2 w-full' : 'flex items-center gap-4'}`}>
+                  <div className="flex items-center gap-2 flex-1">
+                    <FiFilter className="w-4 h-4 text-gray-400 shrink-0" />
                     <select
                       value={selectedStatus}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-700"
+                      onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
+                      className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
                     >
                       <option value="">All Status</option>
                       <option value="not_reviewed">Not Reviewed</option>
@@ -357,157 +367,253 @@ export default function CSVManager() {
                       <option value="completed">Completed</option>
                     </select>
                   </div>
-
-                  <div className="text-sm text-gray-500">
-                    Showing {filteredFiles.length === 0 ? 0 : startIndex + 1}–{Math.min(endIndex, filteredFiles.length)} of {filteredFiles.length} files
-                  </div>
+                  <span className="text-xs text-gray-400 shrink-0">
+                    {filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Results</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {paginatedFiles.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">
-                        No files uploaded yet. Upload a CSV file to get started.
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedFiles.map((file) => (
-                      <React.Fragment key={file.id}>
-                        <tr
-                          className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => handleRowClick(file)}
-                        >
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <FiFile className="w-4 h-4 text-green-600 mr-2 flex-shrink-0" />
-                              <span className="text-sm font-medium text-gray-900 truncate max-w-[180px]">{file.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.uploadDate}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.size}</td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm">
-                            {file.status === 'processing' && !file.successCount ? (
-                              <span className="text-gray-400 flex items-center">
-                                <FiClock className="w-3 h-3 mr-1" /> Processing...
-                              </span>
-                            ) : (
-                              <div className="space-y-0.5">
-                                {file.successCount != null && (
-                                  <div className="text-green-600 text-xs">✓ {file.successCount} inserted</div>
-                                )}
-                                {file.skippedCount != null && file.skippedCount > 0 && (
-                                  <div className="text-yellow-600 text-xs">⟳ {file.skippedCount} skipped</div>
-                                )}
-                                {file.errorCount != null && file.errorCount > 0 && (
-                                  <div className="text-red-500 text-xs">✗ {file.errorCount} failed</div>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {file.status && (
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${file.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                file.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                                  file.status === 'not_reviewed' ? 'bg-gray-100 text-gray-800' :
-                                    file.status === 'error' ? 'bg-red-100 text-red-800' :
-                                      'bg-gray-100 text-gray-800'
-                                }`}>
-                                {file.status.replace(/_/g, ' ').toUpperCase()}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end space-x-2">
-                              <button
-                                className="text-gray-600 hover:text-gray-900 p-1"
-                                onClick={(e) => handleDownload(e, file)}
-                              >
-                                <FiDownload className="w-4 h-4" />
-                              </button>
-                              <button
-                                className="text-red-600 hover:text-red-900 p-1"
-                                onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
-                              >
-                                <FiTrash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+            {/* ── Mobile Cards ── */}
+            {isMobile ? (
+              <div className="divide-y divide-gray-100">
+                {paginatedFiles.length === 0 ? (
+                  <div className="py-16 text-center text-sm text-gray-400 px-4">
+                    No files uploaded yet. Tap the button above to get started.
+                  </div>
+                ) : (
+                  paginatedFiles.map((file) => (
+                    <div key={file.id}>
+                      <div
+                        className="p-4 cursor-pointer active:bg-gray-50 transition-colors"
+                        onClick={() => handleRowClick(file)}
+                      >
+                        {/* Top row: filename + status */}
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <FiFile className="w-4 h-4 text-green-600 shrink-0" />
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {file.name}
+                            </p>
+                          </div>
+                          {file.status && (
+                            <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(file.status)}`}>
+                              {file.status.replace(/_/g, ' ').toUpperCase()}
+                            </span>
+                          )}
+                        </div>
 
-                        {/* Error details row */}
-                        {file.errors && file.errors.length > 0 && (
-                          <tr className="bg-red-50">
-                            <td colSpan={6} className="px-4 py-2">
-                              <div className="flex items-start space-x-2">
-                                <FiAlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <p className="text-xs font-medium text-red-700 mb-1">
-                                    Insert errors (first 10 shown):
-                                  </p>
-                                  <ul className="text-xs text-red-600 space-y-0.5">
-                                    {file.errors.map((err, i) => (
-                                      <li key={i}>• {err}</li>
-                                    ))}
-                                  </ul>
+                        {/* Upload date */}
+                        <p className="text-xs text-gray-400 flex items-center gap-1 mb-2">
+                          <FiClock className="w-3 h-3" />
+                          {file.uploadDate}
+                        </p>
+
+                        {/* Results pills */}
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {file.status === 'processing' && !file.successCount ? (
+                            <span className="text-xs text-gray-400 flex items-center gap-1">
+                              <FiClock className="w-3 h-3" /> Processing...
+                            </span>
+                          ) : (
+                            <>
+                              {file.successCount != null && (
+                                <span className="px-2 py-0.5 bg-green-50 text-green-700 text-xs rounded-full">
+                                  ✓ {file.successCount} inserted
+                                </span>
+                              )}
+                              {file.skippedCount != null && file.skippedCount > 0 && (
+                                <span className="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-xs rounded-full">
+                                  ⟳ {file.skippedCount} skipped
+                                </span>
+                              )}
+                              {file.errorCount != null && file.errorCount > 0 && (
+                                <span className="px-2 py-0.5 bg-red-50 text-red-700 text-xs rounded-full">
+                                  ✗ {file.errorCount} failed
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => handleDownload(e, file)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors active:scale-95"
+                          >
+                            <FiDownload className="w-3.5 h-3.5" />
+                            Download
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded-lg hover:bg-red-100 transition-colors active:scale-95"
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Error details */}
+                      {file.errors && file.errors.length > 0 && (
+                        <div className="mx-4 mb-3 p-3 bg-red-50 rounded-xl border border-red-100">
+                          <div className="flex items-start gap-2">
+                            <FiAlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-xs font-semibold text-red-700 mb-1">Insert errors:</p>
+                              <ul className="text-xs text-red-600 space-y-0.5">
+                                {file.errors.map((err, i) => (
+                                  <li key={i}>• {err}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+            ) : (
+              /* ── Desktop Table ── */
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Results</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {paginatedFiles.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">
+                          No files uploaded yet. Upload a CSV file to get started.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedFiles.map((file) => (
+                        <React.Fragment key={file.id}>
+                          <tr
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => handleRowClick(file)}
+                          >
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <FiFile className="w-4 h-4 text-green-600 mr-2 flex-shrink-0" />
+                                <span className="text-sm font-medium text-gray-900 truncate max-w-[180px]">{file.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.uploadDate}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.size}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                              {file.status === 'processing' && !file.successCount ? (
+                                <span className="text-gray-400 flex items-center">
+                                  <FiClock className="w-3 h-3 mr-1" /> Processing...
+                                </span>
+                              ) : (
+                                <div className="space-y-0.5">
+                                  {file.successCount != null && (
+                                    <div className="text-green-600 text-xs">✓ {file.successCount} inserted</div>
+                                  )}
+                                  {file.skippedCount != null && file.skippedCount > 0 && (
+                                    <div className="text-yellow-600 text-xs">⟳ {file.skippedCount} skipped</div>
+                                  )}
+                                  {file.errorCount != null && file.errorCount > 0 && (
+                                    <div className="text-red-500 text-xs">✗ {file.errorCount} failed</div>
+                                  )}
                                 </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {file.status && (
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusStyle(file.status)}`}>
+                                  {file.status.replace(/_/g, ' ').toUpperCase()}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button
+                                  className="text-gray-600 hover:text-gray-900 p-1"
+                                  onClick={(e) => handleDownload(e, file)}
+                                >
+                                  <FiDownload className="w-4 h-4" />
+                                </button>
+                                <button
+                                  className="text-red-600 hover:text-red-900 p-1"
+                                  onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
+                                >
+                                  <FiTrash2 className="w-4 h-4" />
+                                </button>
                               </div>
                             </td>
                           </tr>
-                        )}
-                      </React.Fragment>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          {file.errors && file.errors.length > 0 && (
+                            <tr className="bg-red-50">
+                              <td colSpan={6} className="px-4 py-2">
+                                <div className="flex items-start space-x-2">
+                                  <FiAlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-medium text-red-700 mb-1">Insert errors (first 10 shown):</p>
+                                    <ul className="text-xs text-red-600 space-y-0.5">
+                                      {file.errors.map((err, i) => (
+                                        <li key={i}>• {err}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-            {/* Pagination */}
+            {/* ── Pagination ── */}
             {totalPages > 1 && (
-              <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-700">Page {currentPage} of {totalPages}</div>
-                  <div className="flex items-center space-x-2">
+              <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-gray-500 text-center">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    disabled={currentPage === 1}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <FiChevronLeft className="w-4 h-4" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                     <button
-                      onClick={() => setCurrentPage(p => p - 1)}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <FiChevronLeft className="w-4 h-4" />
-                    </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-1 text-sm rounded-md ${currentPage === pageNum
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === pageNum
                           ? 'bg-green-600 text-white'
-                          : 'bg-white border border-gray-300 hover:bg-gray-50'
-                          }`}
-                      >
-                        {pageNum}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setCurrentPage(p => p + 1)}
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          : 'border border-gray-200 hover:bg-gray-100 text-gray-700'
+                      }`}
                     >
-                      <FiChevronRight className="w-4 h-4" />
+                      {pageNum}
                     </button>
-                  </div>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    disabled={currentPage === totalPages}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <FiChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
@@ -515,29 +621,23 @@ export default function CSVManager() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         file={fileToDelete}
         isDeleting={isDeleting}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setFileToDelete(null)}
       />
+
       {/* Floating Add Button (Desktop Only) */}
-{!isMobile && (
-  <Link
-    href="/Admin/Inspection/management/manual_add"
-    title="Manual Add Record"
-    className="fixed bottom-8 right-8 z-50 
-               w-14 h-14 rounded-full 
-               bg-green-600 hover:bg-green-700 
-               text-white shadow-lg 
-               flex items-center justify-center
-               transition-all duration-200
-               hover:scale-105"
-  >
-    <FiPlus className="w-6 h-6" />
-  </Link>
-)}
+      {!isMobile && (
+        <Link
+          href="/Admin/Inspection/management/manual_add"
+          title="Manual Add Record"
+          className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+        >
+          <FiPlus className="w-6 h-6" />
+        </Link>
+      )}
     </>
   );
 }

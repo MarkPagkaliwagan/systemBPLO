@@ -32,9 +32,15 @@ export default function ManualAddBusiness() {
     const [inspectorInput, setInspectorInput] = useState<string>("")
     const [inspectorList, setInspectorList] = useState<string[]>([])
 
-    /* ---------- HANDLE INPUT ---------- */
-    const handleChange = (label: string, value: any) => {
-        let v = value
+    /* ---------- HANDLE INPUT WITH VALIDATION ---------- */
+    const handleChange = (label: string, value: any, type: string = "text") => {
+        let v: any = value
+        // if type is number, only allow numbers
+        if (type === "number" && v !== "") {
+            const numberValue = Number(v)
+            if (isNaN(numberValue)) return // ignore invalid input
+            v = numberValue
+        }
         if (v === "") v = null
         setForm((prev: any) => ({
             ...prev,
@@ -339,7 +345,7 @@ function Input({ label, type = "text", onChange }: { label: string, type?: strin
             <label className="text-sm text-gray-600 mb-1">{label}</label>
             <input
                 type={type}
-                onChange={(e) => onChange(label, e.target.value)}
+                onChange={(e) => onChange(label, e.target.value, type)}
                 className="border rounded-lg px-3 py-2 text-black focus:ring-2 focus:ring-green-900 outline-none w-full"
             />
         </div>
