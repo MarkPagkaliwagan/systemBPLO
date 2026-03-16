@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "BPLO IMS",
-  description: "BPLO Management System",
+  description: "BPLO System",
 };
 
 export default function RootLayout({
