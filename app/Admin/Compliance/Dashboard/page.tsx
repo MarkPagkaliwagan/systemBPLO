@@ -557,23 +557,7 @@ export default function ViolationsPage() {
             }
           </div>
         </div>
-           </div>
-
-      {/* Footer */}
-      <footer className="w-full bg-green-900 text-white mt-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between text-sm">
-          
-          <div className="font-semibold">
-            BPLO Inspection Management System
-          </div>
-
-          <div className="text-green-200">
-            © {new Date().getFullYear()} Business Permits and Licensing Office
-          </div>
-
-        </div>
-      </footer>
-
+      </div>
     </div>
   );
 }
