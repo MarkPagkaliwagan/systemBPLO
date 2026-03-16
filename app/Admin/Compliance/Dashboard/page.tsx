@@ -124,19 +124,14 @@ export default function ViolationsPage() {
   const getNoticeStatus = (notice: number, v: Violation) => {
     const level = v.notice_level || 0;
     if (v.resolved) return "Resolved";
-    if (level >= notice) {
-      // For notice 3, treat it as "Last Send" label (if level >= 3 and not resolved/ceased)
-      if (notice === 3 && level >= 3 && !v.resolved && !v.cease_flag) return "Last Send";
-      return "Sent";
-    }
+    if (level >= notice) return "Sent";
     return "Pending";
   };
 
-  // New overall status text: Resolved (blue), Cease & Desist (red), Last Send (notice 3), Pending
   const getStatusText = (v: Violation) => {
     if (v.resolved) return "Resolved";
-    if (v.cease_flag) return "Cease & Desist";
-    if ((v.notice_level || 0) >= 3) return "Last Send";
+    // Cease and Desist kapag notice_level >= 3
+    if ((v.notice_level || 0) >= 3) return "Cease and Desist";
     return "Pending";
   };
 
@@ -147,22 +142,13 @@ export default function ViolationsPage() {
       : <FiChevronDown className="inline ml-1 text-green-200" />;
   };
 
-  // Row class based on cease/resolved
-  const getRowClass = (v: Violation) => {
-    if (v.cease_flag) return "hover:bg-red-50 bg-red-50 transition-colors";
-    if (v.resolved) return "hover:bg-blue-50 bg-blue-50 transition-colors";
-    return "hover:bg-gray-50 transition-colors";
-  };
-
   // Badges
   const StatusBadge = ({ v }: { v: Violation }) => {
     const status = getStatusText(v);
     if (status === "Resolved")
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-900">Resolved</span>;
-    if (status === "Cease & Desist")
+      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-900">Resolved</span>;
+    if (status === "Cease and Desist")
       return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Cease & Desist</span>;
-    if (status === "Last Send")
-      return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Last Send</span>;
     return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Pending</span>;
   };
 
@@ -170,13 +156,11 @@ export default function ViolationsPage() {
     const s = getNoticeStatus(notice, v);
     if (s === "Sent") return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-900 font-medium">Sent</span>;
     if (s === "Resolved") return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">Resolved</span>;
-    if (s === "Last Send") return <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Last Send</span>;
     return <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-700 font-medium">Pending</span>;
   };
 
   // Check if Send Notice button is allowed based on interval_days
   const canSendNotice = (v: Violation) => {
-    // If resolved or cease_flag, cannot send
     if (v.resolved || v.cease_flag) return false;
     const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
     const interval = v.interval_days ?? 7;
@@ -202,16 +186,6 @@ export default function ViolationsPage() {
       console.error(err);
       alert("Error sending notice.");
     } finally { setLoading(false); }
-  };
-
-  // Determine whether to show the "Next send" text for a given violation
-  // Per your requirement: hide Next send when Notice 3 / Cease / Resolved
-  const shouldShowNextSend = (v: Violation) => {
-    if (!v.last_sent_time) return false;
-    if (v.resolved) return false;
-    if (v.cease_flag) return false;
-    if ((v.notice_level || 0) >= 3) return false; // hide on last-send stage
-    return !canSendNotice(v); // otherwise only show when not yet allowed
   };
 
   return (
@@ -257,7 +231,7 @@ export default function ViolationsPage() {
         </div>
         <div className="flex items-center gap-3 text-sm">
           <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-700" /> <span className="text-gray-600">Sent</span></div>
-          <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-gray-600">Pending / Last Send</span></div>
+          <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-amber-500" /> <span className="text-gray-600">Pending</span></div>
           <div className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-red-600" /> <span className="text-gray-600">Cease &amp; Desist</span></div>
         </div>
 
@@ -331,9 +305,9 @@ export default function ViolationsPage() {
                     </tr>
                   ))
                   : violations.length === 0
-                    ? <tr><td colSpan={8} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
+                    ? <tr><td colSpan={7} className="text-center py-10 text-gray-500">NO DATA FOUND</td></tr>
                     : violations.map((v) => (
-                      <tr key={v.id} className={getRowClass(v)}>
+                      <tr key={v.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 align-top">
                           <div className="text-sm font-medium text-gray-900">{v.business_id}</div>
                           {v.last_sent_time && <div className="text-xs text-gray-400 mt-1">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
@@ -378,37 +352,28 @@ export default function ViolationsPage() {
                         </td>
                         <td className="px-6 py-4 align-top"><StatusBadge v={v} /></td>
                         <td className="px-6 py-4 align-top">
-                          {/* Action column: BLANK if Cease or Resolved */}
-                          { (v.cease_flag || v.resolved) ? (
-                            <></>
-                          ) : (
-                            <>
-                              {/* If notice_level >= 3 -> this is LAST SEND stage; show "Send Last Notice" */}
-                              <button
-                                onClick={() => handleSendNotice(v.id)}
-                                disabled={autoSend || !canSendNotice(v)}
-                                className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
-                                  }`}
-                              >
-                                {(v.notice_level || 0) >= 3 ? 'Send Last Notice' : 'Send Notice'}
-                              </button>
+                          <button
+                            onClick={() => handleSendNotice(v.id)}
+                            disabled={autoSend || !canSendNotice(v)}
+                            className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
+                              }`}
+                          >
+                            Send Notice
+                          </button>
 
-                              <button
-                                onClick={() => handleMarkResolved(v.id)}
-                                disabled={v.resolved}
-                                className={`ml-2 px-2 py-1 text-xs rounded font-medium ${v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
-                                  }`}
-                              >
-                                Mark Resolved
-                              </button>
+                          <button
+                            onClick={() => handleMarkResolved(v.id)}
+                            disabled={v.resolved}
+                            className={`ml-2 px-2 py-1 text-xs rounded font-medium ${v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+                              }`}
+                          >
+                            Mark Resolved
+                          </button>
 
-                              {/* Next send: hidden when Notice 3 / Cease / Resolved (per requirement) */}
-                              { shouldShowNextSend(v) && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  Next send: {new Date(new Date(v.last_sent_time!).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
-                                </div>
-                              )}
-                            </>
+                          {!canSendNotice(v) && v.last_sent_time && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -461,7 +426,7 @@ export default function ViolationsPage() {
               : violations.length === 0
                 ? <div className="text-center py-10 text-gray-500">NO DATA FOUND</div>
                 : violations.map((v) => (
-                  <div key={v.id} className={`border rounded-xl p-4 shadow-sm space-y-2 ${v.cease_flag ? 'bg-red-50' : ''} ${v.resolved ? 'bg-blue-50' : ''}`}>
+                  <div key={v.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="font-semibold text-gray-900 text-sm">{v.business_id}</div>
                       <StatusBadge v={v} />
@@ -508,36 +473,26 @@ export default function ViolationsPage() {
                       )}
                     </div>
                     {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
-
-                    {/* Action: blank when Cease or Resolved */}
-                    { (v.cease_flag || v.resolved) ? (
-                      <></>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleSendNotice(v.id)}
-                          disabled={autoSend || !canSendNotice(v)}
-                          className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
-                            }`}
-                        >
-                          {(v.notice_level || 0) >= 3 ? 'Send Last Notice' : 'Send Notice'}
-                        </button>
-                        <button
-                          onClick={() => handleMarkResolved(v.id)}
-                          disabled={v.resolved}
-                          className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
-                            }`}
-                        >
-                          Mark Resolved
-                        </button>
-
-                        {/* Next send hidden for Notice 3 / Cease / Resolved */}
-                        { shouldShowNextSend(v) && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Next send: {new Date(new Date(v.last_sent_time!).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
-                          </div>
-                        )}
-                      </>
+                    <button
+                      onClick={() => handleSendNotice(v.id)}
+                      disabled={autoSend || !canSendNotice(v)}
+                      className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                    >
+                      Send Notice
+                    </button>
+                    <button
+                      onClick={() => handleMarkResolved(v.id)}
+                      disabled={v.resolved}
+                      className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                    >
+                      Mark Resolved
+                    </button>
+                    {!canSendNotice(v) && v.last_sent_time && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Next send: {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
+                      </div>
                     )}
                   </div>
                 ))
@@ -548,3 +503,4 @@ export default function ViolationsPage() {
     </div>
   );
 }
+
