@@ -558,6 +558,22 @@ export default function ViolationsPage() {
           </div>
         </div>
       </div>
+      {/* Footer */}
+<footer className="bg-green-900 text-white mt-10">
+  <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center text-sm">
+    
+    <div className="mb-2 md:mb-0">
+      © {new Date().getFullYear()} SYSTEM BPLO. All rights reserved.
+    </div>
+
+    <div className="flex gap-4 text-green-200">
+      <span className="hover:text-white cursor-pointer">Privacy</span>
+      <span className="hover:text-white cursor-pointer">Terms</span>
+      <span className="hover:text-white cursor-pointer">Contact</span>
+    </div>
+
+  </div>
+</footer>
     </div>
   );
 }
