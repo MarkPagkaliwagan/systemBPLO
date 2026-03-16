@@ -5,7 +5,6 @@ import { useState } from "react";
 import { FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser, FiMapPin, FiPhone, FiMail, FiBriefcase } from "react-icons/fi";
 
 interface BusinessRecord {
-  id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
@@ -98,7 +97,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
       <div className={`${isMobile ? 'w-full max-w-full max-h-full' : 'max-w-5xl w-full mx-4'} bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto`}>
 
         {/* Modal Header */}
-        <div className="bg-gradient-to-r bg-green-900 text-white px-4 py-3 rounded-t-xl">
+        <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>Review Business</h2>
@@ -273,7 +272,6 @@ function ReviewForm({
 
   const availableActions = ['Active', 'Compliant', 'Non-Compliant', 'For Inspection'];
 
-  // ── Red actions ───────────────────────────────────────────────────────────
   const isRedAction = (action: string) =>
     action === 'Non-Compliant' || action === 'For Inspection';
 
@@ -315,7 +313,6 @@ function ReviewForm({
           {availableActions.map((action) => {
             const isSelected = reviewActions.includes(action);
             const isRed = isRedAction(action);
-
             return (
               <button
                 key={action}
@@ -346,9 +343,7 @@ function ReviewForm({
                   <span
                     key={index}
                     className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      isRedAction(action)
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-green-100 text-green-800'
+                      isRedAction(action) ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
                     }`}
                   >
                     <FiCheck className="w-3 h-3 mr-1" />
@@ -356,9 +351,7 @@ function ReviewForm({
                     <button
                       onClick={() => removeAction(index)}
                       className={`ml-2 transition-colors ${
-                        isRedAction(action)
-                          ? 'text-red-600 hover:text-red-800'
-                          : 'text-green-600 hover:text-green-800'
+                        isRedAction(action) ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'
                       }`}
                     >
                       <FiX className="w-3 h-3" />
@@ -393,13 +386,13 @@ function ReviewForm({
       {/* Inspector Assignment */}
       {showInspectorFields && (
         <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <h3 className="text-base font-semibold text-black mb-4 flex items-center">
+          <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
             <FiUser className="w-4 h-4 mr-2 text-blue-600" />
             Inspection Assignment
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-black mb-2">Assigned Inspector</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Assigned Inspector</label>
               <div className="relative">
                 <input
                   type="text"
@@ -431,7 +424,7 @@ function ReviewForm({
       <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
         <button
           onClick={handleSave}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r bg-green-900 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 shadow-lg transition-all duration-200 active:scale-95"
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 shadow-lg transition-all duration-200 active:scale-95"
         >
           <FiSave className="w-4 h-4" />
           Save Review
