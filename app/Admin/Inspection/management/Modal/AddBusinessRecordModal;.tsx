@@ -336,7 +336,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-1.5 bg-green-900 text-white text-sm font-bold rounded-full hover:bg-green-600 transition-colors active:scale-95 shadow-md shadow-green-200 disabled:opacity-60"
+            className="px-4 py-1.5 bg-green-500 text-white text-sm font-bold rounded-full hover:bg-green-600 transition-colors active:scale-95 shadow-md shadow-green-200 disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save"}
           </button>
