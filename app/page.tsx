@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Spinner from "./components/Spinner";
 
 export default function LoginPage() {
@@ -11,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setError(null); // Clear error on input change
+    setError(null);
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -24,13 +25,19 @@ export default function LoginPage() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Ensures the HttpOnly cookie is accepted and stored by the browser
-        credentials: "include",
+        credentials: "same-origin", // ✅ correct for same-domain Next.js API
         body: JSON.stringify({
           email: form.username.trim(),
           password: form.password,
         }),
       });
+
+      // ── Handle non-JSON error responses (e.g. 500 HTML pages) ──
+      const contentType = response.headers.get("content-type");
+      if (!contentType?.includes("application/json")) {
+        setError("Server error. Please try again later.");
+        return;
+      }
 
       const data = await response.json();
 
@@ -39,13 +46,16 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ Only store NON-sensitive user info in localStorage
-      // The session token is now stored in a secure HttpOnly cookie automatically
-      // — never put the token in localStorage
+      if (!data.user || !data.user.role) {
+        setError("Unexpected response from server. Contact support.");
+        return;
+      }
+
+      // ✅ Only store non-sensitive info — token is in HttpOnly cookie
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // Redirect based on role
-      const role = data.user?.role;
+      // ── Redirect based on role ──
+      const role = data.user.role;
       if (role === "super_admin") {
         window.location.href = "/SuperAdmin/Inspection/management/analytics";
       } else if (role === "admin") {
@@ -72,12 +82,19 @@ export default function LoginPage() {
             BPLO
           </h2>
 
-          {/* Logo */}
+          {/* Logo — using next/image for optimized loading */}
           <div className="flex justify-center mb-6">
-            <img
+            <Image
               src="/bplo-logo.png"
               alt="BPLO Logo"
-              className="w-36 h-36 object-contain rounded-full"
+              width={144}
+              height={144}
+              className="object-contain rounded-full"
+              // ✅ Fallback if image fails to load
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
+              priority // loads immediately — no lazy load for above-the-fold logo
             />
           </div>
 
@@ -90,7 +107,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Error Message — replaces alert() */}
+            {/* Error message */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 text-center">
                 {error}
@@ -116,7 +133,7 @@ export default function LoginPage() {
                 name="password"
                 placeholder="Password"
                 value={form.password}
-                className="w-full p-4 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all"
+                className="w-full p-4 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all pr-20"
                 onChange={handleChange}
                 autoComplete="current-password"
                 required

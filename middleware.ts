@@ -3,8 +3,8 @@ import type { NextRequest } from 'next/server';
 
 // ============================================================
 // ENVIRONMENT
-// Add to Vercel: Settings → Environment Variables → SECRET_KEY
-// Generate with: openssl rand -hex 32
+// Vercel: Settings → Environment Variables → SECRET_KEY
+// Generate: openssl rand -hex 32
 // ============================================================
 
 const SECRET_KEY = process.env.SECRET_KEY ?? '';
@@ -49,7 +49,6 @@ async function verifyToken(token: string): Promise<Record<string, unknown> | nul
 
     const payload = JSON.parse(atob(payloadB64));
 
-    // Validate required fields exist and are correct types
     if (
       typeof payload !== 'object'        ||
       typeof payload.exp !== 'number'    ||
@@ -59,7 +58,6 @@ async function verifyToken(token: string): Promise<Record<string, unknown> | nul
       return null;
     }
 
-    // Check token expiry
     if (Date.now() > payload.exp) return null;
 
     return payload;
@@ -72,14 +70,12 @@ async function verifyToken(token: string): Promise<Record<string, unknown> | nul
 // ROUTE DEFINITIONS
 // ============================================================
 
-// Exact-match public pages (no auth required)
 const PUBLIC_PAGES: string[] = [
   '/',
   '/forgot-password',
   '/reset-password',
 ];
 
-// Prefix-match public API endpoints (no auth required)
 const PUBLIC_API_PREFIXES: string[] = [
   '/api/auth/login',
   '/api/auth/forgot-password',
@@ -126,16 +122,16 @@ function handleInvalidToken(request: NextRequest): NextResponse {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ✅ Step 1: Public routes FIRST — always accessible regardless of SECRET_KEY
+  // ✅ STEP 1: Public routes FIRST — always accessible
+  // '/' login page will ALWAYS pass through here before anything else
   if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 
-  // ✅ Step 2: SECRET_KEY guard — only reached by protected routes
+  // ✅ STEP 2: SECRET_KEY guard — only protected routes reach this
   if (!SECRET_KEY) {
     console.error(
-      '[Middleware] FATAL: SECRET_KEY environment variable is not set. ' +
-      'All protected routes are blocked.'
+      '[Middleware] FATAL: SECRET_KEY is not set. All protected routes are blocked.'
     );
     return NextResponse.json(
       { error: 'Server misconfiguration. Contact support.' },
@@ -143,28 +139,27 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Step 3: Extract session token — cookie takes priority over Authorization header
+  // STEP 3: Extract session token — cookie takes priority over header
   const sessionToken =
     request.cookies.get('session-token')?.value ??
     request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
 
-  // Step 4: No token present → unauthenticated
+  // STEP 4: No token → unauthenticated
   if (!sessionToken) {
     return handleUnauthenticated(request);
   }
 
-  // Step 5: Cryptographically verify the token
+  // STEP 5: Verify token cryptographically
   const sessionData = await verifyToken(sessionToken);
 
   if (!sessionData) {
-    // Token is expired, forged, or malformed
     return handleInvalidToken(request);
   }
 
   const role = sessionData.role as string;
   const userId = sessionData.userId as string;
 
-  // Step 6: Role-based route protection
+  // STEP 6: Role-based route protection
 
   // /SuperAdmin/** — super_admin only
   if (pathname.startsWith('/SuperAdmin')) {
@@ -182,8 +177,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Step 7: Forward verified identity to downstream route handlers
-  // Access in API routes via: request.headers.get('x-user-id')
+  // STEP 7: Forward verified identity to downstream handlers
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', userId);
   requestHeaders.set('x-user-role', role);
