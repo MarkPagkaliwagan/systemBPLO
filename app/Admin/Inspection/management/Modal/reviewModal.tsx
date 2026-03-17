@@ -76,6 +76,7 @@ interface BusinessRecord {
   status: string | null;
   assigned_inspector: string | null;
   scheduled_date: string | null;
+  // Geo-tag fields stored in DB
   photo: string | null;
   latitude: string | null;
   longitude: string | null;
@@ -100,12 +101,6 @@ interface ReviewModalProps {
 export default function ReviewModal({ selectedRow, showReviewModal, onClose, onSave, isMobile }: ReviewModalProps) {
   if (!showReviewModal || !selectedRow) return null;
 
-  // ── Local state to show uploaded photo/location in the info panel immediately ──
-  const [savedPhotoUrl, setSavedPhotoUrl] = useState<string | null>(selectedRow.photo);
-  const [savedLatitude, setSavedLatitude] = useState<string | null>(selectedRow.latitude);
-  const [savedLongitude, setSavedLongitude] = useState<string | null>(selectedRow.longitude);
-  const [savedAccuracy, setSavedAccuracy] = useState<string | null>(selectedRow.accuracy);
-
   const onUploadPhoto = async (
     file: File,
     location?: { lat: number; lng: number; accuracy: number }
@@ -121,13 +116,6 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
       return null;
     }
     console.log("✅ Photo + location saved:", photoUrl);
-    // ── Update local display immediately ──
-    setSavedPhotoUrl(photoUrl);
-    if (location) {
-      setSavedLatitude(location.lat.toString());
-      setSavedLongitude(location.lng.toString());
-      setSavedAccuracy(location.accuracy.toString());
-    }
     return photoUrl;
   };
 
@@ -258,38 +246,12 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   </div>
                 </div>
 
-                {/* Geo-Tagging — uses local state so it updates immediately after upload */}
+                {/* Geo-Tagging */}
                 <div className="bg-white rounded-lg p-3 border border-gray-200">
                   <h4 className="font-semibold text-gray-800 mb-2 text-sm border-b border-gray-300 pb-2">Geo-Tagging</h4>
                   <div className="grid grid-cols-1 gap-2 text-sm">
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700 shrink-0">Photo:</span>
-<<<<<<< HEAD
-                      {savedPhotoUrl ? (
-                        <>
-                          <a href={savedPhotoUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all mr-2">
-                            View Photo
-                          </a>
-                          <img src={savedPhotoUrl} alt="Inspection" className="mt-1 w-full max-h-48 object-cover rounded-lg border border-gray-200" />
-                        </>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </div>
-                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Latitude:</span><span>{savedLatitude ?? "-"}</span></div>
-                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Longitude:</span><span>{savedLongitude ?? "-"}</span></div>
-                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Accuracy:</span><span>{savedAccuracy ? `±${savedAccuracy}m` : "-"}</span></div>
-                    {savedLatitude && savedLongitude && (
-                      <div className="flex items-start text-gray-600">
-                        <span className="font-bold mr-2 text-gray-700 shrink-0">Map:</span>
-                        <a
-                          href={`https://www.google.com/maps?q=${savedLatitude},${savedLongitude}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 underline text-xs"
-                        >
-                          View on Google Maps
-=======
                       {selectedRow["photo"] ? (
                         <div className="flex flex-col gap-2 flex-1">
                           <img
@@ -303,7 +265,6 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                           rel="noreferrer"
                           className="text-blue-600 underline text-xs"
                          >
->>>>>>> 109337a61fe3130edc0aead2765a33d415a636d3
                         </a>
                       </div>
                     ) : (
