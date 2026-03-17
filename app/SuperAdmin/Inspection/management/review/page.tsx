@@ -11,7 +11,6 @@ import ReviewModal from "../Modal/reviewModal";
 const PAGE_SIZE = 50;
 
 interface BusinessRecord {
-  id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
@@ -228,6 +227,8 @@ export default function CSVReview() {
     else if (reviewData.reviewActions.includes('Compliant'))     rowStatus = 'compliant';
     else if (reviewData.reviewActions.includes('Active'))        rowStatus = 'active';
 
+    const bin = selectedRow["Business Identification Number"];
+
     try {
       const { error } = await supabase
         .from('business_records')
@@ -240,13 +241,13 @@ export default function CSVReview() {
           assigned_inspector: reviewData.assignedInspector ?? null,
           scheduled_date:     reviewData.scheduledDate     ?? null,
         })
-        .eq('id', selectedRow.id);
+        .eq('Business Identification Number', bin);
 
       if (error) { console.error('❌ handleSaveReview error:', error); return; }
 
       setCSVData(prev =>
         prev.map(r =>
-          r.id === selectedRow.id
+          r["Business Identification Number"] === bin
             ? {
                 ...r,
                 violation:          violationStr,
@@ -369,15 +370,14 @@ export default function CSVReview() {
                     {showScheduledOnly ? '📅 Scheduled' : 'Scheduled'}
                   </button>
                 </div>
-                {/* Search full width on mobile */}
                 <div className="relative w-full">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black" />
                   <input
                     type="text"
                     placeholder="Search name, BIN, barangay..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-black"
                   />
                 </div>
               </div>
@@ -407,11 +407,10 @@ export default function CSVReview() {
                 <div className="divide-y divide-gray-100">
                   {csvData.map((row, index) => (
                     <div
-                      key={row.id || `mobile-${currentPage}-${index}`}
+                      key={`mobile-${currentPage}-${index}-${row["Business Identification Number"]}`}
                       onClick={() => handleRowClick(row)}
                       className={`p-4 cursor-pointer active:bg-gray-50 transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
                     >
-                      {/* Top row: name + status badge */}
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">
@@ -426,14 +425,12 @@ export default function CSVReview() {
                         </span>
                       </div>
 
-                      {/* Location */}
                       {(row["Office Barangay"] || row["Office Municipality"]) && (
                         <p className="text-xs text-gray-500 mb-2 truncate">
                           📍 {[row["Office Barangay"], row["Office Municipality"]].filter(Boolean).join(', ')}
                         </p>
                       )}
 
-                      {/* Info pills row */}
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {row["Business Nature"] && (
                           <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full truncate max-w-[120px]">
@@ -452,7 +449,6 @@ export default function CSVReview() {
                         )}
                       </div>
 
-                      {/* Violations / review action */}
                       {row.violation && (
                         <p className="text-xs text-red-600 mb-1 line-clamp-1">⚠ {row.violation}</p>
                       )}
@@ -460,7 +456,6 @@ export default function CSVReview() {
                         <p className="text-xs text-green-600 mb-1 line-clamp-1">✓ {row.review_action}</p>
                       )}
 
-                      {/* Bottom row: date + edit button */}
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-xs text-gray-400 flex items-center gap-1">
                           <FiClock className="w-3 h-3" />
@@ -477,7 +472,6 @@ export default function CSVReview() {
                     </div>
                   ))}
 
-                  {/* + Add row */}
                   {searchTerm && !csvData.some(row =>
                     row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
                   ) && (
@@ -534,7 +528,7 @@ export default function CSVReview() {
                     <tbody className="divide-y divide-gray-300">
                       {csvData.map((row, index) => (
                         <tr
-                          key={row.id || `desktop-${currentPage}-${index}`}
+                          key={`desktop-${currentPage}-${index}-${row["Business Identification Number"]}`}
                           onClick={() => handleRowClick(row)}
                           className={`hover:bg-blue-50 cursor-pointer transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
                         >

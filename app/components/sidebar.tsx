@@ -18,6 +18,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import MobileBottomNav from "./MobileBottomNav";
+import LogoutModal from "./LogoutModal";
 
 interface SidebarItem {
   id: string;
@@ -61,12 +62,6 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       icon: <FiAlertCircle className="w-5 h-5" />,
       href: "/Admin/Compliance/Dashboard",
     },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <FiSettings className="w-5 h-5" />,
-      href: "/module-2-inspection/notifCompliance",
-    },
   ];
 
   const superAdminItems: SidebarItem[] = [
@@ -99,12 +94,6 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       label: "User Management",
       icon: <FiUser className="w-5 h-5" />,
       href: "/SuperAdmin/users",
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <FiSettings className="w-5 h-5" />,
-      href: "/module-2-inspection/notifCompliance",
     },
   ];
 
@@ -141,6 +130,8 @@ export default function Sidebar({
 }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
@@ -182,12 +173,19 @@ export default function Sidebar({
   };
 
   const handleLogout = () => {
-    if (confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('user');
-      localStorage.removeItem('sessionToken');
-      localStorage.removeItem('sessionExpiry');
-      window.location.href = '/';
-    }
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    
+    // Simulate logout process with delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    localStorage.removeItem('user');
+    localStorage.removeItem('sessionToken');
+    localStorage.removeItem('sessionExpiry');
+    window.location.href = '/';
   };
 
   const renderNavItem = (item: SidebarItem, level: number = 0) => {
@@ -346,6 +344,14 @@ export default function Sidebar({
         
         {/* Add Mobile Bottom Navigation */}
         <MobileBottomNav />
+        
+        {/* Logout Modal */}
+        <LogoutModal
+          isOpen={isLogoutModalOpen}
+          onClose={() => setIsLogoutModalOpen(false)}
+          onConfirm={confirmLogout}
+          isLoading={isLoggingOut}
+        />
       </>
     );
   }
@@ -420,6 +426,14 @@ export default function Sidebar({
       </div>
 
       <div className="h-16"></div>
+      
+      {/* Logout Modal */}
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        isLoading={isLoggingOut}
+      />
     </>
   );
 }

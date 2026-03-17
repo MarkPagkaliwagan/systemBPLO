@@ -106,12 +106,24 @@ export function UserForm({ onSubmit, onCancel, isLoading = false, initialData }:
             Role
           </label>
           <div className="relative">
-            <FiShield className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 pointer-events-none`} />
+            <FiShield className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 pointer-events-none z-10`} />
             <select
               name="role"
               value={form.role}
               onChange={handleChange}
-              className={`w-full pl-10 pr-3 py-${isMobile ? '2' : '3'} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none ${isMobile ? 'text-sm' : 'text-base'}`}
+              className={`w-full pl-10 pr-8 py-${isMobile ? '3' : '3'} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none ${
+                isMobile 
+                  ? 'text-sm bg-white min-h-[44px] touch-manipulation' 
+                  : 'text-base'
+              }`}
+              style={{
+                backgroundImage: isMobile 
+                  ? "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4-4'/%3e%3c/svg%3e\")"
+                  : "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4-4'/%3e%3c/svg%3e\")",
+                backgroundPosition: 'right 0.5rem center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '1.5em 1.5em'
+              }}
             >
               <option value="admin">Administrator</option>
               <option value="super_admin">Super Administrator</option>

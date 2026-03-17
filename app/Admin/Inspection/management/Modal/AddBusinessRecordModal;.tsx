@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck } from "lucide-react";
+import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -76,6 +76,7 @@ export interface BusinessRecord {
   assigned_inspector: string | null;
   scheduled_date: string | null;
   file_id: string | null;
+  
 }
 
 interface AddBusinessRecordModalProps {
@@ -227,12 +228,14 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setForm(emptyRecord());
       setErrors({});
       setSaveError(null);
+      setShowSuccess(false);
       setTimeout(() => setVisible(true), 10);
     } else {
       setVisible(false);
@@ -280,8 +283,13 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
         return;
       }
 
-      onSaved(data as BusinessRecord);
-      handleClose();
+      // ── Show success toast then close ─────────────────────────────────────
+      setShowSuccess(true);
+      setTimeout(() => {
+        onSaved(data as BusinessRecord);
+        handleClose();
+      }, 1500);
+
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
     } finally {
@@ -298,9 +306,35 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
 
   return (
     <>
+      {/* ── Success Toast ── */}
+      <div
+        className={`fixed top-6 left-1/2 -translate-x-1/2 z-[90] transition-all duration-500 ${
+          showSuccess ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+        }`}
+      >
+        <div className="flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-2xl shadow-xl shadow-green-200">
+          <CheckCircle size={20} className="shrink-0" />
+          <div>
+            <p className="text-sm font-bold">Record Saved!</p>
+            <p className="text-xs text-green-100">Business record added successfully.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Saving Overlay ── */}
+      {saving && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-semibold text-slate-700">Saving record...</p>
+            <p className="text-xs text-slate-400">Please wait</p>
+          </div>
+        </div>
+      )}
+
       {/* Backdrop */}
       <div
-        onClick={handleClose}
+        onClick={saving ? undefined : handleClose}
         className="fixed inset-0 z-[60] transition-all duration-300"
         style={{
           background: visible ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
@@ -325,7 +359,8 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
           <button
             onClick={handleClose}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors active:scale-90"
+            disabled={saving}
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors active:scale-90 disabled:opacity-40"
           >
             <X size={18} className="text-slate-500" />
           </button>
@@ -336,9 +371,14 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-1.5 bg-green-500 text-white text-sm font-bold rounded-full hover:bg-green-600 transition-colors active:scale-95 shadow-md shadow-green-200 disabled:opacity-60"
+            className="px-4 py-1.5 bg-green-500 text-white text-sm font-bold rounded-full hover:bg-green-600 transition-colors active:scale-95 shadow-md shadow-green-200 disabled:opacity-60 flex items-center gap-2"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Saving...
+              </>
+            ) : 'Save'}
           </button>
         </div>
 
