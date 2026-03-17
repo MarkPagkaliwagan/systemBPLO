@@ -265,7 +265,6 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                           rel="noreferrer"
                           className="text-blue-600 underline text-xs"
                          >
-                          Open full photo
                         </a>
                       </div>
                     ) : (
