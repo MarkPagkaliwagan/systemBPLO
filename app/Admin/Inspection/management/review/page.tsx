@@ -81,6 +81,10 @@ interface BusinessRecord {
   assigned_inspector: string | null;
   scheduled_date: string | null;
   file_id: string | null;
+  photo: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  accuracy: string | null;
 }
 
 export default function CSVReview() {
