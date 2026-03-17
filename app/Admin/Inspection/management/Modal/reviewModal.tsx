@@ -253,28 +253,40 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700 shrink-0">Photo:</span>
                       {selectedRow["photo"] ? (
-                        <a href={selectedRow["photo"]} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all">
-                          View Photo
-                        </a>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </div>
-                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Latitude:</span><span>{selectedRow["latitude"] ?? "-"}</span></div>
-                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Longitude:</span><span>{selectedRow["longitude"] ?? "-"}</span></div>
-                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Accuracy:</span><span>{selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : "-"}</span></div>
-                    {selectedRow["latitude"] && selectedRow["longitude"] && (
-                      <div className="flex items-start text-gray-600">
-                        <span className="font-bold mr-2 text-gray-700 shrink-0">Map:</span>
+                        <div className="flex flex-col gap-2 flex-1">
+                          <img
+                            src={selectedRow["photo"]}
+                            alt="Business Photo"
+                            className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                          />
 
-                         <a href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
+                          <a href={selectedRow["photo"]}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 underline text-xs"
+                         >
+                          Open full photo
+                        </a>
+                      </div>
+                    ) : (
+                      <span>-</span>
+                    )}
+                  </div>
+                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Latitude:</span><span>{selectedRow["latitude"] ?? "-"}</span></div>
+                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Longitude:</span><span>{selectedRow["longitude"] ?? "-"}</span></div>
+                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Accuracy:</span><span>{selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : "-"}</span></div>
+                  {selectedRow["latitude"] && selectedRow["longitude"] && (
+                    <div className="flex items-start text-gray-600">
+                      <span className="font-bold mr-2 text-gray-700 shrink-0">Map:</span>
+
+                      <a href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
                         target="_blank"
                         rel="noreferrer"
                         className="text-blue-600 underline text-xs"
-                         >
+                      >
                         View on Google Maps
                       </a>
-                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -448,10 +460,10 @@ function ReviewForm({
             return (
               <button key={action} onClick={() => addAction(action)} disabled={isSelected}
                 className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${isSelected
-                    ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
-                      : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
-                    : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
+                    : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
+                  : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}>
                 {action}
               </button>
@@ -565,9 +577,9 @@ function ReviewForm({
         </h3>
         <button type="button" onClick={captureLocation} disabled={locationStatus === "loading"}
           className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${locationStatus === "success" ? "bg-green-100 text-green-800 border border-green-300"
-              : locationStatus === "error" ? "bg-red-100 text-red-700 border border-red-300"
-                : locationStatus === "loading" ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
-                  : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"}`}>
+            : locationStatus === "error" ? "bg-red-100 text-red-700 border border-red-300"
+              : locationStatus === "loading" ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
+                : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"}`}>
           <FiMapPin className="w-4 h-4 flex-shrink-0" />
           {locationStatus === "loading" && "Getting location..."}
           {locationStatus === "success" && location && `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
