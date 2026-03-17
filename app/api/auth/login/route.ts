@@ -3,10 +3,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { comparePassword } from '@/lib/passwordUtils';
 import { createSessionToken } from '@/lib/session';
 
-// ============================================================
-// POST /api/auth/login
-// ============================================================
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -29,8 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 3. Password length guard (prevent DoS via bcrypt) ────
-    // bcrypt silently truncates at 72 bytes — reject anything longer
+    // ── 3. Password length guard ─────────────────────────────
     if (password.length > 72) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
@@ -47,8 +42,17 @@ export async function POST(request: NextRequest) {
       .eq('email', normalizedEmail)
       .single();
 
+    // 🔍 DEBUG — remove after fixing
+    console.log('[Login Debug] Input email    :', normalizedEmail);
+    console.log('[Login Debug] DB error       :', dbError?.message ?? 'none');
+    console.log('[Login Debug] DB error code  :', dbError?.code ?? 'none');
+    console.log('[Login Debug] User found     :', user ? 'YES' : 'NO');
+    console.log('[Login Debug] Role           :', user?.role ?? 'n/a');
+    console.log('[Login Debug] is_active      :', user?.is_active ?? 'n/a');
+    console.log('[Login Debug] Hash preview   :', user?.password?.slice(0, 7) ?? 'n/a');
+
     if (dbError || !user) {
-      // Always return the same error — never reveal if the email exists
+      console.log('[Login Debug] ❌ Failed at step 4 — user not found or DB error');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -66,19 +70,24 @@ export async function POST(request: NextRequest) {
     // ── 6. Verify password via bcrypt ────────────────────────
     const isPasswordValid = await comparePassword(password, user.password);
 
+    // 🔍 DEBUG — remove after fixing
+    console.log('[Login Debug] Password valid :', isPasswordValid);
+    console.log('[Login Debug] Hash starts with:', user.password?.slice(0, 4));
+
     if (!isPasswordValid) {
+      console.log('[Login Debug] ❌ Failed at step 6 — wrong password');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    // ── 7. Validate role is an accepted value ─────────────────
+    // ── 7. Validate role ──────────────────────────────────────
     const VALID_ROLES = ['admin', 'super_admin'] as const;
     type Role = typeof VALID_ROLES[number];
 
     if (!VALID_ROLES.includes(user.role as Role)) {
-      console.error(`[Login] Unrecognised role "${user.role}" for user ${user.id}`);
+      console.log('[Login Debug] ❌ Failed at step 7 — invalid role:', user.role);
       return NextResponse.json(
         { error: 'Account role is not authorized.' },
         { status: 403 }
@@ -86,15 +95,14 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 8. Create HMAC-signed session token ──────────────────
-    // createSessionToken lives in lib/session.ts (see below)
-    const SESSION_DURATION_SECONDS = 60 * 60 * 8; // 8 hours
+    const SESSION_DURATION_SECONDS = 60 * 60 * 8;
     const sessionToken = await createSessionToken(
       user.id,
       user.role,
       SESSION_DURATION_SECONDS
     );
 
-    // ── 9. Build response — never expose password hash ───────
+    // ── 9. Build response ─────────────────────────────────────
     const response = NextResponse.json({
       user: {
         id:    user.id,
@@ -105,16 +113,16 @@ export async function POST(request: NextRequest) {
       expiresIn: SESSION_DURATION_SECONDS,
     });
 
-    // ── 10. Set HttpOnly cookie (both dev and prod) ──────────
-    // Removed the isProduction guard — dev should behave like prod
+    // ── 10. Set HttpOnly cookie ───────────────────────────────
     response.cookies.set('session-token', sessionToken, {
-      httpOnly: true,                                       // JS cannot read it
-      secure: process.env.NODE_ENV === 'production',        // HTTPS only in prod
-      sameSite: 'lax',                                      // CSRF protection
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: SESSION_DURATION_SECONDS,
       path: '/',
     });
 
+    console.log('[Login Debug] ✅ Login successful for:', normalizedEmail);
     return response;
 
   } catch (error) {
@@ -137,12 +145,11 @@ export async function DELETE(_request: NextRequest) {
       { status: 200 }
     );
 
-    // Clear the session cookie server-side
     response.cookies.set('session-token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 0,     // Instructs browser to delete the cookie immediately
+      maxAge: 0,
       path: '/',
     });
 
