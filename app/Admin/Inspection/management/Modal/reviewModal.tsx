@@ -3,7 +3,7 @@
 
 import { useState, useRef } from "react";
 import { FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser, FiMapPin, FiPhone, FiMail, FiBriefcase, FiCamera, FiUpload, FiTrash2 } from "react-icons/fi";
-import { handlePhotoUpload } from "@/lib/photoUpload";
+import { handlePhotoAndLocationUpload } from "@/lib/photoUpload";
 
 interface BusinessRecord {
   id: string;
@@ -101,22 +101,21 @@ interface ReviewModalProps {
 export default function ReviewModal({ selectedRow, showReviewModal, onClose, onSave, isMobile }: ReviewModalProps) {
   if (!showReviewModal || !selectedRow) return null;
 
-  // ── Photo upload handler ───────────────────────────────────────────────
-  // Called by ReviewForm when a photo is selected.
-  // Usage: const photoUrl = await onUploadPhoto(file);
-  const onUploadPhoto = async (file: File) => {
-    const photoUrl = await handlePhotoUpload(
+  const onUploadPhoto = async (
+    file: File,
+    location?: { lat: number; lng: number; accuracy: number }
+  ) => {
+    const photoUrl = await handlePhotoAndLocationUpload(
       file,
       selectedRow["Business Identification Number"],
-      selectedRow["Business Name"]
+      selectedRow["Business Name"],
+      location
     );
-
     if (!photoUrl) {
-      console.error("❌ Photo upload failed");
+      console.error("❌ Photo + location upload failed");
       return null;
     }
-
-    console.log("✅ Photo uploaded:", photoUrl);
+    console.log("✅ Photo + location saved:", photoUrl);
     return photoUrl;
   };
 
@@ -247,7 +246,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   </div>
                 </div>
 
-                {/* Geo-Tagging — displays values saved in DB */}
+                {/* Geo-Tagging */}
                 <div className="bg-white rounded-lg p-3 border border-gray-200">
                   <h4 className="font-semibold text-gray-800 mb-2 text-sm border-b border-gray-300 pb-2">Geo-Tagging</h4>
                   <div className="grid grid-cols-1 gap-2 text-sm">
@@ -267,12 +266,12 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                     {selectedRow["latitude"] && selectedRow["longitude"] && (
                       <div className="flex items-start text-gray-600">
                         <span className="font-bold mr-2 text-gray-700 shrink-0">Map:</span>
-                        <a
+                        <a>
                           href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-blue-600 underline text-xs"
-                        >
+                        
                           View on Google Maps
                         </a>
                       </div>
@@ -284,21 +283,6 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
             </div>
 
             {/* ── Review Form ── */}
-            {/*
-              ── FOR COWORKER ──────────────────────────────────────────────
-              To upload a photo, call onUploadPhoto(file) with a File object.
-              Example usage in your UI:
-
-              const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const photoUrl = await onUploadPhoto(file);
-                if (photoUrl) {
-                  // photo saved! update UI here
-                }
-              };
-              ──────────────────────────────────────────────────────────────
-            */}
             <div className={`${isMobile ? "w-full" : "lg:col-span-1"}`}>
               <ReviewForm
                 initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map(a => a.trim()) : []}
@@ -342,12 +326,10 @@ function ReviewForm({
     photo?: File;
   }) => void;
   onCancel: () => void;
-  // ── FOR COWORKER ──────────────────────────────────────────────────────────
-  // Call this with a File object to upload photo to Supabase bucket.
-  // Returns the public URL of the uploaded photo, or null if failed.
-  // Example: const photoUrl = await onUploadPhoto(file);
-  onUploadPhoto: (file: File) => Promise<string | null>;
-  // ─────────────────────────────────────────────────────────────────────────
+  onUploadPhoto: (
+    file: File,
+    location?: { lat: number; lng: number; accuracy: number }
+  ) => Promise<string | null>;
   isMobile?: boolean;
 }) {
   const [reviewActions, setReviewActions] = useState<string[]>(initialActions);
@@ -355,31 +337,24 @@ function ReviewForm({
   const [violationText, setViolationText] = useState<string>(initialViolations.join(", "));
   const [assignedInspector, setAssignedInspector] = useState<string>(initialInspector || "");
   const [scheduledDate, setScheduledDate] = useState<string>(initialScheduledDate || "");
+  const [isSaving, setIsSaving] = useState(false);
 
   // ── Geo-tag state ──────────────────────────────────────────────
   const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
   const captureLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationStatus("error");
-      return;
-    }
+    if (!navigator.geolocation) { setLocationStatus("error"); return; }
     setLocationStatus("loading");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocation({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: Math.round(pos.coords.accuracy),
-        });
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) });
         setLocationStatus("success");
       },
       () => setLocationStatus("error"),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
-  // ──────────────────────────────────────────────────────────────
 
   // ── Photo state ───────────────────────────────────────────────
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -398,11 +373,10 @@ function ReviewForm({
     reader.readAsDataURL(file);
   };
 
-  // Request camera permission then trigger the input — works on desktop & mobile
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach((t) => t.stop()); // stop immediately — we only needed the prompt
+      stream.getTracks().forEach((t) => t.stop());
       setCameraPermission("granted");
       cameraInputRef.current?.click();
     } catch {
@@ -417,33 +391,14 @@ function ReviewForm({
     if (file) handlePhotoFile(file);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => setIsDragging(false);
-
-  const clearPhoto = () => {
-    setPhotoFile(null);
-    setPhotoPreview(null);
-    setCameraPermission("idle");
-  };
-  // ──────────────────────────────────────────────────────────────
+  const clearPhoto = () => { setPhotoFile(null); setPhotoPreview(null); setCameraPermission("idle"); };
 
   const availableActions = ["Active", "Compliant", "Non-Compliant", "For Inspection"];
-
-  // Non-Compliant and For Inspection render in red
-  const isRedAction = (action: string) =>
-    action === "Non-Compliant" || action === "For Inspection";
-
-  const addAction = (action: string) => {
-    if (!reviewActions.includes(action)) setReviewActions([...reviewActions, action]);
-  };
-
-  const removeAction = (index: number) => {
-    setReviewActions(reviewActions.filter((_, i) => i !== index));
-  };
+  const isRedAction = (action: string) => action === "Non-Compliant" || action === "For Inspection";
+  const addAction = (action: string) => { if (!reviewActions.includes(action)) setReviewActions([...reviewActions, action]); };
+  const removeAction = (index: number) => { setReviewActions(reviewActions.filter((_, i) => i !== index)); };
 
   const handleViolationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
@@ -451,15 +406,23 @@ function ReviewForm({
     setViolations(text.split(",").map(v => v.trim()).filter(v => v.length > 0));
   };
 
-  const handleSave = () => {
-    onSave({
-      reviewActions,
-      violations,
-      assignedInspector: assignedInspector || undefined,
-      scheduledDate: scheduledDate || undefined,
-      location: location || undefined,
-      photo: photoFile || undefined,
-    });
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      if (photoFile) {
+        await onUploadPhoto(photoFile, location ?? undefined);
+      }
+      onSave({
+        reviewActions,
+        violations,
+        assignedInspector: assignedInspector || undefined,
+        scheduledDate: scheduledDate || undefined,
+        location: location || undefined,
+        photo: photoFile || undefined,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const showInspectorFields = reviewActions.includes("For Inspection");
@@ -467,74 +430,46 @@ function ReviewForm({
   return (
     <div className="space-y-4">
 
-      {/* Hidden file inputs — always mounted so refs are stable */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => { if (e.target.files?.[0]) handlePhotoFile(e.target.files[0]); e.target.value = ""; }}
-      />
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => { if (e.target.files?.[0]) handlePhotoFile(e.target.files[0]); e.target.value = ""; }}
-      />
+      {/* Hidden file inputs */}
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
+        onChange={(e) => { if (e.target.files?.[0]) handlePhotoFile(e.target.files[0]); e.target.value = ""; }} />
+      <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
+        onChange={(e) => { if (e.target.files?.[0]) handlePhotoFile(e.target.files[0]); e.target.value = ""; }} />
 
       {/* ── Review Actions ── */}
       <div className="bg-white rounded-xl p-4 border border-gray-200">
         <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
-          <FiCheck className="w-4 h-4 mr-2 text-green-600" />
-          Review Actions
+          <FiCheck className="w-4 h-4 mr-2 text-green-600" />Review Actions
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {availableActions.map((action) => {
             const isSelected = reviewActions.includes(action);
             const isRed = isRedAction(action);
             return (
-              <button
-                key={action}
-                onClick={() => addAction(action)}
-                disabled={isSelected}
+              <button key={action} onClick={() => addAction(action)} disabled={isSelected}
                 className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${
                   isSelected
-                    ? isRed
-                      ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
-                      : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
-                    : isRed
-                      ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
+                    ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
+                            : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
+                    : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}>
                 {action}
               </button>
             );
           })}
         </div>
-
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Selected Actions</label>
           <div className="min-h-[60px] p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
             {reviewActions.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {reviewActions.map((action, index) => (
-                  <span
-                    key={index}
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      isRedAction(action) ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    <FiCheck className="w-3 h-3 mr-1" />
-                    {action}
-                    <button
-                      onClick={() => removeAction(index)}
-                      className={`ml-2 transition-colors ${
-                        isRedAction(action) ? "text-red-600 hover:text-red-800" : "text-green-600 hover:text-green-800"
-                      }`}
-                    >
+                  <span key={index} className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    isRedAction(action) ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
+                    <FiCheck className="w-3 h-3 mr-1" />{action}
+                    <button onClick={() => removeAction(index)}
+                      className={`ml-2 transition-colors ${isRedAction(action) ? "text-red-600 hover:text-red-800" : "text-green-600 hover:text-green-800"}`}>
                       <FiX className="w-3 h-3" />
                     </button>
                   </span>
@@ -550,28 +485,21 @@ function ReviewForm({
       {/* ── Violations ── */}
       <div className="bg-white rounded-xl p-4 border border-gray-200">
         <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
-          <FiAlertTriangle className="w-4 h-4 mr-2 text-red-600" />
-          Violations
+          <FiAlertTriangle className="w-4 h-4 mr-2 text-red-600" />Violations
         </h3>
         <label className="block text-sm font-medium text-gray-700 mb-2">Violations Details</label>
-        <textarea
-          rows={3}
-          value={violationText}
-          onChange={handleViolationTextChange}
+        <textarea rows={3} value={violationText} onChange={handleViolationTextChange}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-red-700"
-          placeholder="Enter violations separated by commas..."
-        />
+          placeholder="Enter violations separated by commas..." />
         <p className="text-xs text-gray-500 mt-1">Separate multiple violations with commas</p>
       </div>
 
-      {/* ── Inspection Photo — always visible for all statuses ── */}
+      {/* ── Inspection Photo ── */}
       <div className="bg-white rounded-xl p-4 border border-gray-200">
         <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
-          <FiCamera className="w-4 h-4 mr-2 text-green-600" />
-          Inspection Photo
+          <FiCamera className="w-4 h-4 mr-2 text-green-600" />Inspection Photo
         </h3>
 
-        {/* Camera permission denied warning */}
         {cameraPermission === "denied" && (
           <div className="mb-3 flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
             <FiAlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
@@ -581,31 +509,18 @@ function ReviewForm({
           </div>
         )}
 
-        {/* Photo preview */}
         {photoPreview && (
           <div className="mb-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
             <div className="relative">
-              <img
-                src={photoPreview}
-                alt="Inspection photo"
-                className="w-full max-h-64 object-cover"
-              />
+              <img src={photoPreview} alt="Inspection photo" className="w-full max-h-64 object-cover" />
               <div className="absolute top-2 right-2 flex gap-2">
-                <button
-                  type="button"
-                  onClick={openCamera}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium rounded-lg border border-gray-200 hover:bg-white shadow-sm transition-colors"
-                >
-                  <FiCamera className="w-3 h-3" />
-                  Retake
+                <button type="button" onClick={openCamera}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium rounded-lg border border-gray-200 hover:bg-white shadow-sm transition-colors">
+                  <FiCamera className="w-3 h-3" />Retake
                 </button>
-                <button
-                  type="button"
-                  onClick={clearPhoto}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-lg hover:bg-red-600 shadow-sm transition-colors"
-                >
-                  <FiTrash2 className="w-3 h-3" />
-                  Remove
+                <button type="button" onClick={clearPhoto}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-lg hover:bg-red-600 shadow-sm transition-colors">
+                  <FiTrash2 className="w-3 h-3" />Remove
                 </button>
               </div>
             </div>
@@ -619,18 +534,10 @@ function ReviewForm({
           </div>
         )}
 
-        {/* Dropzone — shown when no photo yet */}
         {!photoPreview && (
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+          <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
             className={`w-full rounded-xl border-2 border-dashed transition-all duration-200 ${
-              isDragging
-                ? "border-green-400 bg-green-50 scale-[1.01]"
-                : "border-gray-300 bg-gray-50 hover:border-green-400 hover:bg-green-50"
-            }`}
-          >
+              isDragging ? "border-green-400 bg-green-50 scale-[1.01]" : "border-gray-300 bg-gray-50 hover:border-green-400 hover:bg-green-50"}`}>
             <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
               <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-3">
                 <FiCamera className="w-7 h-7 text-green-600" />
@@ -640,49 +547,31 @@ function ReviewForm({
               </p>
               <p className="text-xs text-gray-400 mb-5">JPG, PNG, WEBP • Max 10 MB</p>
               <div className={`flex ${isMobile ? "flex-col w-full" : "flex-row"} gap-3`}>
-                <button
-                  type="button"
-                  onClick={openCamera}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm"
-                >
-                  <FiCamera className="w-4 h-4" />
-                  Open Camera
+                <button type="button" onClick={openCamera}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
+                  <FiCamera className="w-4 h-4" />Open Camera
                 </button>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
-                >
-                  <FiUpload className="w-4 h-4" />
-                  Upload File
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
+                  <FiUpload className="w-4 h-4" />Upload File
                 </button>
               </div>
             </div>
           </div>
         )}
       </div>
-      {/* ── End Inspection Photo ── */}
 
-      {/* ── Geo-tag Location — always visible for all statuses ── */}
+      {/* ── Geo-tag Location ── */}
       <div className="bg-white rounded-xl p-4 border border-gray-200">
         <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
-          <FiMapPin className="w-4 h-4 mr-2 text-blue-600" />
-          Inspection Location
+          <FiMapPin className="w-4 h-4 mr-2 text-blue-600" />Inspection Location
         </h3>
-        <button
-          type="button"
-          onClick={captureLocation}
-          disabled={locationStatus === "loading"}
+        <button type="button" onClick={captureLocation} disabled={locationStatus === "loading"}
           className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${
-            locationStatus === "success"
-              ? "bg-green-100 text-green-800 border border-green-300"
-              : locationStatus === "error"
-              ? "bg-red-100 text-red-700 border border-red-300"
-              : locationStatus === "loading"
-              ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
-              : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"
-          }`}
-        >
+            locationStatus === "success" ? "bg-green-100 text-green-800 border border-green-300"
+            : locationStatus === "error" ? "bg-red-100 text-red-700 border border-red-300"
+            : locationStatus === "loading" ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
+            : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"}`}>
           <FiMapPin className="w-4 h-4 flex-shrink-0" />
           {locationStatus === "loading" && "Getting location..."}
           {locationStatus === "success" && location && `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
@@ -692,49 +581,34 @@ function ReviewForm({
         {locationStatus === "success" && location && (
           <p className="text-xs text-gray-500 mt-2">
             Accuracy: ±{location.accuracy}m ·{" "}
-            <a
-              href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-blue-600 underline"
-            >
+            <a href={`https://www.google.com/maps?q=${location.lat},${location.lng}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">
               View on map
             </a>
           </p>
         )}
       </div>
-      {/* ── End Geo-tag ── */}
 
       {/* ── Inspector Assignment — only for 'For Inspection' ── */}
       {showInspectorFields && (
         <div className="bg-white rounded-xl p-4 border border-gray-200">
           <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
-            <FiUser className="w-4 h-4 mr-2 text-blue-600" />
-            Inspection Assignment
+            <FiUser className="w-4 h-4 mr-2 text-blue-600" />Inspection Assignment
           </h3>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Assigned Inspector</label>
               <div className="relative">
-                <input
-                  type="text"
-                  value={assignedInspector}
-                  onChange={(e) => setAssignedInspector(e.target.value)}
+                <input type="text" value={assignedInspector} onChange={(e) => setAssignedInspector(e.target.value)}
                   className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-black"
-                  placeholder="Enter inspector name..."
-                />
+                  placeholder="Enter inspector name..." />
                 <FiUser className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled Date</label>
               <div className="relative">
-                <input
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
-                />
+                <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)}
+                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors" />
                 <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
               </div>
             </div>
@@ -744,17 +618,14 @@ function ReviewForm({
 
       {/* ── Action Buttons ── */}
       <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
-        <button
-          onClick={handleSave}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 shadow-lg transition-all duration-200 active:scale-95"
-        >
+        <button onClick={handleSave} disabled={isSaving}
+          className={`w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200 ${
+            isSaving ? "opacity-70 cursor-wait" : "hover:from-green-700 hover:to-green-800 active:scale-95"}`}>
           <FiSave className="w-4 h-4" />
-          Save Review
+          {isSaving ? "Saving..." : "Save Review"}
         </button>
-        <button
-          onClick={onCancel}
-          className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors active:scale-95"
-        >
+        <button onClick={onCancel} disabled={isSaving}
+          className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors active:scale-95 disabled:opacity-50">
           Cancel
         </button>
       </div>
