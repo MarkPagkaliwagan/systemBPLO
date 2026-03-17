@@ -264,6 +264,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   <div className="grid grid-cols-1 gap-2 text-sm">
                     <div className="flex items-start text-gray-600">
                       <span className="font-bold mr-2 text-gray-700 shrink-0">Photo:</span>
+<<<<<<< HEAD
                       {savedPhotoUrl ? (
                         <>
                           <a href={savedPhotoUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline break-all mr-2">
@@ -288,32 +289,66 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                           className="text-blue-600 underline text-xs"
                         >
                           View on Google Maps
+=======
+                      {selectedRow["photo"] ? (
+                        <div className="flex flex-col gap-2 flex-1">
+                          <img
+                            src={selectedRow["photo"]}
+                            alt="Business Photo"
+                            className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                          />
+
+                          <a href={selectedRow["photo"]}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-blue-600 underline text-xs"
+                         >
+>>>>>>> 109337a61fe3130edc0aead2765a33d415a636d3
                         </a>
                       </div>
+                    ) : (
+                      <span>-</span>
                     )}
                   </div>
+                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Latitude:</span><span>{selectedRow["latitude"] ?? "-"}</span></div>
+                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Longitude:</span><span>{selectedRow["longitude"] ?? "-"}</span></div>
+                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Accuracy:</span><span>{selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : "-"}</span></div>
+                  {selectedRow["latitude"] && selectedRow["longitude"] && (
+                    <div className="flex items-start text-gray-600">
+                      <span className="font-bold mr-2 text-gray-700 shrink-0">Map:</span>
+
+                      <a href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 underline text-xs"
+                      >
+                        View on Google Maps
+                      </a>
+                    </div>
+                  )}
                 </div>
-
               </div>
-            </div>
 
-            {/* ── Review Form ── */}
-            <div className={`${isMobile ? "w-full" : "lg:col-span-1"}`}>
-              <ReviewForm
-                initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map(a => a.trim()) : []}
-                initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map(v => v.trim()) : []}
-                initialInspector={selectedRow.assigned_inspector ?? undefined}
-                initialScheduledDate={selectedRow.scheduled_date ?? undefined}
-                onSave={onSave}
-                onCancel={onClose}
-                onUploadPhoto={onUploadPhoto}
-                isMobile={isMobile}
-              />
             </div>
+          </div>
+
+          {/* ── Review Form ── */}
+          <div className={`${isMobile ? "w-full" : "lg:col-span-1"}`}>
+            <ReviewForm
+              initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map(a => a.trim()) : []}
+              initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map(v => v.trim()) : []}
+              initialInspector={selectedRow.assigned_inspector ?? undefined}
+              initialScheduledDate={selectedRow.scheduled_date ?? undefined}
+              onSave={onSave}
+              onCancel={onClose}
+              onUploadPhoto={onUploadPhoto}
+              isMobile={isMobile}
+            />
           </div>
         </div>
       </div>
     </div>
+    </div >
   );
 }
 
@@ -462,13 +497,12 @@ function ReviewForm({
             const isRed = isRedAction(action);
             return (
               <button key={action} onClick={() => addAction(action)} disabled={isSelected}
-                className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${
-                  isSelected
-                    ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
-                            : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
-                    : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}>
+                className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${isSelected
+                  ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
+                    : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
+                  : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}>
                 {action}
               </button>
             );
@@ -480,8 +514,7 @@ function ReviewForm({
             {reviewActions.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {reviewActions.map((action, index) => (
-                  <span key={index} className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    isRedAction(action) ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
+                  <span key={index} className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${isRedAction(action) ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
                     <FiCheck className="w-3 h-3 mr-1" />{action}
                     <button onClick={() => removeAction(index)}
                       className={`ml-2 transition-colors ${isRedAction(action) ? "text-red-600 hover:text-red-800" : "text-green-600 hover:text-green-800"}`}>
@@ -551,8 +584,7 @@ function ReviewForm({
 
         {!photoPreview && (
           <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
-            className={`w-full rounded-xl border-2 border-dashed transition-all duration-200 ${
-              isDragging ? "border-green-400 bg-green-50 scale-[1.01]" : "border-gray-300 bg-gray-50 hover:border-green-400 hover:bg-green-50"}`}>
+            className={`w-full rounded-xl border-2 border-dashed transition-all duration-200 ${isDragging ? "border-green-400 bg-green-50 scale-[1.01]" : "border-gray-300 bg-gray-50 hover:border-green-400 hover:bg-green-50"}`}>
             <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
               <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-3">
                 <FiCamera className="w-7 h-7 text-green-600" />
@@ -582,11 +614,10 @@ function ReviewForm({
           <FiMapPin className="w-4 h-4 mr-2 text-blue-600" />Inspection Location
         </h3>
         <button type="button" onClick={captureLocation} disabled={locationStatus === "loading"}
-          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${
-            locationStatus === "success" ? "bg-green-100 text-green-800 border border-green-300"
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${locationStatus === "success" ? "bg-green-100 text-green-800 border border-green-300"
             : locationStatus === "error" ? "bg-red-100 text-red-700 border border-red-300"
-            : locationStatus === "loading" ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
-            : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"}`}>
+              : locationStatus === "loading" ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
+                : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"}`}>
           <FiMapPin className="w-4 h-4 flex-shrink-0" />
           {locationStatus === "loading" && "Getting location..."}
           {locationStatus === "success" && location && `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
@@ -634,8 +665,7 @@ function ReviewForm({
       {/* ── Action Buttons ── */}
       <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
         <button onClick={handleSave} disabled={isSaving}
-          className={`w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200 ${
-            isSaving ? "opacity-70 cursor-wait" : "hover:from-green-700 hover:to-green-800 active:scale-95"}`}>
+          className={`w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200 ${isSaving ? "opacity-70 cursor-wait" : "hover:from-green-700 hover:to-green-800 active:scale-95"}`}>
           <FiSave className="w-4 h-4" />
           {isSaving ? "Saving..." : "Save Review"}
         </button>
