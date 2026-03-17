@@ -11,6 +11,7 @@ import ReviewModal from "../Modal/reviewModal";
 const PAGE_SIZE = 50;
 
 interface BusinessRecord {
+    id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
