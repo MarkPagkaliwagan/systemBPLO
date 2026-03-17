@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // ============================================================
-// ENVIRONMENT GUARD
-// Add to .env.local: SECRET_KEY=<random-64-char-hex>
+// ENVIRONMENT
+// Add to Vercel: Settings → Environment Variables → SECRET_KEY
 // Generate with: openssl rand -hex 32
 // ============================================================
 
@@ -33,7 +33,10 @@ async function verifyToken(token: string): Promise<Record<string, unknown> | nul
     const key = await getHmacKey(SECRET_KEY);
     const encoder = new TextEncoder();
 
-    const signatureBytes = Uint8Array.from(atob(signatureB64), (c) => c.charCodeAt(0));
+    const signatureBytes = Uint8Array.from(
+      atob(signatureB64),
+      (c) => c.charCodeAt(0)
+    );
 
     const isValid = await crypto.subtle.verify(
       'HMAC',
@@ -48,9 +51,9 @@ async function verifyToken(token: string): Promise<Record<string, unknown> | nul
 
     // Validate required fields exist and are correct types
     if (
-      typeof payload !== 'object'       ||
-      typeof payload.exp !== 'number'   ||
-      typeof payload.role !== 'string'  ||
+      typeof payload !== 'object'        ||
+      typeof payload.exp !== 'number'    ||
+      typeof payload.role !== 'string'   ||
       typeof payload.userId !== 'string'
     ) {
       return null;
@@ -95,7 +98,6 @@ function isPublicRoute(pathname: string): boolean {
 // ============================================================
 
 function handleUnauthenticated(request: NextRequest): NextResponse {
-  // Return JSON 401 for API routes to avoid leaking page structure
   if (request.nextUrl.pathname.startsWith('/api/')) {
     return NextResponse.json(
       { error: 'Unauthorized. Please log in.' },
@@ -112,7 +114,6 @@ function handleInvalidToken(request: NextRequest): NextResponse {
       { status: 401 }
     );
   }
-  // Delete the bad cookie and send user back to login
   const response = NextResponse.redirect(new URL('/', request.url));
   response.cookies.delete('session-token');
   return response;
@@ -125,7 +126,12 @@ function handleInvalidToken(request: NextRequest): NextResponse {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Guard: refuse all requests if SECRET_KEY is not configured
+  // ✅ Step 1: Public routes FIRST — always accessible regardless of SECRET_KEY
+  if (isPublicRoute(pathname)) {
+    return NextResponse.next();
+  }
+
+  // ✅ Step 2: SECRET_KEY guard — only reached by protected routes
   if (!SECRET_KEY) {
     console.error(
       '[Middleware] FATAL: SECRET_KEY environment variable is not set. ' +
@@ -137,22 +143,17 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Step 1: Pass public routes through immediately
-  if (isPublicRoute(pathname)) {
-    return NextResponse.next();
-  }
-
-  // Step 2: Extract session token — cookie takes priority over Authorization header
+  // Step 3: Extract session token — cookie takes priority over Authorization header
   const sessionToken =
     request.cookies.get('session-token')?.value ??
     request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
 
-  // Step 3: No token present → unauthenticated
+  // Step 4: No token present → unauthenticated
   if (!sessionToken) {
     return handleUnauthenticated(request);
   }
 
-  // Step 4: Cryptographically verify the token
+  // Step 5: Cryptographically verify the token
   const sessionData = await verifyToken(sessionToken);
 
   if (!sessionData) {
@@ -163,12 +164,11 @@ export async function middleware(request: NextRequest) {
   const role = sessionData.role as string;
   const userId = sessionData.userId as string;
 
-  // Step 5: Role-based route protection
+  // Step 6: Role-based route protection
 
-  // /SuperAdmin/** — only super_admin
+  // /SuperAdmin/** — super_admin only
   if (pathname.startsWith('/SuperAdmin')) {
     if (role !== 'super_admin') {
-      // Redirect unauthorized admins to their own dashboard
       return NextResponse.redirect(
         new URL('/Admin/Inspection/management/analytics', request.url)
       );
@@ -182,7 +182,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Step 6: Forward verified identity to downstream route handlers
+  // Step 7: Forward verified identity to downstream route handlers
   // Access in API routes via: request.headers.get('x-user-id')
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', userId);
