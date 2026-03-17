@@ -1,68 +1,196 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+// ============================================================
+// ENVIRONMENT
+// Vercel: Settings → Environment Variables → SECRET_KEY
+// Generate: openssl rand -hex 32
+// ============================================================
+
+const SECRET_KEY = process.env.SECRET_KEY ?? '';
+
+// ============================================================
+// CRYPTO UTILITIES
+// ============================================================
+
+async function getHmacKey(secret: string): Promise<CryptoKey> {
+  const encoder = new TextEncoder();
+  return crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify']
+  );
+}
+
+async function verifyToken(token: string): Promise<Record<string, unknown> | null> {
+  try {
+    const [payloadB64, signatureB64] = token.split('.');
+
+    if (!payloadB64 || !signatureB64) return null;
+
+    const key = await getHmacKey(SECRET_KEY);
+    const encoder = new TextEncoder();
+
+    const signatureBytes = Uint8Array.from(
+      atob(signatureB64),
+      (c) => c.charCodeAt(0)
+    );
+
+    const isValid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      signatureBytes,
+      encoder.encode(payloadB64)
+    );
+
+    if (!isValid) return null;
+
+    const payload = JSON.parse(atob(payloadB64));
+
+    if (
+      typeof payload !== 'object'        ||
+      typeof payload.exp !== 'number'    ||
+      typeof payload.role !== 'string'   ||
+      typeof payload.userId !== 'string'
+    ) {
+      return null;
+    }
+
+    if (Date.now() > payload.exp) return null;
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+// ============================================================
+// ROUTE DEFINITIONS
+// ============================================================
+
+const PUBLIC_PAGES: string[] = [
+  '/',
+  '/forgot-password',
+  '/reset-password',
+];
+
+const PUBLIC_API_PREFIXES: string[] = [
+  '/api/auth/login',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/change-password',
+];
+
+function isPublicRoute(pathname: string): boolean {
+  if (PUBLIC_PAGES.includes(pathname)) return true;
+  if (PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return true;
+  return false;
+}
+
+// ============================================================
+// RESPONSE HELPERS
+// ============================================================
+
+function handleUnauthenticated(request: NextRequest): NextResponse {
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json(
+      { error: 'Unauthorized. Please log in.' },
+      { status: 401 }
+    );
+  }
+  return NextResponse.redirect(new URL('/', request.url));
+}
+
+function handleInvalidToken(request: NextRequest): NextResponse {
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json(
+      { error: 'Invalid or expired session. Please log in again.' },
+      { status: 401 }
+    );
+  }
+  const response = NextResponse.redirect(new URL('/', request.url));
+  response.cookies.delete('session-token');
+  return response;
+}
+
+// ============================================================
+// MIDDLEWARE ENTRY POINT
+// ============================================================
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  const sessionToken = request.cookies.get('session-token')?.value || 
-                      request.headers.get('authorization')?.replace('Bearer ', '');
 
-  // Public routes that don't require authentication
-  const publicRoutes = [
-    '/',
-    '/forgot-password',
-    '/reset-password',
-    '/api/auth',
-    '/api/auth/login',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-    '/api/auth/change-password'
-  ];
-
-  // Allow public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  // ✅ STEP 1: Public routes FIRST — always accessible
+  // '/' login page will ALWAYS pass through here before anything else
+  if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 
-  // Check if user is authenticated
+  // ✅ STEP 2: SECRET_KEY guard — only protected routes reach this
+  if (!SECRET_KEY) {
+    console.error(
+      '[Middleware] FATAL: SECRET_KEY is not set. All protected routes are blocked.'
+    );
+    return NextResponse.json(
+      { error: 'Server misconfiguration. Contact support.' },
+      { status: 500 }
+    );
+  }
+
+  // STEP 3: Extract session token — cookie takes priority over header
+  const sessionToken =
+    request.cookies.get('session-token')?.value ??
+    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+
+  // STEP 4: No token → unauthenticated
   if (!sessionToken) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return handleUnauthenticated(request);
   }
 
-  try {
-    const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
-    
-    if (Date.now() > sessionData.exp) {
-      // Clear session and redirect to login
-      const response = NextResponse.redirect(new URL('/', request.url));
-      response.cookies.delete('session-token');
-      return response;
-    }
+  // STEP 5: Verify token cryptographically
+  const sessionData = await verifyToken(sessionToken);
 
-    // Super Admin routes protection
-    if (pathname.startsWith('/SuperAdmin')) {
-      if (sessionData.role !== 'super_admin') {
-        return NextResponse.redirect(new URL('/Admin/Inspection/management/analytics', request.url));
-      }
-    }
-
-    // Admin routes protection (both roles can access)
-    if (pathname.startsWith('/Admin')) {
-      if (sessionData.role !== 'admin' && sessionData.role !== 'super_admin') {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-    }
-
-  } catch (error) {
-    // Invalid token, redirect to login
-    return NextResponse.redirect(new URL('/', request.url));
+  if (!sessionData) {
+    return handleInvalidToken(request);
   }
 
-  return NextResponse.next();
+  const role = sessionData.role as string;
+  const userId = sessionData.userId as string;
+
+  // STEP 6: Role-based route protection
+
+  // /SuperAdmin/** — super_admin only
+  if (pathname.startsWith('/SuperAdmin')) {
+    if (role !== 'super_admin') {
+      return NextResponse.redirect(
+        new URL('/Admin/Inspection/management/analytics', request.url)
+      );
+    }
+  }
+
+  // /Admin/** — admin or super_admin
+  if (pathname.startsWith('/Admin')) {
+    if (role !== 'admin' && role !== 'super_admin') {
+      return handleUnauthenticated(request);
+    }
+  }
+
+  // STEP 7: Forward verified identity to downstream handlers
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-user-id', userId);
+  requestHeaders.set('x-user-role', role);
+
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 }
 
+// ============================================================
+// MATCHER — skip Next.js internals and static assets
+// ============================================================
+
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|public/).*)'],
 };
