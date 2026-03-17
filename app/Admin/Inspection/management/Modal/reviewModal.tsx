@@ -1,8 +1,8 @@
 // app/module-2-inspection/Review Modal/ReviewModal.tsx
 "use client";
 
-import { useState } from "react";
-import { FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser, FiMapPin, FiPhone, FiMail, FiBriefcase } from "react-icons/fi";
+import { useState, useRef } from "react";
+import { FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser, FiMapPin, FiPhone, FiMail, FiBriefcase, FiCamera, FiUpload, FiTrash2 } from "react-icons/fi";
 
 interface BusinessRecord {
   id: string;
@@ -86,6 +86,8 @@ interface ReviewModalProps {
     violations: string[];
     assignedInspector?: string;
     scheduledDate?: string;
+    location?: { lat: number; lng: number; accuracy: number };
+    photo?: File;
   }) => void;
   isMobile: boolean;
 }
@@ -396,7 +398,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
   );
 }
 
-// Review Form Component — untouched
+// Review Form Component
 function ReviewForm({
   initialActions,
   initialViolations,
@@ -415,6 +417,8 @@ function ReviewForm({
     violations: string[];
     assignedInspector?: string;
     scheduledDate?: string;
+    location?: { lat: number; lng: number; accuracy: number };
+    photo?: File;
   }) => void;
   onCancel: () => void;
   isMobile?: boolean;
@@ -424,6 +428,84 @@ function ReviewForm({
   const [violationText, setViolationText] = useState<string>(initialViolations.join(', '));
   const [assignedInspector, setAssignedInspector] = useState<string>(initialInspector || '');
   const [scheduledDate, setScheduledDate] = useState<string>(initialScheduledDate || '');
+
+  // ── Geo-tag state ──────────────────────────────────────────────
+  const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const captureLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy),
+        });
+        setLocationStatus('success');
+      },
+      () => setLocationStatus('error'),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+  // ──────────────────────────────────────────────────────────────
+
+  // ── Photo state ───────────────────────────────────────────────
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [cameraPermission, setCameraPermission] = useState<'idle' | 'granted' | 'denied'>('idle');
+
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setPhotoPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  // Request camera permission then trigger the input
+  const openCamera = async () => {
+    try {
+      // Ask browser for camera permission — works on desktop & mobile
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Permission granted — stop the stream immediately (we just needed the prompt)
+      stream.getTracks().forEach((t) => t.stop());
+      setCameraPermission('granted');
+      // Trigger the file input with capture="environment"
+      cameraInputRef.current?.click();
+    } catch {
+      setCameraPermission('denied');
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handlePhotoFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => setIsDragging(false);
+
+  const clearPhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setCameraPermission('idle');
+  };
+  // ──────────────────────────────────────────────────────────────
 
   const availableActions = ['Active', 'Compliant', 'Non-Compliant', 'For Inspection'];
 
@@ -449,7 +531,9 @@ function ReviewForm({
       reviewActions,
       violations,
       assignedInspector: assignedInspector || undefined,
-      scheduledDate: scheduledDate || undefined
+      scheduledDate: scheduledDate || undefined,
+      location: location || undefined,
+      photo: photoFile || undefined,
     });
   };
 
@@ -457,6 +541,23 @@ function ReviewForm({
 
   return (
     <div className={`${isMobile ? 'space-y-4' : 'space-y-6'}`}>
+      {/* Hidden file inputs — always mounted so refs are stable */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => { if (e.target.files?.[0]) handlePhotoFile(e.target.files[0]); e.target.value = ''; }}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { if (e.target.files?.[0]) handlePhotoFile(e.target.files[0]); e.target.value = ''; }}
+      />
+
       {/* Review Actions Section */}
       <div className="bg-white rounded-xl p-4 border border-gray-200">
         <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-4 flex items-center`}>
@@ -508,7 +609,6 @@ function ReviewForm({
           <FiAlertTriangle className="w-4 h-4 mr-2 text-red-600" />
           Violations
         </h3>
-
         <div className="mb-4">
           <label htmlFor="violations" className="block text-sm font-medium text-gray-700 mb-2">
             Violations Details
@@ -525,14 +625,154 @@ function ReviewForm({
         </div>
       </div>
 
-      {/* Inspector Assignment Section */}
+      {/* ── Inspection Photo — always visible for all statuses ── */}
+      <div className="bg-white rounded-xl p-4 border border-gray-200">
+        <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-4 flex items-center`}>
+          <FiCamera className="w-4 h-4 mr-2 text-green-600" />
+          Inspection Photo
+        </h3>
+
+        {/* Camera permission denied warning */}
+        {cameraPermission === 'denied' && (
+          <div className="mb-3 flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+            <FiAlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-red-700">
+              Camera access was denied. Please allow camera permission in your browser settings, then try again. You can still upload a photo using the Upload File button.
+            </p>
+          </div>
+        )}
+
+        {/* Photo preview — shown when a photo is captured/uploaded */}
+        {photoPreview && (
+          <div className="mb-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+            <div className="relative">
+              <img
+                src={photoPreview}
+                alt="Inspection photo"
+                className="w-full max-h-64 object-cover"
+              />
+              <div className="absolute top-2 right-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium rounded-lg border border-gray-200 hover:bg-white shadow-sm transition-colors"
+                >
+                  <FiCamera className="w-3 h-3" />
+                  Retake
+                </button>
+                <button
+                  type="button"
+                  onClick={clearPhoto}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-lg hover:bg-red-600 shadow-sm transition-colors"
+                >
+                  <FiTrash2 className="w-3 h-3" />
+                  Remove
+                </button>
+              </div>
+            </div>
+            <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-700 truncate max-w-[180px]">{photoFile?.name}</p>
+                <p className="text-xs text-gray-400">{photoFile ? `${(photoFile.size / 1024).toFixed(1)} KB` : ''}</p>
+              </div>
+              <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">Captured</span>
+            </div>
+          </div>
+        )}
+
+        {/* Dropzone — shown when no photo yet */}
+        {!photoPreview && (
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={`w-full rounded-xl border-2 border-dashed transition-all duration-200
+              ${isDragging
+                ? 'border-green-400 bg-green-50 scale-[1.01]'
+                : 'border-gray-300 bg-gray-50 hover:border-green-400 hover:bg-green-50'
+              }`}
+          >
+            <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                <FiCamera className="w-7 h-7 text-green-600" />
+              </div>
+              <p className="text-sm font-medium text-gray-700 mb-1">
+                {isMobile ? 'Tap to take a photo or upload' : 'Drag & drop a photo here, or use the buttons below'}
+              </p>
+              <p className="text-xs text-gray-400 mb-5">JPG, PNG, WEBP • Max 10 MB</p>
+              <div className={`flex ${isMobile ? 'flex-col w-full' : 'flex-row'} gap-3`}>
+                <button
+                  type="button"
+                  onClick={openCamera}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm"
+                >
+                  <FiCamera className="w-4 h-4" />
+                  Open Camera
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+                >
+                  <FiUpload className="w-4 h-4" />
+                  Upload File
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* ── End Inspection Photo ── */}
+
+      {/* ── Geo-tag Location — always visible for all statuses ── */}
+      <div className="bg-white rounded-xl p-4 border border-gray-200">
+        <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-4 flex items-center`}>
+          <FiMapPin className="w-4 h-4 mr-2 text-blue-600" />
+          Inspection Location
+        </h3>
+        <button
+          type="button"
+          onClick={captureLocation}
+          disabled={locationStatus === 'loading'}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200
+            ${locationStatus === 'success'
+              ? 'bg-green-100 text-green-800 border border-green-300'
+              : locationStatus === 'error'
+              ? 'bg-red-100 text-red-700 border border-red-300'
+              : locationStatus === 'loading'
+              ? 'bg-gray-100 text-gray-500 border border-gray-300 cursor-wait'
+              : 'bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100'
+            }`}
+        >
+          <FiMapPin className="w-4 h-4 flex-shrink-0" />
+          {locationStatus === 'loading' && 'Getting location...'}
+          {locationStatus === 'success' && location && `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
+          {locationStatus === 'error' && 'Location failed — tap to retry'}
+          {locationStatus === 'idle' && 'Capture Current Location'}
+        </button>
+        {locationStatus === 'success' && location && (
+          <p className="text-xs text-gray-500 mt-2">
+            Accuracy: ±{location.accuracy}m ·{' '}
+            <a
+              href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-blue-600 underline"
+            >
+              View on map
+            </a>
+          </p>
+        )}
+      </div>
+      {/* ── End Geo-tag ── */}
+
+      {/* Inspector Assignment Section — only for 'For Inspection' */}
       {showInspectorFields && (
         <div className="bg-white rounded-xl p-4 border border-gray-200">
           <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-4 flex items-center`}>
             <FiUser className="w-4 h-4 mr-2 text-blue-600" />
             Inspection Assignment
           </h3>
-
           <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-2 gap-4'}`}>
             <div>
               <label htmlFor="inspector" className="block text-sm font-medium text-gray-700 mb-2">
@@ -550,7 +790,6 @@ function ReviewForm({
                 <FiUser className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
               </div>
             </div>
-
             <div>
               <label htmlFor="scheduledDate" className="block text-sm font-medium text-gray-700 mb-2">
                 Scheduled Date
@@ -571,11 +810,11 @@ function ReviewForm({
       )}
 
       {/* Action Buttons */}
-      <div className={`${isMobile ? 'flex-col space-y-2' : 'flex justify-end space-x-4'} pt-4 border-t border-gray-200`}>
+      <div className={`${isMobile ? 'flex flex-col space-y-2' : 'flex justify-end space-x-4'} pt-4 border-t border-gray-200`}>
         <button onClick={onCancel} className={`${isMobile ? 'w-full' : ''} px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors`}>
           Cancel
         </button>
-        <button onClick={handleSave} className={`${isMobile ? 'w-full' : ''} px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 shadow-lg transition-all duration-200 transform hover:scale-105`}>
+        <button onClick={handleSave} className={`${isMobile ? 'w-full flex items-center justify-center' : 'flex items-center'} px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium hover:from-green-700 hover:to-green-800 shadow-lg transition-all duration-200 transform hover:scale-105`}>
           <FiSave className="w-4 h-4 mr-2" />
           Save Review
         </button>
