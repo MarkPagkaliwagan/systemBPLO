@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser, FiMapPin, FiPhone, FiMail, FiBriefcase } from "react-icons/fi";
+import { handlePhotoUpload } from "@/lib/photoUpload";
 
 interface BusinessRecord {
   "Business Identification Number": string;
@@ -74,6 +75,10 @@ interface BusinessRecord {
   status: string | null;
   assigned_inspector: string | null;
   scheduled_date: string | null;
+  photo: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  accuracy: string | null;
 }
 
 interface ReviewModalProps {
@@ -91,6 +96,25 @@ interface ReviewModalProps {
 
 export default function ReviewModal({ selectedRow, showReviewModal, onClose, onSave, isMobile }: ReviewModalProps) {
   if (!showReviewModal || !selectedRow) return null;
+
+  // ── Photo upload handler ───────────────────────────────────────────────
+  // Called by coworker's UI when a photo is selected
+  // Usage: const photoUrl = await onUploadPhoto(file);
+  const onUploadPhoto = async (file: File) => {
+    const photoUrl = await handlePhotoUpload(
+      file,
+      selectedRow["Business Identification Number"],
+      selectedRow["Business Name"]
+    );
+
+    if (!photoUrl) {
+      console.error('❌ Photo upload failed');
+      return null;
+    }
+
+    console.log('✅ Photo uploaded:', photoUrl);
+    return photoUrl;
+  };
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
@@ -219,10 +243,36 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                   </div>
                 </div>
 
+                {/* Geo-Tagging */}
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm border-b border-gray-300 pb-2">Geo-Tagging</h4>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Photo:</span><span className="break-all">{selectedRow["photo"] ?? '-'}</span></div>
+                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Longitude:</span><span>{selectedRow["longitude"] ?? '-'}</span></div>
+                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Latitude:</span><span>{selectedRow["latitude"] ?? '-'}</span></div>
+                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Accuracy:</span><span>{selectedRow["accuracy"] ?? '-'}</span></div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
             {/* Review Form */}
+            {/* 
+              ── FOR COWORKER ──────────────────────────────────────────────
+              To upload a photo, call onUploadPhoto(file) with a File object.
+              Example usage in your UI:
+              
+              const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const photoUrl = await onUploadPhoto(file);
+                if (photoUrl) {
+                  // photo saved! update UI here
+                }
+              };
+              ──────────────────────────────────────────────────────────────
+            */}
             <div className={`${isMobile ? 'w-full' : 'lg:col-span-1'}`}>
               <ReviewForm
                 initialActions={selectedRow.review_action ? selectedRow.review_action.split(',').map(a => a.trim()) : []}
@@ -231,6 +281,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                 initialScheduledDate={selectedRow.scheduled_date ?? undefined}
                 onSave={onSave}
                 onCancel={onClose}
+                onUploadPhoto={onUploadPhoto}
                 isMobile={isMobile}
               />
             </div>
@@ -249,6 +300,7 @@ function ReviewForm({
   initialScheduledDate,
   onSave,
   onCancel,
+  onUploadPhoto,
   isMobile = false
 }: {
   initialActions: string[];
@@ -262,6 +314,12 @@ function ReviewForm({
     scheduledDate?: string;
   }) => void;
   onCancel: () => void;
+  // ── FOR COWORKER ──────────────────────────────────────────────────────────
+  // Call this with a File object to upload photo to Supabase bucket
+  // Returns the public URL of the uploaded photo, or null if failed
+  // Example: const photoUrl = await onUploadPhoto(file);
+  onUploadPhoto: (file: File) => Promise<string | null>;
+  // ─────────────────────────────────────────────────────────────────────────
   isMobile?: boolean;
 }) {
   const [reviewActions, setReviewActions] = useState<string[]>(initialActions);
