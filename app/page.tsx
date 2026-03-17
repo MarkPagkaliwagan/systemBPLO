@@ -2,102 +2,91 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import Spinner from "./components/Spinner";
 
 export default function LoginPage() {
-  const [form, setForm] = useState({ username: "", password: "" });
+
+  const [form, setForm] = useState({
+    username: "",
+    password: ""
+  });
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setError(null);
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/auth", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin", // ✅ correct for same-domain Next.js API
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           email: form.username.trim(),
-          password: form.password,
-        }),
+          password: form.password
+        })
       });
-
-      // ── Handle non-JSON error responses (e.g. 500 HTML pages) ──
-      const contentType = response.headers.get("content-type");
-      if (!contentType?.includes("application/json")) {
-        setError("Server error. Please try again later.");
-        return;
-      }
 
       const data = await response.json();
 
-      if (!response.ok) {
-        setError(data.error || "Login failed. Please try again.");
-        return;
-      }
+      if (response.ok) {
+        // Store user data in localStorage
+        localStorage.setItem("user", JSON.stringify(data.user));
+        localStorage.setItem("sessionToken", data.sessionToken);
+        localStorage.setItem("sessionExpiry", Date.now() + data.expiresIn);
 
-      if (!data.user || !data.user.role) {
-        setError("Unexpected response from server. Contact support.");
-        return;
-      }
-
-      // ✅ Only store non-sensitive info — token is in HttpOnly cookie
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      // ── Redirect based on role ──
-      const role = data.user.role;
-      if (role === "super_admin") {
-        window.location.href = "/SuperAdmin/Inspection/management/analytics";
-      } else if (role === "admin") {
-        window.location.href = "/Admin/Inspection/management/analytics";
+        // Redirect to appropriate dashboard based on user role
+        if (data.user.role === 'super_admin') {
+          window.location.href = "/SuperAdmin/Inspection/management/analytics";
+        } else if (data.user.role === 'admin') {
+          window.location.href = "/Admin/Inspection/management/analytics";
+        } else {
+          window.location.href = "/Admin/Inspection/management/analytics";
+        }
       } else {
-        setError("Unauthorized role. Contact support.");
+        // Handle specific error messages
+        const errorMessage = data.error || "Login failed";
+        alert(errorMessage);
       }
-
-    } catch (err) {
-      console.error("[Login] Network error:", err);
-      setError("Network error. Please check your connection and try again.");
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
+
     <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 sm:p-6 font-sans text-gray-900">
+
       <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-sm min-h-[600px] flex flex-col justify-between">
 
         <div>
+
           {/* Header */}
           <h2 className="text-2xl font-bold text-gray-800 text-center mb-2">
             BPLO
           </h2>
-
-          {/* Logo — using next/image for optimized loading */}
+          {/* Logo */}
           <div className="flex justify-center mb-6">
-            <Image
+            <img
               src="/bplo-logo.png"
               alt="BPLO Logo"
-              width={144}
-              height={144}
-              className="object-contain rounded-full"
-              // ✅ Fallback if image fails to load
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-              priority // loads immediately — no lazy load for above-the-fold logo
+              className="w-36 h-36 object-contain rounded-full"
             />
           </div>
-
           <h2 className="text-lg font-bold text-gray-800 text-center mb-2">
             Inspection Management System
           </h2>
@@ -107,37 +96,28 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Error message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 text-center">
-                {error}
-              </div>
-            )}
-
-            {/* Username / Email */}
+            {/* Username */}
             <input
               type="text"
               name="username"
               placeholder="Username"
-              value={form.username}
               className="w-full p-4 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all"
               onChange={handleChange}
-              autoComplete="username"
               required
             />
 
             {/* Password */}
             <div className="relative">
+
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
-                value={form.password}
-                className="w-full p-4 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all pr-20"
+                className="w-full p-4 px-6 rounded-2xl text-gray-700 bg-gray-50 border border-transparent focus:border-green-800 focus:bg-white focus:ring-4 focus:ring-green-100 outline-none transition-all"
                 onChange={handleChange}
-                autoComplete="current-password"
                 required
               />
+
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -145,18 +125,22 @@ export default function LoginPage() {
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
+
             </div>
 
-            {/* Submit */}
+            {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-green-800 text-white p-4 rounded-2xl font-bold text-lg hover:bg-green-900 shadow-[0_10px_20px_rgba(20,83,45,0.2)] hover:shadow-none transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             >
+
               {loading ? <Spinner /> : "Sign In"}
+
             </button>
 
           </form>
+
         </div>
 
         <div className="mt-auto pt-8 text-center">
@@ -166,6 +150,8 @@ export default function LoginPage() {
         </div>
 
       </div>
+
     </div>
+
   );
 }

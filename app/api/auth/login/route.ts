@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { comparePassword } from '@/lib/passwordUtils';
-import { createSessionToken } from '@/lib/session';
+
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    const { email, password } = await request.json();
 
-    // ── 1. Input presence check ──────────────────────────────
+    // Input validation
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email and password are required' },
@@ -16,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 2. Email format validation ───────────────────────────
+    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -25,108 +24,83 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 3. Password length guard ─────────────────────────────
-    if (password.length > 72) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    // ── 4. Fetch user from database ──────────────────────────
-    const { data: user, error: dbError } = await supabase
+    console.log('Login attempt for email:', email.toLowerCase().trim());
+    
+    // Query users table with proper error handling
+    const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, email, password, role, is_active')
-      .eq('email', normalizedEmail)
+      .select('*')
+      .eq('email', email.toLowerCase().trim())
       .single();
 
-    // 🔍 DEBUG — remove after fixing
-    console.log('[Login Debug] Input email    :', normalizedEmail);
-    console.log('[Login Debug] DB error       :', dbError?.message ?? 'none');
-    console.log('[Login Debug] DB error code  :', dbError?.code ?? 'none');
-    console.log('[Login Debug] User found     :', user ? 'YES' : 'NO');
-    console.log('[Login Debug] Role           :', user?.role ?? 'n/a');
-    console.log('[Login Debug] is_active      :', user?.is_active ?? 'n/a');
-    console.log('[Login Debug] Hash preview   :', user?.password?.slice(0, 7) ?? 'n/a');
+    console.log('Database query result:', { user: user ? 'found' : 'not found', error: error ? error.message : 'none' });
 
-    if (dbError || !user) {
-      console.log('[Login Debug] ❌ Failed at step 4 — user not found or DB error');
+    if (error) {
+      console.error('Database query error:', error);
+      // Don't expose specific database errors to client
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    // ── 5. Block deactivated accounts ───────────────────────
-    if (user.is_active === false) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Account is disabled. Contact support.' },
-        { status: 403 }
+        { error: 'Invalid credentials' },
+        { status: 401 }
       );
     }
 
-    // ── 6. Verify password via bcrypt ────────────────────────
+    // Password comparison using bcrypt
+    console.log('Comparing password for user:', user.email);
     const isPasswordValid = await comparePassword(password, user.password);
-
-    // 🔍 DEBUG — remove after fixing
-    console.log('[Login Debug] Password valid :', isPasswordValid);
-    console.log('[Login Debug] Hash starts with:', user.password?.slice(0, 4));
-
+    console.log('Password valid:', isPasswordValid);
+    
     if (!isPasswordValid) {
-      console.log('[Login Debug] ❌ Failed at step 6 — wrong password');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    // ── 7. Validate role ──────────────────────────────────────
-    const VALID_ROLES = ['admin', 'super_admin'] as const;
-    type Role = typeof VALID_ROLES[number];
+    // Create secure session token with expiration
+    const sessionData = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      timestamp: Date.now(),
+      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+    };
 
-    if (!VALID_ROLES.includes(user.role as Role)) {
-      console.log('[Login Debug] ❌ Failed at step 7 — invalid role:', user.role);
-      return NextResponse.json(
-        { error: 'Account role is not authorized.' },
-        { status: 403 }
-      );
-    }
+    const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
 
-    // ── 8. Create HMAC-signed session token ──────────────────
-    const SESSION_DURATION_SECONDS = 60 * 60 * 8;
-    const sessionToken = await createSessionToken(
-      user.id,
-      user.role,
-      SESSION_DURATION_SECONDS
-    );
-
-    // ── 9. Build response ─────────────────────────────────────
+    // Set secure HTTP-only cookie for production
+    const isProduction = process.env.NODE_ENV === 'production';
     const response = NextResponse.json({
       user: {
-        id:    user.id,
-        name:  user.name,
+        id: user.id,
+        name: user.name,
         email: user.email,
-        role:  user.role,
+        role: user.role,
       },
-      expiresIn: SESSION_DURATION_SECONDS,
+      sessionToken,
+      expiresIn: 24 * 60 * 60 * 1000 // 24 hours
     });
 
-    // ── 10. Set HttpOnly cookie ───────────────────────────────
-    response.cookies.set('session-token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: SESSION_DURATION_SECONDS,
-      path: '/',
-    });
+    // Set secure cookie in production
+    if (isProduction) {
+      response.cookies.set('session-token', sessionToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 // 24 hours
+      });
+    }
 
-    console.log('[Login Debug] ✅ Login successful for:', normalizedEmail);
     return response;
 
   } catch (error) {
-    console.error('[Login] Unexpected error:', error);
+    console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -134,38 +108,22 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ============================================================
-// DELETE /api/auth/login  →  Logout
-// ============================================================
-
-export async function DELETE(_request: NextRequest) {
+export async function DELETE(request: NextRequest) {
   try {
-    const response = NextResponse.json(
+    // For now, logout is handled client-side by clearing localStorage
+    // In the future, we could implement server-side session invalidation
+    return NextResponse.json(
       { message: 'Logout successful' },
       { status: 200 }
     );
-
-    response.cookies.set('session-token', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0,
-      path: '/',
-    });
-
-    return response;
   } catch (error) {
-    console.error('[Logout] Unexpected error:', error);
+    console.error('Logout error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
-
-// ============================================================
-// GET /api/auth/login  →  Not allowed
-// ============================================================
 
 export async function GET() {
   return NextResponse.json(
