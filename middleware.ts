@@ -5,9 +5,13 @@ import { verifySessionToken } from '@/lib/session';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  console.log('[MIDDLEWARE] Checking path:', pathname);
+  
   const sessionToken =
     request.cookies.get('session-token')?.value ||
     request.headers.get('authorization')?.replace('Bearer ', '');
+
+  console.log('[MIDDLEWARE] Token exists:', !!sessionToken);
 
   const publicExactRoutes = ['/'];
   const publicPrefixRoutes = [
@@ -25,7 +29,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!sessionToken) {
-    return NextResponse.redirect(new URL('/', request.url));
+    const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.delete('session-token');
+    return response;
   }
 
   const sessionData = await verifySessionToken(sessionToken) as {
