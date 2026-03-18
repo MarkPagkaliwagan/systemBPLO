@@ -179,12 +179,22 @@ export default function Sidebar({
   const confirmLogout = async () => {
     setIsLoggingOut(true);
     
-    // Simulate logout process with delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Call logout API to clear the HTTP-only cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout API error:', error);
+    }
     
+    // Clear localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('sessionToken');
     localStorage.removeItem('sessionExpiry');
+    
+    // Redirect to login page
     window.location.href = '/';
   };
 
