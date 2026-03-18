@@ -41,7 +41,7 @@ export function UserTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[600px]"> {/* Minimum width to prevent table collapse */}
+      <table className="w-full min-w-[600px]"> 
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
