@@ -76,7 +76,6 @@ interface BusinessRecord {
   status: string | null;
   assigned_inspector: string | null;
   scheduled_date: string | null;
-  // Geo-tag fields stored in DB
   photo: string | null;
   latitude: string | null;
   longitude: string | null;
@@ -99,7 +98,22 @@ interface ReviewModalProps {
 }
 
 export default function ReviewModal({ selectedRow, showReviewModal, onClose, onSave, isMobile }: ReviewModalProps) {
+  const [showSavedToast, setShowSavedToast] = useState(false);
+
   if (!showReviewModal || !selectedRow) return null;
+
+  const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
+    if (isMobile) {
+      setShowSavedToast(true);
+      onSave(reviewData);
+      setTimeout(() => {
+        setShowSavedToast(false);
+        onClose();
+      }, 1800);
+    } else {
+      onSave(reviewData);
+    }
+  };
 
   const onUploadPhoto = async (
     file: File,
@@ -121,6 +135,20 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
 
   return (
     <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+
+      {/* ── Mobile Saved Toast ── */}
+      {isMobile && (
+        <div className={`fixed inset-0 flex items-center justify-center z-[9999] pointer-events-none transition-opacity duration-500 ${showSavedToast ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`flex flex-col items-center gap-3 bg-white rounded-2xl px-8 py-6 shadow-2xl border border-green-100 transition-all duration-500 ${showSavedToast ? 'scale-100 translate-y-0' : 'scale-90 translate-y-4'}`}>
+            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+              <FiCheck className="w-7 h-7 text-green-600" />
+            </div>
+            <p className="text-base font-semibold text-gray-800">Review Saved!</p>
+            <p className="text-xs text-gray-400">Closing...</p>
+          </div>
+        </div>
+      )}
+
       <div className={`${isMobile ? "w-full max-w-full max-h-full" : "max-w-5xl w-full mx-4"} bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto`}>
 
         {/* Modal Header */}
@@ -259,57 +287,55 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                             alt="Business Photo"
                             className="w-full h-40 object-cover rounded-lg border border-gray-200"
                           />
-
                           <a href={selectedRow["photo"]}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 underline text-xs"
+                          >
+                          </a>
+                        </div>
+                      ) : (
+                        <span>-</span>
+                      )}
+                    </div>
+                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Latitude:</span><span>{selectedRow["latitude"] ?? "-"}</span></div>
+                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Longitude:</span><span>{selectedRow["longitude"] ?? "-"}</span></div>
+                    <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Accuracy:</span><span>{selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : "-"}</span></div>
+                    {selectedRow["latitude"] && selectedRow["longitude"] && (
+                      <div className="flex items-start text-gray-600">
+                        <span className="font-bold mr-2 text-gray-700 shrink-0">Map:</span>
+                        <a href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-blue-600 underline text-xs"
-                         >
+                        >
+                          View on Google Maps
                         </a>
                       </div>
-                    ) : (
-                      <span>-</span>
                     )}
                   </div>
-                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Latitude:</span><span>{selectedRow["latitude"] ?? "-"}</span></div>
-                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Longitude:</span><span>{selectedRow["longitude"] ?? "-"}</span></div>
-                  <div className="flex items-start text-gray-600"><span className="font-bold mr-2 text-gray-700 shrink-0">Accuracy:</span><span>{selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : "-"}</span></div>
-                  {selectedRow["latitude"] && selectedRow["longitude"] && (
-                    <div className="flex items-start text-gray-600">
-                      <span className="font-bold mr-2 text-gray-700 shrink-0">Map:</span>
-
-                      <a href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 underline text-xs"
-                      >
-                        View on Google Maps
-                      </a>
-                    </div>
-                  )}
                 </div>
+
               </div>
-
             </div>
-          </div>
 
-          {/* ── Review Form ── */}
-          <div className={`${isMobile ? "w-full" : "lg:col-span-1"}`}>
-            <ReviewForm
-              initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map(a => a.trim()) : []}
-              initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map(v => v.trim()) : []}
-              initialInspector={selectedRow.assigned_inspector ?? undefined}
-              initialScheduledDate={selectedRow.scheduled_date ?? undefined}
-              onSave={onSave}
-              onCancel={onClose}
-              onUploadPhoto={onUploadPhoto}
-              isMobile={isMobile}
-            />
+            {/* ── Review Form ── */}
+            <div className={`${isMobile ? "w-full" : "lg:col-span-1"}`}>
+              <ReviewForm
+                initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map(a => a.trim()) : []}
+                initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map(v => v.trim()) : []}
+                initialInspector={selectedRow.assigned_inspector ?? undefined}
+                initialScheduledDate={selectedRow.scheduled_date ?? undefined}
+                onSave={handleSaveWithToast}
+                onCancel={onClose}
+                onUploadPhoto={onUploadPhoto}
+                isMobile={isMobile}
+              />
+            </div>
           </div>
         </div>
       </div>
     </div>
-    </div >
   );
 }
 

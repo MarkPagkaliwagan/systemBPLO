@@ -290,36 +290,48 @@ export default function CSVReview() {
     }
 
     return (
-      <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-sm text-gray-600 text-center">
+      <div className="px-[1.5vw] py-[1vh] border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <span
+          className="text-gray-600 text-center"
+          style={{ fontSize: 'clamp(10px, 1vw, 14px)' }}
+        >
           {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalCount)} of {totalCount.toLocaleString()} records
         </span>
-        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+        <div className="flex items-center justify-center flex-wrap" style={{ gap: 'clamp(2px, 0.4vw, 6px)' }}>
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            style={{ width: 'clamp(26px, 2.2vw, 40px)', height: 'clamp(26px, 2.2vw, 40px)' }}
           >
-            <FiChevronLeft className="w-4 h-4" />
+            <FiChevronLeft style={{ width: 'clamp(11px, 1vw, 16px)', height: 'clamp(11px, 1vw, 16px)' }} />
           </button>
+
           {pageNumbers.map(page => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors
+              className={`flex items-center justify-center rounded-lg font-medium transition-colors
                 ${currentPage === page
                   ? 'bg-green-600 text-white'
                   : 'border border-gray-200 hover:bg-gray-100 text-gray-700'}`}
+              style={{
+                width: 'clamp(26px, 2.2vw, 40px)',
+                height: 'clamp(26px, 2.2vw, 40px)',
+                fontSize: 'clamp(10px, 1vw, 14px)',
+              }}
             >
               {page}
             </button>
           ))}
+
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            style={{ width: 'clamp(26px, 2.2vw, 40px)', height: 'clamp(26px, 2.2vw, 40px)' }}
           >
-            <FiChevronRight className="w-4 h-4" />
+            <FiChevronRight style={{ width: 'clamp(11px, 1vw, 16px)', height: 'clamp(11px, 1vw, 16px)' }} />
           </button>
         </div>
       </div>
