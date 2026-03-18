@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FiSearch, FiSend, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { createClient } from "@supabase/supabase-js";
 import Sidebar from "../../../components/sidebar";
+import ProtectedRoute from "../../../../components/ProtectedRoute";
 import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
 
 const supabase = createClient(
@@ -23,7 +24,7 @@ type Violation = {
   cease_flag?: boolean;
 };
 
-export default function ViolationsPage() {
+function ViolationsPageContent() {
   const [violations, setViolations] = useState<Violation[]>([]);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<keyof Violation | null>(null);
@@ -588,5 +589,13 @@ export default function ViolationsPage() {
       </footer>
 
     </div>
+  );
+}
+
+export default function ComplianceDashboardPage() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <ViolationsPageContent />
+    </ProtectedRoute>
   );
 }
