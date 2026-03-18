@@ -76,6 +76,7 @@ export interface BusinessRecord {
   assigned_inspector: string | null;
   scheduled_date: string | null;
   file_id: string | null;
+  
 }
 
 interface AddBusinessRecordModalProps {
