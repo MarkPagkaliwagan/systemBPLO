@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { FiClock, FiEdit, FiSearch, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { supabase } from "@/lib/supabaseClient";
@@ -11,7 +11,7 @@ import ReviewModal from "../Modal/reviewModal";
 const PAGE_SIZE = 50;
 
 interface BusinessRecord {
-    id: string;
+  id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
@@ -91,7 +91,8 @@ interface BusinessRecord {
 export default function CSVReview() {
   const router = useRouter();
   const [isCollapsed, setIsCollapsed]           = useState(false);
-  const [isMobile, setIsMobile]                 = useState(false);
+  // ── FIX 1: Start isMobile as null so we never render the wrong layout ────
+  const [isMobile, setIsMobile]                 = useState<boolean | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [csvData, setCSVData]       = useState<BusinessRecord[]>([]);
@@ -105,7 +106,9 @@ export default function CSVReview() {
 
   const [selectedRow, setSelectedRow]         = useState<BusinessRecord | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [pendingCount, setPendingCount]       = useState(0);
+
+  // ── FIX 2: pendingCount starts as null so badge doesn't flash in/out ─────
+  const [pendingCount, setPendingCount]       = useState<number | null>(null);
 
   // ── Responsive ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -290,41 +293,62 @@ export default function CSVReview() {
     }
 
     return (
-      <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-sm text-gray-600 text-center">
+      <div className="px-[1.5vw] py-[1vh] border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <span
+          className="text-gray-600 text-center"
+          style={{ fontSize: 'clamp(10px, 1vw, 14px)' }}
+        >
           {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalCount)} of {totalCount.toLocaleString()} records
         </span>
-        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+        <div className="flex items-center justify-center flex-wrap" style={{ gap: 'clamp(2px, 0.4vw, 6px)' }}>
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            style={{ width: 'clamp(26px, 2.2vw, 40px)', height: 'clamp(26px, 2.2vw, 40px)' }}
           >
-            <FiChevronLeft className="w-4 h-4" />
+            <FiChevronLeft style={{ width: 'clamp(11px, 1vw, 16px)', height: 'clamp(11px, 1vw, 16px)' }} />
           </button>
+
           {pageNumbers.map(page => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors
+              className={`flex items-center justify-center rounded-lg font-medium transition-colors
                 ${currentPage === page
                   ? 'bg-green-600 text-white'
                   : 'border border-gray-200 hover:bg-gray-100 text-gray-700'}`}
+              style={{
+                width: 'clamp(26px, 2.2vw, 40px)',
+                height: 'clamp(26px, 2.2vw, 40px)',
+                fontSize: 'clamp(10px, 1vw, 14px)',
+              }}
             >
               {page}
             </button>
           ))}
+
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            style={{ width: 'clamp(26px, 2.2vw, 40px)', height: 'clamp(26px, 2.2vw, 40px)' }}
           >
-            <FiChevronRight className="w-4 h-4" />
+            <FiChevronRight style={{ width: 'clamp(11px, 1vw, 16px)', height: 'clamp(11px, 1vw, 16px)' }} />
           </button>
         </div>
       </div>
     );
   };
+
+  // ── FIX 3: Don't render anything until we know if mobile or desktop ───────
+  if (isMobile === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -341,16 +365,20 @@ export default function CSVReview() {
         <div className={isMobile ? 'px-3 py-5' : 'px-6 py-10'}>
 
           {/* ── Header ── */}
+          {/* FIX 4: Reserve space for pending badge always so it doesn't shift layout */}
           <div className="mb-5">
             <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-gray-900 mb-1`}>
               Scheduling
             </h1>
             <p className="text-sm text-gray-500">Reviewing and Scheduling</p>
-            {pendingCount > 0 && (
-              <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                {pendingCount.toLocaleString()} records pending review
-              </div>
-            )}
+            {/* Always render the badge container with fixed height to prevent CLS */}
+            <div className="mt-2 h-7 flex items-center">
+              {pendingCount !== null && pendingCount > 0 && (
+                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                  {pendingCount.toLocaleString()} records pending review
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── Table ── */}
@@ -362,7 +390,10 @@ export default function CSVReview() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-base font-semibold text-gray-900">All Business Records</h2>
-                    <p className="text-xs text-gray-500 mt-0.5">{totalCount.toLocaleString()} total records</p>
+                    {/* FIX 5: Reserve space for count so it doesn't shift on load */}
+                    <p className="text-xs text-gray-500 mt-0.5 h-4">
+                      {totalCount > 0 ? `${totalCount.toLocaleString()} total records` : ''}
+                    </p>
                   </div>
                   <button
                     onClick={() => setShowScheduledOnly(!showScheduledOnly)}
@@ -387,228 +418,233 @@ export default function CSVReview() {
                 </div>
               </div>
 
-              {/* Loading */}
-              {loading ? (
-                <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-                </div>
+              {/* FIX 6: Always reserve the table area height — overlay spinner instead of replacing content */}
+              <div className="relative" style={{ minHeight: isMobile ? '400px' : '600px' }}>
 
-              ) : csvData.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 px-4 text-gray-400">
-                  <p className="text-base font-medium">No records found</p>
-                  <p className="text-sm mt-1">Try adjusting your search</p>
-                  {searchTerm && (
-                    <div
-                      className="mt-4 px-6 py-3 bg-green-100 cursor-pointer rounded-lg text-green-900 font-semibold hover:bg-green-200 transition-colors text-sm"
-                      onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
-                    >
-                      + Add "{searchTerm}"
-                    </div>
-                  )}
-                </div>
+                {/* Spinner overlay — sits on top, doesn't shift layout */}
+                {loading && (
+                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+                    <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
 
-              ) : isMobile ? (
-                /* ── Mobile Cards ── */
-                <div className="divide-y divide-gray-100">
-                  {csvData.map((row, index) => (
-                    <div
-                      key={`mobile-${currentPage}-${index}-${row["Business Identification Number"]}`}
-                      onClick={() => handleRowClick(row)}
-                      className={`p-4 cursor-pointer active:bg-gray-50 transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">
-                            {row["Business Name"]}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-0.5 truncate">
-                            {row["Business Identification Number"]}
-                          </p>
+                {!loading && csvData.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 px-4 text-gray-400">
+                    <p className="text-base font-medium">No records found</p>
+                    <p className="text-sm mt-1">Try adjusting your search</p>
+                    {searchTerm && (
+                      <div
+                        className="mt-4 px-6 py-3 bg-green-100 cursor-pointer rounded-lg text-green-900 font-semibold hover:bg-green-200 transition-colors text-sm"
+                        onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                      >
+                        + Add "{searchTerm}"
+                      </div>
+                    )}
+                  </div>
+
+                ) : isMobile ? (
+                  /* ── Mobile Cards ── */
+                  <div className="divide-y divide-gray-100">
+                    {csvData.map((row, index) => (
+                      <div
+                        key={`mobile-${currentPage}-${index}-${row["Business Identification Number"]}`}
+                        onClick={() => handleRowClick(row)}
+                        className={`p-4 cursor-pointer active:bg-gray-50 transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">
+                              {row["Business Name"]}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5 truncate">
+                              {row["Business Identification Number"]}
+                            </p>
+                          </div>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${getRowStatusBadge(row.status)}`}>
+                            {getRowStatusLabel(row.status)}
+                          </span>
                         </div>
-                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${getRowStatusBadge(row.status)}`}>
-                          {getRowStatusLabel(row.status)}
-                        </span>
-                      </div>
 
-                      {(row["Office Barangay"] || row["Office Municipality"]) && (
-                        <p className="text-xs text-gray-500 mb-2 truncate">
-                          📍 {[row["Office Barangay"], row["Office Municipality"]].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap gap-1.5 mb-2">
-                        {row["Business Nature"] && (
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full truncate max-w-[120px]">
-                            {row["Business Nature"]}
-                          </span>
+                        {(row["Office Barangay"] || row["Office Municipality"]) && (
+                          <p className="text-xs text-gray-500 mb-2 truncate">
+                            📍 {[row["Office Barangay"], row["Office Municipality"]].filter(Boolean).join(', ')}
+                          </p>
                         )}
-                        {row["Business Type"] && (
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full truncate max-w-[120px]">
-                            {row["Business Type"]}
-                          </span>
-                        )}
-                        {row.scheduled_date && (
-                          <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
-                            📅 {row.scheduled_date}
-                          </span>
-                        )}
-                      </div>
 
-                      {row.violation && (
-                        <p className="text-xs text-red-600 mb-1 line-clamp-1">⚠ {row.violation}</p>
-                      )}
-                      {row.review_action && (
-                        <p className="text-xs text-green-600 mb-1 line-clamp-1">✓ {row.review_action}</p>
-                      )}
-
-                      <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-gray-400 flex items-center gap-1">
-                          <FiClock className="w-3 h-3" />
-                          {row.review_date ?? 'Not reviewed'}
-                        </p>
-                        <button
-                          onClick={e => { e.stopPropagation(); handleRowClick(row); }}
-                          className="flex items-center gap-1 text-xs text-blue-600 font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors active:scale-95"
-                        >
-                          <FiEdit className="w-3.5 h-3.5" />
-                          Review
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {searchTerm && !csvData.some(row =>
-                    row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
-                  ) && (
-                    <div
-                      className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
-                      onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
-                    >
-                      + Add "{searchTerm}"
-                    </div>
-                  )}
-                </div>
-
-              ) : (
-                /* ── Desktop Table ── */
-                <div className="h-[600px] overflow-auto">
-                  <table className="w-full min-w-[2400px] border-collapse">
-                    <thead className="bg-gray-50 sticky top-0 z-10">
-                      <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[50px] border-r border-gray-300">#</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">BIN</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[180px] border-r border-gray-300">Business Name</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Trade Name</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Transmittal No.</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Nature</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Line</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Type</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[200px] border-r border-gray-300">Office Street</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[80px] border-r border-gray-300">Region</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Province</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Municipality</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Barangay</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[90px] border-r border-gray-300">Zipcode</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[70px] border-r border-gray-300">Year</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Capital</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Gross Amount</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[150px] border-r border-gray-300">Gross Essential</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">Gross Non-Essential</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Reject Remarks</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Module Type</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Transaction Type</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Reference No.</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">Brgy. Clearance Status</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">SITE Transaction Status</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">CORE Status</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[100px] border-r border-gray-300">Permit No.</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[200px] border-r border-gray-300">Violations</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Assigned Inspector</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Scheduled Date</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[100px] border-r border-gray-300">Status</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Reviewed Date</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[80px] border-r border-gray-300">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-300">
-                      {csvData.map((row, index) => (
-                        <tr
-                          key={`desktop-${currentPage}-${index}-${row["Business Identification Number"]}`}
-                          onClick={() => handleRowClick(row)}
-                          className={`hover:bg-blue-50 cursor-pointer transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
-                        >
-                          <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium border-r border-gray-200">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Identification Number"]}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Name"]}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Trade Name"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transmittal No."] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Nature"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Line"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Type"] ?? '-'}</td>
-                          <td className="px-3 py-3 text-sm text-gray-600 max-w-[250px] truncate border-r border-gray-200">{row["Office Street"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Region"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Province"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Municipality"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Barangay"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Zipcode"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Year"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Capital"] != null ? `₱${row["Capital"].toLocaleString()}` : '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount"] != null ? `₱${row["Gross Amount"].toLocaleString()}` : '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount Essential"] != null ? `₱${row["Gross Amount Essential"].toLocaleString()}` : '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount Non-Essential"] != null ? `₱${row["Gross Amount Non-Essential"].toLocaleString()}` : '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Reject Remarks"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Module Type"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transaction Type"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Reference No."] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Brgy. Clearance Status"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["SITE Transaction Status"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["CORE Transaction Status"] ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Permit No."] ?? '-'}</td>
-                          <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] border-r border-gray-200">
-                            {row.violation
-                              ? <div className="text-xs text-red-600 break-words">⚠ {row.violation}</div>
-                              : <span className="text-green-600 text-xs">No violations</span>}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row.assigned_inspector ?? '-'}</td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row.scheduled_date ?? '-'}</td>
-                          <td className="px-3 py-3 border-r border-gray-200">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRowStatusBadge(row.status)}`}>
-                              {getRowStatusLabel(row.status)}
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {row["Business Nature"] && (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full truncate max-w-[120px]">
+                              {row["Business Nature"]}
                             </span>
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">
-                            {row.review_date || (
-                              <span className="text-gray-400 flex items-center">
-                                <FiClock className="w-3 h-3 mr-1" /> Not reviewed
+                          )}
+                          {row["Business Type"] && (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full truncate max-w-[120px]">
+                              {row["Business Type"]}
+                            </span>
+                          )}
+                          {row.scheduled_date && (
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full">
+                              📅 {row.scheduled_date}
+                            </span>
+                          )}
+                        </div>
+
+                        {row.violation && (
+                          <p className="text-xs text-red-600 mb-1 line-clamp-1">⚠ {row.violation}</p>
+                        )}
+                        {row.review_action && (
+                          <p className="text-xs text-green-600 mb-1 line-clamp-1">✓ {row.review_action}</p>
+                        )}
+
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs text-gray-400 flex items-center gap-1">
+                            <FiClock className="w-3 h-3" />
+                            {row.review_date ?? 'Not reviewed'}
+                          </p>
+                          <button
+                            onClick={e => { e.stopPropagation(); handleRowClick(row); }}
+                            className="flex items-center gap-1 text-xs text-blue-600 font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors active:scale-95"
+                          >
+                            <FiEdit className="w-3.5 h-3.5" />
+                            Review
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {searchTerm && !csvData.some(row =>
+                      row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
+                    ) && (
+                      <div
+                        className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
+                        onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                      >
+                        + Add "{searchTerm}"
+                      </div>
+                    )}
+                  </div>
+
+                ) : (
+                  /* ── Desktop Table ── */
+                  <div className="h-[600px] overflow-auto">
+                    <table className="w-full min-w-[2400px] border-collapse">
+                      <thead className="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[50px] border-r border-gray-300">#</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">BIN</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[180px] border-r border-gray-300">Business Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Trade Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Transmittal No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Nature</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Line</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Type</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[200px] border-r border-gray-300">Office Street</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[80px] border-r border-gray-300">Region</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Province</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Municipality</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Barangay</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[90px] border-r border-gray-300">Zipcode</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[70px] border-r border-gray-300">Year</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Capital</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Gross Amount</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[150px] border-r border-gray-300">Gross Essential</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">Gross Non-Essential</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Reject Remarks</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Module Type</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Transaction Type</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Reference No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">Brgy. Clearance Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">SITE Transaction Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">CORE Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[100px] border-r border-gray-300">Permit No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[200px] border-r border-gray-300">Violations</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Assigned Inspector</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Scheduled Date</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[100px] border-r border-gray-300">Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Reviewed Date</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[80px] border-r border-gray-300">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-300">
+                        {csvData.map((row, index) => (
+                          <tr
+                            key={`desktop-${currentPage}-${index}-${row["Business Identification Number"]}`}
+                            onClick={() => handleRowClick(row)}
+                            className={`hover:bg-blue-50 cursor-pointer transition-colors ${isRowReviewed(row.status) ? 'bg-green-50' : 'bg-white'}`}
+                          >
+                            <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium border-r border-gray-200">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Identification Number"]}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Name"]}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Trade Name"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transmittal No."] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Nature"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Line"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Type"] ?? '-'}</td>
+                            <td className="px-3 py-3 text-sm text-gray-600 max-w-[250px] truncate border-r border-gray-200">{row["Office Street"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Region"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Province"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Municipality"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Barangay"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Zipcode"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Year"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Capital"] != null ? `₱${row["Capital"].toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount"] != null ? `₱${row["Gross Amount"].toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount Essential"] != null ? `₱${row["Gross Amount Essential"].toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount Non-Essential"] != null ? `₱${row["Gross Amount Non-Essential"].toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Reject Remarks"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Module Type"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transaction Type"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Reference No."] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Brgy. Clearance Status"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["SITE Transaction Status"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["CORE Transaction Status"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Permit No."] ?? '-'}</td>
+                            <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] border-r border-gray-200">
+                              {row.violation
+                                ? <div className="text-xs text-red-600 break-words">⚠ {row.violation}</div>
+                                : <span className="text-green-600 text-xs">No violations</span>}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row.assigned_inspector ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row.scheduled_date ?? '-'}</td>
+                            <td className="px-3 py-3 border-r border-gray-200">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRowStatusBadge(row.status)}`}>
+                                {getRowStatusLabel(row.status)}
                               </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap border-r border-gray-200">
-                            <button
-                              onClick={e => { e.stopPropagation(); handleRowClick(row); }}
-                              className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
-                            >
-                              <FiEdit className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {searchTerm && !csvData.some(row =>
-                        row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
-                      ) && (
-                        <tr
-                          className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
-                          onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
-                        >
-                          <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
-                            + Add "{searchTerm}"
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">
+                              {row.review_date || (
+                                <span className="text-gray-400 flex items-center">
+                                  <FiClock className="w-3 h-3 mr-1" /> Not reviewed
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap border-r border-gray-200">
+                              <button
+                                onClick={e => { e.stopPropagation(); handleRowClick(row); }}
+                                className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition-colors"
+                              >
+                                <FiEdit className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {searchTerm && !csvData.some(row =>
+                          row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
+                        ) && (
+                          <tr
+                            className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
+                            onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                          >
+                            <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
+                              + Add "{searchTerm}"
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
 
               {/* Table Footer */}
               <div className="px-4 py-2 border-t-2 border-gray-300 bg-gray-50">

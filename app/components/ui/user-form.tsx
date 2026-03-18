@@ -54,42 +54,42 @@ export function UserForm({ onSubmit, onCancel, isLoading = false, initialData }:
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`space-y-${isMobile ? '4' : '6'}`}>
-      <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-4'} gap-${isMobile ? '4' : '6'}`}>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div>
-          <label className={`block ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-${isMobile ? '1' : '2'}`}>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Full Name
           </label>
           <div className="relative">
-            <FiUser className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400`} />
+            <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               ref={nameInputRef}
               name="name"
               placeholder="Enter full name"
               value={form.name}
               onChange={handleChange}
-              className={`w-full pl-10 pr-3 py-${isMobile ? '2' : '3'} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${isMobile ? 'text-sm' : 'text-base'}`}
+              className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
         </div>
         <div>
-          <label className={`block ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-${isMobile ? '1' : '2'}`}>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Email Address
           </label>
           <div className="relative">
-            <FiMail className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400`} />
+            <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               name="email"
               type="email"
               placeholder="user@example.com"
               value={form.email}
               onChange={handleChange}
-              className={`w-full pl-10 pr-3 py-${isMobile ? '2' : '3'} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${isMobile ? 'text-sm' : 'text-base'}`}
+              className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
         </div>
         <div>
-          <label className={`block ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-${isMobile ? '1' : '2'}`}>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Password
           </label>
           <input
@@ -98,28 +98,22 @@ export function UserForm({ onSubmit, onCancel, isLoading = false, initialData }:
             placeholder="••••••••"
             value={form.password}
             onChange={handleChange}
-            className={`w-full px-3 py-${isMobile ? '2' : '3'} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${isMobile ? 'text-sm' : 'text-base'}`}
+            className="w-full px-3 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
         <div>
-          <label className={`block ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-${isMobile ? '1' : '2'}`}>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Role
           </label>
           <div className="relative">
-            <FiShield className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${isMobile ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400 pointer-events-none z-10`} />
+            <FiShield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
             <select
               name="role"
               value={form.role}
               onChange={handleChange}
-              className={`w-full pl-10 pr-8 py-${isMobile ? '3' : '3'} border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none ${
-                isMobile 
-                  ? 'text-sm bg-white min-h-[44px] touch-manipulation' 
-                  : 'text-base'
-              }`}
+              className="w-full pl-10 pr-8 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none"
               style={{
-                backgroundImage: isMobile 
-                  ? "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4-4'/%3e%3c/svg%3e\")"
-                  : "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4-4'/%3e%3c/svg%3e\")",
+                backgroundImage: "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4-4'/%3e%3c/svg%3e\")",
                 backgroundPosition: 'right 0.5rem center',
                 backgroundRepeat: 'no-repeat',
                 backgroundSize: '1.5em 1.5em'
@@ -131,15 +125,15 @@ export function UserForm({ onSubmit, onCancel, isLoading = false, initialData }:
           </div>
         </div>
       </div>
-      <div className={`flex ${isMobile ? 'flex-col space-y-3' : 'flex-row space-x-3'}`}>
+      <div className="flex space-x-3">
         <Button
           type="submit"
           disabled={isLoading}
-          className={`bg-green-600 hover:bg-green-700 ${isMobile ? 'w-full justify-center py-3' : ''}`}
+          className="bg-green-600 hover:bg-green-700"
         >
           {isLoading ? (
             <span className="flex items-center">
-              <div className={`w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ${isMobile ? 'mr-2' : 'mr-2'}`} />
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
               {initialData?.name ? 'Updating...' : 'Creating...'}
             </span>
           ) : (
@@ -152,7 +146,7 @@ export function UserForm({ onSubmit, onCancel, isLoading = false, initialData }:
           type="button"
           variant="outline"
           onClick={onCancel}
-          className={isMobile ? 'w-full justify-center py-3' : ''}
+          className=""
         >
           Cancel
         </Button>

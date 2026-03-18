@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FiSearch, FiSend, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { createClient } from "@supabase/supabase-js";
 import Sidebar from "../../../components/sidebar";
+import ProtectedRoute from "../../../../components/ProtectedRoute";
 import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
 
 const supabase = createClient(
@@ -23,7 +24,7 @@ type Violation = {
   cease_flag?: boolean;
 };
 
-export default function ViolationsPage() {
+function ViolationsPageContent() {
   const [violations, setViolations] = useState<Violation[]>([]);
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<keyof Violation | null>(null);
@@ -218,17 +219,29 @@ export default function ViolationsPage() {
             <CalendarPage />
           </div>
 
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div>
-              <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
-              <p className="text-gray-500 mt-1 text-sm max-w-xl">Track business violations and notices</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-gray-500">Total</div>
-              <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
-            </div>
-          </div>
+    {/* Header */}
+<div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
+
+  {/* LEFT */}
+  <div>
+    <h1 className="text-3xl font-extrabold text-gray-900">
+      Violations Monitoring
+    </h1>
+    <p className="text-gray-500 mt-1 text-sm max-w-xl">
+      Track business violations and notices
+    </p>
+  </div>
+
+  {/* RIGHT (TOTAL INLINE) */}
+ <div className="self-start md:self-auto bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm">
+  <div className="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-1">
+    <span className="text-gray-500">TOTAL :</span>
+    <span className="text-green-900 font-bold text-lg">
+      {violations.length}
+    </span>
+  </div>
+</div>
+</div>
 
 
           {/* Search + Legend */}
@@ -576,5 +589,13 @@ export default function ViolationsPage() {
       </footer>
 
     </div>
+  );
+}
+
+export default function ComplianceDashboardPage() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <ViolationsPageContent />
+    </ProtectedRoute>
   );
 }

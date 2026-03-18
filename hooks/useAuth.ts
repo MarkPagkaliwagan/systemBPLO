@@ -27,11 +27,11 @@ export const useAuth = () => {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        // Get session token
-        const sessionToken = localStorage.getItem('sessionToken');
+        // For client-side, we rely on localStorage since httpOnly cookies aren't accessible
         const userData = localStorage.getItem('user');
+        const sessionExpiry = localStorage.getItem('sessionExpiry');
 
-        if (!sessionToken || !userData) {
+        if (!userData || !sessionExpiry) {
           setAuthState({
             user: null,
             isLoading: false,
@@ -43,10 +43,8 @@ export const useAuth = () => {
         }
 
         // Check session expiration
-        const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
-        if (Date.now() > sessionData.exp) {
+        if (Date.now() > parseInt(sessionExpiry)) {
           // Clear expired session
-          localStorage.removeItem('sessionToken');
           localStorage.removeItem('user');
           localStorage.removeItem('sessionExpiry');
           
@@ -93,14 +91,45 @@ export const useAuth = () => {
       }
     };
 
+    // Listen for page visibility changes (for browser back button)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkAuth();
+      }
+    };
+
+    // Listen for window focus (additional safeguard)
+    const handleFocus = () => {
+      checkAuth();
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem('sessionToken');
+  const logout = async () => {
+    try {
+      // Call logout API to clear the HTTP-only cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout API error:', error);
+    }
+    
+    // Clear localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('sessionExpiry');
+    
+    // Redirect to login page
     window.location.href = '/';
   };
 

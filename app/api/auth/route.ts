@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { comparePassword } from '@/lib/passwordUtils';
-
+import { createSessionToken } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
-    // Input validation
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email and password are required' },
@@ -15,47 +14,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    console.log('Login attempt for email:', email.toLowerCase().trim());
-    
-    // Query users table with proper error handling
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email.toLowerCase().trim())
       .single();
 
-    console.log('Database query result:', { user: user ? 'found' : 'not found', error: error ? error.message : 'none' });
-
-    if (error) {
-      console.error('Database query error:', error);
-      // Don't expose specific database errors to client
+    if (error || !user) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
-    // Password comparison using bcrypt
-    console.log('Comparing password for user:', user.email);
     const isPasswordValid = await comparePassword(password, user.password);
-    console.log('Password valid:', isPasswordValid);
-    
+
     if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
@@ -63,19 +36,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create secure session token with expiration
     const sessionData = {
       userId: user.id,
       email: user.email,
       role: user.role,
-      timestamp: Date.now(),
-      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      exp: Date.now() + 24 * 60 * 60 * 1000,
     };
 
-    const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+    const sessionToken = await createSessionToken(user.id, user.role);
 
-    // Set secure HTTP-only cookie for production
-    const isProduction = process.env.NODE_ENV === 'production';
     const response = NextResponse.json({
       user: {
         id: user.id,
@@ -84,18 +53,16 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
       sessionToken,
-      expiresIn: 24 * 60 * 60 * 1000 // 24 hours
+      expiresIn: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     });
 
-    // Set secure cookie in production
-    if (isProduction) {
-      response.cookies.set('session-token', sessionToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 // 24 hours
-      });
-    }
+    response.cookies.set('session-token', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24,
+    });
 
     return response;
 
@@ -106,28 +73,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    // For now, logout is handled client-side by clearing localStorage
-    // In the future, we could implement server-side session invalidation
-    return NextResponse.json(
-      { message: 'Logout successful' },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Logout error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET() {
-  return NextResponse.json(
-    { error: 'Method not allowed' },
-    { status: 405 }
-  );
 }

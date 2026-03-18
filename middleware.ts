@@ -1,68 +1,96 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySessionToken } from '@/lib/session';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  const sessionToken = request.cookies.get('session-token')?.value || 
-                      request.headers.get('authorization')?.replace('Bearer ', '');
 
-  // Public routes that don't require authentication
-  const publicRoutes = [
-    '/',
+  console.log('[MIDDLEWARE] Checking path:', pathname);
+  
+  // Skip middleware for static files
+  if (pathname.includes('.')) {
+    return NextResponse.next();
+  }
+  
+  const sessionToken =
+    request.cookies.get('session-token')?.value ||
+    request.headers.get('authorization')?.replace('Bearer ', '');
+
+  console.log('[MIDDLEWARE] Token exists:', !!sessionToken);
+
+  const publicExactRoutes = ['/'];
+  const publicPrefixRoutes = [
     '/forgot-password',
     '/reset-password',
     '/api/auth',
-    '/api/auth/login',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-    '/api/auth/change-password'
+    '/api/auth/logout',
   ];
 
-  // Allow public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  const isPublicRoute =
+    publicExactRoutes.includes(pathname) ||
+    publicPrefixRoutes.some(route => pathname.startsWith(route));
+
+  console.log('[MIDDLEWARE] Is public route:', isPublicRoute);
+
+  if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  // Check if user is authenticated
+  // For all other routes, require authentication
   if (!sessionToken) {
-    return NextResponse.redirect(new URL('/', request.url));
+    console.log('[MIDDLEWARE] No token found, redirecting to home');
+    const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.delete('session-token');
+    return response;
   }
 
-  try {
-    const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
-    
-    if (Date.now() > sessionData.exp) {
-      // Clear session and redirect to login
-      const response = NextResponse.redirect(new URL('/', request.url));
-      response.cookies.delete('session-token');
-      return response;
-    }
+  console.log('[MIDDLEWARE] Verifying token...');
+  const sessionData = await verifySessionToken(sessionToken) as {
+    userId: string;
+    email: string;
+    role: string;
+    exp: number;
+  } | null;
 
-    // Super Admin routes protection
-    if (pathname.startsWith('/SuperAdmin')) {
-      if (sessionData.role !== 'super_admin') {
-        return NextResponse.redirect(new URL('/Admin/Inspection/management/analytics', request.url));
-      }
-    }
-
-    // Admin routes protection (both roles can access)
-    if (pathname.startsWith('/Admin')) {
-      if (sessionData.role !== 'admin' && sessionData.role !== 'super_admin') {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-    }
-
-  } catch (error) {
-    // Invalid token, redirect to login
-    return NextResponse.redirect(new URL('/', request.url));
+  if (!sessionData) {
+    console.log('[MIDDLEWARE] Invalid token, redirecting to home');
+    const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.delete('session-token');
+    return response;
   }
 
-  return NextResponse.next();
+  console.log('[MIDDLEWARE] Valid session for role:', sessionData.role);
+
+  // Super Admin only
+  if (pathname.startsWith('/SuperAdmin')) {
+    if (sessionData.role !== 'super_admin') {
+      console.log('[MIDDLEWARE] Access denied: not super_admin');
+      return NextResponse.redirect(
+        new URL('/Admin/Inspection/management/analytics', request.url)
+      );
+    }
+  }
+
+  // Admin + Super Admin
+  if (pathname.startsWith('/Admin')) {
+    if (
+      sessionData.role !== 'admin' &&
+      sessionData.role !== 'super_admin'
+    ) {
+      console.log('[MIDDLEWARE] Access denied: not admin or super_admin');
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
+  const response = NextResponse.next();
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|api/auth).*)',
   ],
 };

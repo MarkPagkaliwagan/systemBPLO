@@ -103,15 +103,20 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
   if (!showReviewModal || !selectedRow) return null;
 
   const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
+    onSave(reviewData);
+    setShowSavedToast(true);
+
     if (isMobile) {
-      setShowSavedToast(true);
-      onSave(reviewData);
+      // Mobile: show toast then auto-close modal
       setTimeout(() => {
         setShowSavedToast(false);
         onClose();
       }, 1800);
     } else {
-      onSave(reviewData);
+      // Desktop: show toast briefly then fade out, modal stays open
+      setTimeout(() => {
+        setShowSavedToast(false);
+      }, 2200);
     }
   };
 
@@ -136,7 +141,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
   return (
     <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
 
-      {/* ── Mobile Saved Toast ── */}
+      {/* ── Mobile: centered fullscreen toast ── */}
       {isMobile && (
         <div className={`fixed inset-0 flex items-center justify-center z-[9999] pointer-events-none transition-opacity duration-500 ${showSavedToast ? 'opacity-100' : 'opacity-0'}`}>
           <div className={`flex flex-col items-center gap-3 bg-white rounded-2xl px-8 py-6 shadow-2xl border border-green-100 transition-all duration-500 ${showSavedToast ? 'scale-100 translate-y-0' : 'scale-90 translate-y-4'}`}>
@@ -145,6 +150,21 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
             </div>
             <p className="text-base font-semibold text-gray-800">Review Saved!</p>
             <p className="text-xs text-gray-400">Closing...</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop: top-right corner toast ── */}
+      {!isMobile && (
+        <div className={`fixed top-6 right-6 z-[9999] pointer-events-none transition-all duration-500 ${showSavedToast ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'}`}>
+          <div className="flex items-center gap-3 bg-white rounded-2xl px-5 py-4 shadow-2xl border border-green-100">
+            <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+              <FiCheck className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Review Saved!</p>
+              <p className="text-xs text-gray-400">Changes have been saved successfully.</p>
+            </div>
           </div>
         </div>
       )}

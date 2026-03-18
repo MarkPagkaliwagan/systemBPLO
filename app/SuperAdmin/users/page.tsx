@@ -51,7 +51,28 @@ export default function SuperAdminUsersPage() {
   // Fetch users from API
   const fetchUsers = async () => {
     try {
-      const sessionToken = localStorage.getItem('sessionToken');
+      // Get session token from cookie or use the user data from localStorage
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        console.error('No user data found in localStorage');
+        setUsers([]);
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      
+      // Create a simple session token for the API call
+      const sessionData = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      };
+      
+      const payload = btoa(JSON.stringify(sessionData));
+      const signature = btoa('my-secret-key');
+      const sessionToken = `${payload}.${signature}`;
+
       const res = await fetch('/api/users', {
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +101,25 @@ export default function SuperAdminUsersPage() {
   const handleCreateUser = async (formData: FormData) => {
     setIsLoading(true);
     try {
-      const sessionToken = localStorage.getItem('sessionToken');
+      // Get user data and create session token
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        throw new Error('No user data found');
+      }
+
+      const user = JSON.parse(userData);
+      
+      const sessionData = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        exp: Date.now() + (24 * 60 * 60 * 1000)
+      };
+      
+      const payload = btoa(JSON.stringify(sessionData));
+      const signature = btoa('my-secret-key');
+      const sessionToken = `${payload}.${signature}`;
+
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 
@@ -110,7 +149,25 @@ export default function SuperAdminUsersPage() {
     if (!confirm('Are you sure you want to delete this user?')) return;
 
     try {
-      const sessionToken = localStorage.getItem('sessionToken');
+      // Get user data and create session token
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        throw new Error('No user data found');
+      }
+
+      const user = JSON.parse(userData);
+      
+      const sessionData = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        exp: Date.now() + (24 * 60 * 60 * 1000)
+      };
+      
+      const payload = btoa(JSON.stringify(sessionData));
+      const signature = btoa('my-secret-key');
+      const sessionToken = `${payload}.${signature}`;
+
       const res = await fetch('/api/users', {
         method: 'DELETE',
         headers: { 
