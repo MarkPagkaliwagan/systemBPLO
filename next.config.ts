@@ -1,9 +1,11 @@
-// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  compress: true,
+  experimental: {
+    optimizeCss: true,
+  },
   images: {
-    // ✅ Allow local images from /public folder
-    unoptimized: false, // keep optimized
+    formats: ['image/avif', 'image/webp'],
   },
 };
 
