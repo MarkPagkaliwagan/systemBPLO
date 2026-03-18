@@ -434,7 +434,7 @@ export default function ViolationsPage() {
 
             {/* Mobile Cards */}
             <div className="md:hidden space-y-4 p-4">
-              {/* Mobile Auto Send toggle */}
+              {/* Mobile Auto// Send toggle */}
               <div className="md:hidden flex justify-end mb-2 px-4">
                 <label className="flex items-center cursor-pointer select-none">
                   <div className="relative">
