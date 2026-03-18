@@ -30,7 +30,13 @@ export function middleware(request: NextRequest) {
   }
 
   try {
-    const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
+    // Parse the secure session token (format: base64(payload).base64(signature))
+    const [payloadB64, signature] = sessionToken.split('.');
+    if (!payloadB64 || !signature) {
+      throw new Error('Invalid token format');
+    }
+    
+    const sessionData = JSON.parse(Buffer.from(payloadB64, 'base64').toString());
     
     if (Date.now() > sessionData.exp) {
       // Clear session and redirect to login

@@ -41,10 +41,6 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Set secure HTTP-only cookies
-        const expires = new Date(Date.now() + data.expiresIn);
-        document.cookie = `session-token=${data.sessionToken}; expires=${expires.toUTCString()}; path=/; secure; httpOnly; sameSite=strict`;
-        
         // Store user data in localStorage for client-side access (non-sensitive)
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("sessionExpiry", Date.now() + data.expiresIn);
