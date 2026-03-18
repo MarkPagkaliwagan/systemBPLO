@@ -232,13 +232,14 @@ export default function ViolationsPage() {
   </div>
 
   {/* RIGHT (TOTAL INLINE) */}
-  <div className="self-start md:self-auto text-sm md:text-base font-semibold text-gray-800">
-    <span className="text-gray-500 mr-1">TOTAL :</span>
+ <div className="self-start md:self-auto bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm">
+  <div className="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-1">
+    <span className="text-gray-500">TOTAL :</span>
     <span className="text-green-900 font-bold text-lg">
       {violations.length}
     </span>
   </div>
-
+</div>
 </div>
 
 
