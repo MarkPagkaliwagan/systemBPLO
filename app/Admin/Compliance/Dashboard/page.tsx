@@ -218,9 +218,10 @@ export default function ViolationsPage() {
             <CalendarPage />
           </div>
 
-<div className="flex flex-col md:flex-row justify-between items-center gap-4">
-  
-  {/* LEFT SIDE */}
+    {/* Header */}
+<div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
+
+  {/* LEFT */}
   <div>
     <h1 className="text-3xl font-extrabold text-gray-900">
       Violations Monitoring
@@ -230,14 +231,12 @@ export default function ViolationsPage() {
     </p>
   </div>
 
-  {/* RIGHT SIDE (TOTAL CARD) */}
-  <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 shadow-sm text-center md:text-right min-w-[120px]">
-    <div className="text-xs text-gray-500 uppercase tracking-wide">
-      Total
-    </div>
-    <div className="text-2xl font-bold text-green-900">
+  {/* RIGHT (TOTAL INLINE) */}
+  <div className="self-start md:self-auto text-sm md:text-base font-semibold text-gray-800">
+    <span className="text-gray-500 mr-1">TOTAL :</span>
+    <span className="text-green-900 font-bold text-lg">
       {violations.length}
-    </div>
+    </span>
   </div>
 
 </div>
@@ -434,7 +433,7 @@ export default function ViolationsPage() {
 
             {/* Mobile Cards */}
             <div className="md:hidden space-y-4 p-4">
-              {/* Mobile Auto// Send toggle */}
+              {/* Mobile Auto Send toggle */}
               <div className="md:hidden flex justify-end mb-2 px-4">
                 <label className="flex items-center cursor-pointer select-none">
                   <div className="relative">
