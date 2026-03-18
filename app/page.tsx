@@ -87,11 +87,11 @@ export default function LoginPage() {
             />
           </div>
           <h2 className="text-lg font-bold text-gray-800 text-center mb-2">
+            Business Permit and Licensing Office
+          </h2>
+          <h2 className="text-sm font-bold text-gray-800 text-center mb-2">
             Inspection Management System
           </h2>
-          <p className="text-gray-400 text-center mb-10 text-sm">
-            Please enter your details to sign in
-          </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
