@@ -27,11 +27,18 @@ export const useAuth = () => {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        // Get session token
-        const sessionToken = localStorage.getItem('sessionToken');
+        // Get session token from cookie
+        const getCookie = (name: string) => {
+          const value = `; ${document.cookie}`.split(`; ${name}=`);
+          if (value.length === 2) return value.pop()?.split(';').shift();
+          return '';
+        };
+        
+        const sessionToken = getCookie('session-token');
         const userData = localStorage.getItem('user');
+        const sessionExpiry = localStorage.getItem('sessionExpiry');
 
-        if (!sessionToken || !userData) {
+        if (!sessionToken || !userData || !sessionExpiry) {
           setAuthState({
             user: null,
             isLoading: false,
@@ -43,10 +50,9 @@ export const useAuth = () => {
         }
 
         // Check session expiration
-        const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
-        if (Date.now() > sessionData.exp) {
+        if (Date.now() > parseInt(sessionExpiry)) {
           // Clear expired session
-          localStorage.removeItem('sessionToken');
+          document.cookie = 'session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
           localStorage.removeItem('user');
           localStorage.removeItem('sessionExpiry');
           
@@ -98,7 +104,7 @@ export const useAuth = () => {
   }, []);
 
   const logout = () => {
-    localStorage.removeItem('sessionToken');
+    document.cookie = 'session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
     localStorage.removeItem('user');
     localStorage.removeItem('sessionExpiry');
     window.location.href = '/';
