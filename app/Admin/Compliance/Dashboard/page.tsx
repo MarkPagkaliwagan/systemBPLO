@@ -218,17 +218,29 @@ export default function ViolationsPage() {
             <CalendarPage />
           </div>
 
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div>
-              <h1 className="text-3xl font-extrabold text-gray-900">Violations Monitoring</h1>
-              <p className="text-gray-500 mt-1 text-sm max-w-xl">Track business violations and notices</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xs text-gray-500">Total</div>
-              <div className="text-lg font-semibold text-gray-900">{violations.length}</div>
-            </div>
-          </div>
+<div className="flex flex-col md:flex-row justify-between items-center gap-4">
+  
+  {/* LEFT SIDE */}
+  <div>
+    <h1 className="text-3xl font-extrabold text-gray-900">
+      Violations Monitoring
+    </h1>
+    <p className="text-gray-500 mt-1 text-sm max-w-xl">
+      Track business violations and notices
+    </p>
+  </div>
+
+  {/* RIGHT SIDE (TOTAL CARD) */}
+  <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 shadow-sm text-center md:text-right min-w-[120px]">
+    <div className="text-xs text-gray-500 uppercase tracking-wide">
+      Total
+    </div>
+    <div className="text-2xl font-bold text-green-900">
+      {violations.length}
+    </div>
+  </div>
+
+</div>
 
 
           {/* Search + Legend */}
