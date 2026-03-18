@@ -10,11 +10,12 @@ import {
 
 import Sidebar from "../../../../components/sidebar";
 import MobileBottomNav from "../../../../components/MobileBottomNav";
+import ProtectedRoute from "../../../../../components/ProtectedRoute";
 import { supabase } from "@/lib/supabaseClient";
 import InspectorSummary from "./inspectorsummary";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -531,5 +532,13 @@ export default function DashboardPage() {
         </div>
       )}
     </>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <DashboardPageContent />
+    </ProtectedRoute>
   );
 }

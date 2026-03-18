@@ -18,22 +18,28 @@ export async function middleware(request: NextRequest) {
     '/forgot-password',
     '/reset-password',
     '/api/auth',
+    '/api/auth/logout',
   ];
 
   const isPublicRoute =
     publicExactRoutes.includes(pathname) ||
     publicPrefixRoutes.some(route => pathname.startsWith(route));
 
+  console.log('[MIDDLEWARE] Is public route:', isPublicRoute);
+
   if (isPublicRoute) {
     return NextResponse.next();
   }
 
+  // For all other routes, require authentication
   if (!sessionToken) {
+    console.log('[MIDDLEWARE] No token found, redirecting to home');
     const response = NextResponse.redirect(new URL('/', request.url));
     response.cookies.delete('session-token');
     return response;
   }
 
+  console.log('[MIDDLEWARE] Verifying token...');
   const sessionData = await verifySessionToken(sessionToken) as {
     userId: string;
     email: string;
@@ -42,14 +48,18 @@ export async function middleware(request: NextRequest) {
   } | null;
 
   if (!sessionData) {
+    console.log('[MIDDLEWARE] Invalid token, redirecting to home');
     const response = NextResponse.redirect(new URL('/', request.url));
     response.cookies.delete('session-token');
     return response;
   }
 
+  console.log('[MIDDLEWARE] Valid session for role:', sessionData.role);
+
   // Super Admin only
   if (pathname.startsWith('/SuperAdmin')) {
     if (sessionData.role !== 'super_admin') {
+      console.log('[MIDDLEWARE] Access denied: not super_admin');
       return NextResponse.redirect(
         new URL('/Admin/Inspection/management/analytics', request.url)
       );
@@ -62,6 +72,7 @@ export async function middleware(request: NextRequest) {
       sessionData.role !== 'admin' &&
       sessionData.role !== 'super_admin'
     ) {
+      console.log('[MIDDLEWARE] Access denied: not admin or super_admin');
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
@@ -75,6 +86,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public|api/auth).*)',
   ],
 };
