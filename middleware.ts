@@ -3,70 +3,82 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  const sessionToken = request.cookies.get('session-token')?.value || 
-                      request.headers.get('authorization')?.replace('Bearer ', '');
 
-  // Public routes that don't require authentication
-  const publicRoutes = [
-    '/',
+  // ✅ Get token from cookie or header
+  const sessionToken =
+    request.cookies.get('session-token')?.value ||
+    request.headers.get('authorization')?.replace('Bearer ', '');
+
+  // ✅ PUBLIC ROUTES
+  const publicExactRoutes = ['/'];
+  const publicPrefixRoutes = [
     '/forgot-password',
     '/reset-password',
     '/api/auth',
-    '/api/auth/login',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-    '/api/auth/change-password'
   ];
 
-  // Allow public routes
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  const isPublicRoute =
+    publicExactRoutes.includes(pathname) ||
+    publicPrefixRoutes.some(route => pathname.startsWith(route));
+
+  if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  // Check if user is authenticated
+  // ❌ No token → redirect to login
   if (!sessionToken) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
   try {
-    // Parse the secure session token (format: base64(payload).base64(signature))
+    // ✅ Decode token (Edge runtime safe)
     const [payloadB64, signature] = sessionToken.split('.');
+
     if (!payloadB64 || !signature) {
       throw new Error('Invalid token format');
     }
-    
-    const sessionData = JSON.parse(Buffer.from(payloadB64, 'base64').toString());
-    
+
+    const sessionData = JSON.parse(atob(payloadB64));
+
+    // ❌ Expired token
     if (Date.now() > sessionData.exp) {
-      // Clear session and redirect to login
       const response = NextResponse.redirect(new URL('/', request.url));
       response.cookies.delete('session-token');
       return response;
     }
 
-    // Super Admin routes protection
+    // ✅ ROLE-BASED ACCESS
+
+    // Super Admin only
     if (pathname.startsWith('/SuperAdmin')) {
       if (sessionData.role !== 'super_admin') {
-        return NextResponse.redirect(new URL('/Admin/Inspection/management/analytics', request.url));
+        return NextResponse.redirect(
+          new URL('/Admin/Inspection/management/analytics', request.url)
+        );
       }
     }
 
-    // Admin routes protection (both roles can access)
+    // Admin + Super Admin
     if (pathname.startsWith('/Admin')) {
-      if (sessionData.role !== 'admin' && sessionData.role !== 'super_admin') {
+      if (
+        sessionData.role !== 'admin' &&
+        sessionData.role !== 'super_admin'
+      ) {
         return NextResponse.redirect(new URL('/', request.url));
       }
     }
 
   } catch (error) {
-    // Invalid token, redirect to login
-    return NextResponse.redirect(new URL('/', request.url));
+    // ❌ Invalid token
+    const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.delete('session-token');
+    return response;
   }
 
   return NextResponse.next();
 }
 
+// ✅ Apply middleware to all routes except static files
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
