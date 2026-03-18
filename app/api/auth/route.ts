@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { comparePassword } from '@/lib/passwordUtils';
-
+import { createSessionToken } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,19 +63,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create secure session token with expiration
-    const sessionData = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      timestamp: Date.now(),
-      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-    };
+    // Create secure session token using the session utility
+    const sessionToken = await createSessionToken(user.id, user.role, 24 * 60 * 60); // 24 hours
 
-    const sessionToken = Buffer.from(JSON.stringify(sessionData)).toString('base64');
-
-    // Set secure HTTP-only cookie for production
-    const isProduction = process.env.NODE_ENV === 'production';
     const response = NextResponse.json({
       user: {
         id: user.id,
@@ -84,18 +74,16 @@ export async function POST(request: NextRequest) {
         role: user.role,
       },
       sessionToken,
-      expiresIn: 24 * 60 * 60 * 1000 // 24 hours
+      expiresIn: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     });
 
-    // Set secure cookie in production
-    if (isProduction) {
-      response.cookies.set('session-token', sessionToken, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 // 24 hours
-      });
-    }
+    // Set secure cookie (always set on Vercel since it's HTTPS)
+    response.cookies.set('session-token', sessionToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 // 24 hours
+    });
 
     return response;
 

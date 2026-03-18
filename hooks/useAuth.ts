@@ -27,18 +27,11 @@ export const useAuth = () => {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        // Get session token from cookie
-        const getCookie = (name: string) => {
-          const value = `; ${document.cookie}`.split(`; ${name}=`);
-          if (value.length === 2) return value.pop()?.split(';').shift();
-          return '';
-        };
-        
-        const sessionToken = getCookie('session-token');
+        // For client-side, we rely on localStorage since httpOnly cookies aren't accessible
         const userData = localStorage.getItem('user');
         const sessionExpiry = localStorage.getItem('sessionExpiry');
 
-        if (!sessionToken || !userData || !sessionExpiry) {
+        if (!userData || !sessionExpiry) {
           setAuthState({
             user: null,
             isLoading: false,
@@ -52,7 +45,6 @@ export const useAuth = () => {
         // Check session expiration
         if (Date.now() > parseInt(sessionExpiry)) {
           // Clear expired session
-          document.cookie = 'session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
           localStorage.removeItem('user');
           localStorage.removeItem('sessionExpiry');
           
@@ -104,7 +96,6 @@ export const useAuth = () => {
   }, []);
 
   const logout = () => {
-    document.cookie = 'session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
     localStorage.removeItem('user');
     localStorage.removeItem('sessionExpiry');
     window.location.href = '/';
