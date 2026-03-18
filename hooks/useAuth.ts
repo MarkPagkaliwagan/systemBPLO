@@ -114,9 +114,22 @@ export const useAuth = () => {
     };
   }, []);
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Call logout API to clear the HTTP-only cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Logout API error:', error);
+    }
+    
+    // Clear localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('sessionExpiry');
+    
+    // Redirect to login page
     window.location.href = '/';
   };
 
