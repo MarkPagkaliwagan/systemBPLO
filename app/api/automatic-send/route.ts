@@ -92,123 +92,15 @@ export async function GET() {
       if (noticeLevel === 0 || noticeLevel === 1) {
         subjectText = "Notice 1: Business Violation";
         textBody = `Your business has a violation: ${v.violation}. Resolve within ${interval} days.`;
-        htmlBody = `
-<div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
-  <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    
-    <div style="background:#0b3d91; color:#ffffff; padding:15px; text-align:center;">
-      <h2 style="margin:0;">PBLO - City of San Pablo</h2>
-      <p style="margin:5px 0 0; font-size:13px;">Business Compliance Notification</p>
-    </div>
-
-    <div style="padding:20px; color:#333;">
-      <p>Dear Business Owner,</p>
-
-      <p>This is to inform you that your business has been recorded with the following violation:</p>
-
-      <p style="background:#f1f5f9; padding:10px; border-left:4px solid #0b3d91;">
-        <strong>${v.violation}</strong>
-      </p>
-
-      <p>Please resolve this matter within <strong>${interval} days</strong> from receipt of this notice.</p>
-
-      <p>If you have already taken action, kindly disregard this message or coordinate with our office.</p>
-
-      <p style="margin-top:20px;">Thank you.</p>
-
-      <p>
-        <strong>Business Permits and Licensing Office</strong><br/>
-        City of San Pablo
-      </p>
-    </div>
-
-    <div style="background:#f4f6f8; padding:10px; text-align:center; font-size:12px; color:#777;">
-      This is a system-generated email. Please do not reply.
-    </div>
-
-  </div>
-</div>
-`;
+        htmlBody = `<p>Your business has a violation: <strong>${v.violation}</strong></p><p>Please resolve within ${interval} days.</p>`;
       } else if (noticeLevel === 2) {
         subjectText = "Notice 2: Business Violation Unresolved";
         textBody = `Your business violation is still unresolved: ${v.violation}. Immediate attention required.`;
-       htmlBody = `
-<div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
-  <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    
-    <div style="background:#b91c1c; color:#ffffff; padding:15px; text-align:center;">
-      <h2 style="margin:0;">PBLO - City of San Pablo</h2>
-      <p style="margin:5px 0 0; font-size:13px;">Second Notice</p>
-    </div>
-
-    <div style="padding:20px; color:#333;">
-      <p>Dear Business Owner,</p>
-
-      <p>Your previously reported violation remains unresolved:</p>
-
-      <p style="background:#fef2f2; padding:10px; border-left:4px solid #b91c1c;">
-        <strong>${v.violation}</strong>
-      </p>
-
-      <p><strong>Immediate action is required.</strong> Failure to comply may result in further administrative action.</p>
-
-      <p>Please coordinate with the Business Permits and Licensing Office as soon as possible.</p>
-
-      <p style="margin-top:20px;">Thank you.</p>
-
-      <p>
-        <strong>Business Permits and Licensing Office</strong><br/>
-        City of San Pablo
-      </p>
-    </div>
-
-    <div style="background:#f4f6f8; padding:10px; text-align:center; font-size:12px; color:#777;">
-      This is a system-generated email. Please do not reply.
-    </div>
-
-  </div>
-</div>
-`;
+        htmlBody = `<p>Your business violation is still unresolved: <strong>${v.violation}</strong></p><p>Immediate attention required.</p>`;
       } else if (noticeLevel === 3) {
         subjectText = "Final Notice: Business Violation";
         textBody = `Final notice: ${v.violation}. Cease & Desist review pending.`;
-       htmlBody = `
-<div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
-  <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    
-    <div style="background:#7f1d1d; color:#ffffff; padding:15px; text-align:center;">
-      <h2 style="margin:0;">PBLO - City of San Pablo</h2>
-      <p style="margin:5px 0 0; font-size:13px;">Final Notice</p>
-    </div>
-
-    <div style="padding:20px; color:#333;">
-      <p>Dear Business Owner,</p>
-
-      <p>This serves as your <strong>FINAL NOTICE</strong> regarding the violation below:</p>
-
-      <p style="background:#fee2e2; padding:10px; border-left:4px solid #7f1d1d;">
-        <strong>${v.violation}</strong>
-      </p>
-
-      <p>Failure to comply will result in <strong>Cease and Desist proceedings</strong> and possible legal action.</p>
-
-      <p>You are strongly advised to coordinate with our office immediately.</p>
-
-      <p style="margin-top:20px;">Thank you.</p>
-
-      <p>
-        <strong>Business Permits and Licensing Office</strong><br/>
-        City of San Pablo
-      </p>
-    </div>
-
-    <div style="background:#f4f6f8; padding:10px; text-align:center; font-size:12px; color:#777;">
-      This is a system-generated email. Please do not reply.
-    </div>
-
-  </div>
-</div>
-`;
+        htmlBody = `<p>Final notice: <strong>${v.violation}</strong></p><p>Cease & Desist review pending.</p>`;
       }
 
       // Send email
