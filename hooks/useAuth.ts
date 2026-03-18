@@ -91,8 +91,27 @@ export const useAuth = () => {
       }
     };
 
+    // Listen for page visibility changes (for browser back button)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkAuth();
+      }
+    };
+
+    // Listen for window focus (additional safeguard)
+    const handleFocus = () => {
+      checkAuth();
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const logout = () => {
