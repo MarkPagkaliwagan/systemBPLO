@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       exp: Date.now() + 24 * 60 * 60 * 1000,
     };
 
-   const sessionToken = await createSessionToken(user.id, user.role);;
+    const sessionToken = await createSessionToken(user.id, user.role);
 
     const response = NextResponse.json({
       user: {
@@ -52,6 +52,8 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
       },
+      sessionToken,
+      expiresIn: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
     });
 
     response.cookies.set('session-token', sessionToken, {
