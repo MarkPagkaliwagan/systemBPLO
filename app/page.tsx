@@ -68,13 +68,9 @@ export default function LoginPage() {
   };
 
   return (
-
     <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 sm:p-6 font-sans text-gray-900">
-
       <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-sm min-h-[600px] flex flex-col justify-between">
-
         <div>
-          {/* Logo */}
           <div className="flex justify-center mb-6">
             <img
               src="/bplo-logo.png"
@@ -82,16 +78,13 @@ export default function LoginPage() {
               className="w-36 h-36 object-contain rounded-full"
             />
           </div>
-          <h2 className="text-lg font-bold text-gray-800 text-center mb-2">
+          <h2 className="text-md font-bold text-gray-800 text-center mb-2">
             Business Permit and Licensing Office
           </h2>
-          <h2 className="text-sm font-bold text-gray-800 text-center mb-2">
+          <p className="text-sm font-bold text-gray-800 text-center mb-2">
             Inspection Management System
-          </h2>
-
+          </p>
           <form onSubmit={handleSubmit} className="space-y-5">
-
-            {/* Username */}
             <input
               type="text"
               name="username"
@@ -100,10 +93,7 @@ export default function LoginPage() {
               onChange={handleChange}
               required
             />
-
-            {/* Password */}
             <div className="relative">
-
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
@@ -112,32 +102,21 @@ export default function LoginPage() {
                 onChange={handleChange}
                 required
               />
-
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-green-800 hover:opacity-70 transition-opacity"
-              >
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-green-800 hover:opacity-70 transition-opacity">
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-
             </div>
-
-            {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-800 text-white p-4 rounded-2xl font-bold text-lg hover:bg-green-900 shadow-[0_10px_20px_rgba(20,83,45,0.2)] hover:shadow-none transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-
+              className="w-full bg-green-800 text-white p-4 rounded-2xl font-bold text-lg hover:bg-green-900 shadow-[0_10px_20px_rgba(20,83,45,0.2)] hover:shadow-none transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
               {loading ? <Spinner /> : "Sign In"}
-
             </button>
-
           </form>
-
         </div>
-
         <div className="mt-auto pt-8 text-center">
           <Link href="/forgot-password" className="text-xs text-gray-400 hover:underline">
             Forgot your password?
