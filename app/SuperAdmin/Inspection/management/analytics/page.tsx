@@ -10,11 +10,12 @@ import {
 
 import Sidebar from "../../../../components/sidebar";
 import MobileBottomNav from "../../../../components/MobileBottomNav";
+import ProtectedRoute from "../../../../../components/ProtectedRoute";
 import { supabase } from "@/lib/supabaseClient";
 import InspectorSummary from "./inspectorsummary";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
-export default function DashboardPage() {
+function DashboardPage() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -309,14 +310,15 @@ export default function DashboardPage() {
   );
 
   return (
-    <>
-      <Sidebar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        isMobile={isMobile}
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+    <ProtectedRoute requiredRole="super_admin">
+      <>
+        <Sidebar
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
+          isMobile={isMobile}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
 
       <PortalDropdown />
 
@@ -388,10 +390,10 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ── DESKTOP ── */}
-      {!isMobile && (
-        <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-          <div className="px-8 py-6 h-full flex flex-col">
+        {/* ── DESKTOP ── */}
+        {!isMobile && (
+          <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+            <div className="px-8 py-6 h-full flex flex-col">
 
             <div className="mb-4 shrink-0">
               <div className="flex items-center justify-between">
@@ -526,10 +528,13 @@ export default function DashboardPage() {
                 <InspectorSummary />
               </div>
 
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </>
+    </ProtectedRoute>
   );
 }
+
+export default DashboardPage;

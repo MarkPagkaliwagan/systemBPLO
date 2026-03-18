@@ -41,9 +41,12 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store user data in localStorage
+        // Set secure HTTP-only cookies
+        const expires = new Date(Date.now() + data.expiresIn);
+        document.cookie = `session-token=${data.sessionToken}; expires=${expires.toUTCString()}; path=/; secure; httpOnly; sameSite=strict`;
+        
+        // Store user data in localStorage for client-side access (non-sensitive)
         localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("sessionToken", data.sessionToken);
         localStorage.setItem("sessionExpiry", Date.now() + data.expiresIn);
 
         // Redirect to appropriate dashboard based on user role
