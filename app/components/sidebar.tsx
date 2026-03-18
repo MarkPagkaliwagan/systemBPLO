@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   FiHome,
@@ -267,10 +268,13 @@ export default function Sidebar({
         <div className="fixed top-0 left-0 right-0 h-16 bg-green-900 border-b border-gray-200 z-50 flex items-center justify-between px-5 shadow-sm">
           <div className="flex items-center space-x-3">
             <Link href="/Admin/Inspection/management/analytics">
-              <img
+              <Image
                 src="/bplo-logo.png"
                 alt="BPLO Logo"
+                width={48}
+                height={48}
                 className="w-12 h-12 object-contain rounded-full"
+                priority
               />
             </Link>
             <div className="flex flex-col leading-tight">
@@ -371,10 +375,13 @@ export default function Sidebar({
       <div className="fixed top-0 left-0 right-0 h-16 bg-green-900 border-b border-gray-200 z-50 flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center space-x-4">
           <Link href="/Admin/Inspection/management/analytics">
-            <img
+            <Image
               src="/bplo-logo.png"
               alt="BPLO Logo"
+              width={48}
+              height={48}
               className="w-12 h-12 object-contain rounded-full"
+              priority
             />
           </Link>
           <div className="flex flex-col leading-tight">

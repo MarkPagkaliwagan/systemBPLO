@@ -7,6 +7,11 @@ export async function middleware(request: NextRequest) {
 
   console.log('[MIDDLEWARE] Checking path:', pathname);
   
+  // Skip middleware for static files
+  if (pathname.includes('.')) {
+    return NextResponse.next();
+  }
+  
   const sessionToken =
     request.cookies.get('session-token')?.value ||
     request.headers.get('authorization')?.replace('Bearer ', '');
@@ -86,6 +91,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|public|api/auth).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|api/auth).*)',
   ],
 };
