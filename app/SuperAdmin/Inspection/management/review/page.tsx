@@ -11,6 +11,7 @@ import ReviewModal from "../Modal/reviewModal";
 const PAGE_SIZE = 50;
 
 interface BusinessRecord {
+    id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
@@ -81,6 +82,10 @@ interface BusinessRecord {
   assigned_inspector: string | null;
   scheduled_date: string | null;
   file_id: string | null;
+  photo: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  accuracy: string | null;
 }
 
 export default function CSVReview() {

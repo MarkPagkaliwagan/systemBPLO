@@ -104,9 +104,9 @@ export default function InspectorSummary() {
 
   return (
     <>
-     {/* Outer Card */}
-<div className="bg-gray-50 flex justify-center items-start pt-6 pb-0 md:pt-8 md:pb-8 px-4 min-h-auto md:min-h-screen">
-        <div className="w-full max-w-225">
+      {/* Outer Card */}
+      <div className="w-full h-full">
+        <div className="w-full">
           {/* Main Card */}
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             {/* Header */}
@@ -116,7 +116,7 @@ export default function InspectorSummary() {
             </div>
 
             {/* Inspector Inner Cards */}
-            <div className="p-4 grid gap-3">
+            <div className="p-4 grid gap-4">
               {inspectors.length > 0 ? (
                 inspectors.map((inspector) => {
                   const progress = (inspector.total / maxTasks) * 100;
