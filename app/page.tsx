@@ -109,6 +109,11 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            <div className="text-right">
+              <Link href="/forgot-password" className="text-xs text-gray-400 hover:underline">
+                Forgot your password?
+              </Link>
+            </div>
             <button
               type="submit"
               disabled={loading}
@@ -116,11 +121,6 @@ export default function LoginPage() {
               {loading ? <Spinner /> : "Sign In"}
             </button>
           </form>
-        </div>
-        <div className="mt-auto pt-6 text-center">
-          <Link href="/forgot-password" className="text-xs text-gray-400 hover:underline">
-            Forgot your password?
-          </Link>
         </div>
 
       </div>
