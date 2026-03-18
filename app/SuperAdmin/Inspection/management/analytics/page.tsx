@@ -10,11 +10,12 @@ import {
 
 import Sidebar from "../../../../components/sidebar";
 import MobileBottomNav from "../../../../components/MobileBottomNav";
+import ProtectedRoute from "../../../../components/ProtectedRoute";
 import { supabase } from "@/lib/supabaseClient";
 import InspectorSummary from "./inspectorsummary";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
-export default function DashboardPage() {
+function DashboardPage() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -364,245 +365,249 @@ export default function DashboardPage() {
   );
 
   return (
-    <>
-      <Sidebar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        isMobile={isMobile}
-        isMobileMenuOpen={isMobileMenuOpen}
-        setIsMobileMenuOpen={setIsMobileMenuOpen}
-      />
+    <ProtectedRoute requiredRole="super_admin">
+      <>
+        <Sidebar
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
+          isMobile={isMobile}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+        />
 
-      {/* Portal dropdown — renders above everything */}
-      <PortalDropdown />
+        {/* Portal dropdown — renders above everything */}
+        <PortalDropdown />
 
-      {/* ── MOBILE ── */}
-      {isMobile && (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-          <div className="px-3 py-3 pb-28 flex flex-col gap-2">
+        {/* ── MOBILE ── */}
+        {isMobile && (
+          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+            <div className="px-3 py-3 pb-28 flex flex-col gap-2">
 
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                  Overview
-                </h1>
-                <p className="text-slate-500 text-xs mt-0.5">Real-time inspection and notice monitoring</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm text-slate-500">Live</span>
-              </div>
-            </div>
-
-            {/* KPI — 4 cols */}
-            <div className="grid grid-cols-4 gap-2">
-              {kpiData.map((kpi, index) => (
-                <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-3">
-                  <div className="relative z-10">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
-                        <kpi.icon size={16} className="text-white" />
-                      </div>
-                    </div>
-                    <div className="text-center mt-1">
-                      <p className="text-slate-500 text-xs font-medium mb-1 leading-tight">{kpi.title}</p>
-                      <h3 className="text-lg font-bold text-slate-800">{kpi.value}</h3>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Mobile Notice Statistics + range filter */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
-                <button
-                  ref={mobileDropdownButtonRef}
-                  onClick={() => handleDropdownToggle(mobileDropdownButtonRef)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  {selectedLabel}
-                  <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-              <div className="grid grid-cols-5 gap-1">
-                {noticeStats.map((stat, index) => (
-                  <div key={index} className="flex flex-col items-center p-2 rounded-xl bg-gradient-to-b from-slate-50 to-white border border-slate-100">
-                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md mb-1`}>
-                      <stat.icon size={13} className="text-white" />
-                    </div>
-                    <p className="text-sm font-bold text-slate-800 leading-none">{stat.value}</p>
-                    <p className="text-center text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Schedule section */}
-            <MobileScheduleSection />
-            {/* Inspector Summary Section */}
-            <div className="mt-4">
-              <InspectorSummary />
-            </div>
-
-          </div>
-          <MobileBottomNav />
-        </div>
-      )}
-
-      {/* ── DESKTOP ── */}
-      {!isMobile && (
-        <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-          <div className="px-8 py-6 h-full flex flex-col">
-
-            {/* Header */}
-            <div className="mb-4 shrink-0">
+              {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                     Overview
                   </h1>
-                  <p className="text-slate-500 text-sm mt-0.5">Real-time inspection and notice monitoring</p>
+                  <p className="text-slate-500 text-xs mt-0.5">Real-time inspection and notice monitoring</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-2.5 h-2.5 bg-green-900 rounded-full animate-pulse" />
+                  <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse" />
                   <span className="text-sm text-slate-500">Live</span>
                 </div>
               </div>
-            </div>
 
-            {/* KPI cards */}
-            <div className="grid grid-cols-4 gap-5 mb-5 shrink-0">
-              {kpiData.map((kpi, index) => (
-                <div key={index} className="relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
-                      <kpi.icon size={22} className="text-white" />
-                    </div>
-                    <div className={`flex items-center space-x-1 ${kpi.trendColor} text-sm font-semibold`}>
-                      <TrendingUp size={13} />
-                      <span>{kpi.trend}</span>
-                    </div>
-                  </div>
-                  <p className="text-slate-500 text-sm font-medium mb-1">{kpi.title}</p>
-                  <h3 className="text-3xl font-bold text-slate-800">{kpi.value}</h3>
-                </div>
-              ))}
-            </div>
-
-            {/* Notice Statistics + range filter */}
-            <div className="mb-5 shrink-0">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <Activity className="w-4 h-4 text-slate-400" />
-                  <span className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Notice Statistics</span>
-                </div>
-                <button
-                  ref={desktopDropdownButtonRef}
-                  onClick={() => handleDropdownToggle(desktopDropdownButtonRef)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-md transition-all duration-200"
-                >
-                  {selectedLabel}
-                  <ChevronDown size={15} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-              </div>
-              <div className="grid grid-cols-5 gap-5">
-                {noticeStats.map((stat, index) => (
-                  <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shrink-0`}>
-                      <stat.icon size={22} className="text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-slate-500 leading-tight truncate">{stat.title}</p>
-                      <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
+              {/* KPI — 4 cols */}
+              <div className="grid grid-cols-4 gap-2">
+                {kpiData.map((kpi, index) => (
+                  <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-3">
+                    <div className="relative z-10">
+                      <div className="flex flex-col items-center gap-1">
+                        <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
+                          <kpi.icon size={16} className="text-white" />
+                        </div>
+                      </div>
+                      <div className="text-center mt-1">
+                        <p className="text-slate-500 text-xs font-medium mb-1 leading-tight">{kpi.title}</p>
+                        <h3 className="text-lg font-bold text-slate-800">{kpi.value}</h3>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
 
-            {/* Calendar + Inspector Summary */}
-            <div className="flex gap-5 flex-1 min-h-0">
-
-              {/* LEFT — Calendar 50% */}
-              <div className="w-1/2 flex flex-col">
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-white/20 flex flex-col flex-1">
-
-                  {/* Month navigation */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={prevMonth}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
-                    >
-                      <ChevronLeft size={16} className="text-slate-600" />
-                    </button>
-
-                    <span className="text-sm font-bold text-slate-700">{monthLabel}</span>
-
-                    <button
-                      onClick={nextMonth}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
-                    >
-                      <ChevronRight size={16} className="text-slate-600" />
-                    </button>
-                  </div>
-
-                  {/* Week labels */}
-                  <div className="grid grid-cols-7 mb-2">
-                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                      <div key={i} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
-                    ))}
-                  </div>
-
-                  {/* Days */}
-                  <div className="grid grid-cols-7 gap-y-2">
-                    {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
-
-                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                      const day = i + 1;
-                      const hasEvent = !!desktopMockEvents[day];
-                      return (
-                        <div
-                          key={day}
-                          onClick={() => setSelectedDay(day)}
-                          className={`relative flex items-center justify-center h-12 w-12 mx-auto rounded-xl text-sm font-medium cursor-pointer transition-all
-                ${isToday(day) && !isSelected(day) ? 'bg-blue-100 text-blue-700 font-bold' : ''}
-                ${isSelected(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
-              `}
-                        >
-                          {day}
-                          {hasEvent && (
-                            <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500'}`} />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* ── UPCOMING EVENTS — Huwag alisin! ── */}
-                  <div className="mt-auto pt-4 border-t border-slate-100 space-y-2">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming</p>
-                    {Object.entries(desktopMockEvents).slice(0, 3).map(([day, events]) => (
-                      <div key={day} className="flex items-center space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                        <p className="text-xs text-slate-600 truncate">{events[0].title}</p>
+              {/* Mobile Notice Statistics + range filter */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
+                  <button
+                    ref={mobileDropdownButtonRef}
+                    onClick={() => handleDropdownToggle(mobileDropdownButtonRef)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    {selectedLabel}
+                    <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-5 gap-1">
+                  {noticeStats.map((stat, index) => (
+                    <div key={index} className="flex flex-col items-center p-2 rounded-xl bg-gradient-to-b from-slate-50 to-white border border-slate-100">
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md mb-1`}>
+                        <stat.icon size={13} className="text-white" />
                       </div>
-                    ))}
-                  </div>
-
+                      <p className="text-sm font-bold text-slate-800 leading-none">{stat.value}</p>
+                      <p className="text-center text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-             <div className="w-1/2 flex flex-col md:p-8">
+              {/* Schedule section */}
+              <MobileScheduleSection />
+              {/* Inspector Summary Section */}
+              <div className="mt-4">
+                <InspectorSummary />
+              </div>
+
+            </div>
+            <MobileBottomNav />
+          </div>
+        )}
+
+        {/* ── DESKTOP ── */}
+        {!isMobile && (
+          <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+            <div className="px-8 py-6 h-full flex flex-col">
+
+              {/* Header */}
+              <div className="mb-4 shrink-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                      Overview
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-0.5">Real-time inspection and notice monitoring</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2.5 h-2.5 bg-green-900 rounded-full animate-pulse" />
+                    <span className="text-sm text-slate-500">Live</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI cards */}
+              <div className="grid grid-cols-4 gap-5 mb-5 shrink-0">
+                {kpiData.map((kpi, index) => (
+                  <div key={index} className="relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
+                        <kpi.icon size={22} className="text-white" />
+                      </div>
+                      <div className={`flex items-center space-x-1 ${kpi.trendColor} text-sm font-semibold`}>
+                        <TrendingUp size={13} />
+                        <span>{kpi.trend}</span>
+                      </div>
+                    </div>
+                    <p className="text-slate-500 text-sm font-medium mb-1">{kpi.title}</p>
+                    <h3 className="text-3xl font-bold text-slate-800">{kpi.value}</h3>
+                  </div>
+                ))}
+              </div>
+
+              {/* Notice Statistics + range filter */}
+              <div className="mb-5 shrink-0">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Activity className="w-4 h-4 text-slate-400" />
+                    <span className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Notice Statistics</span>
+                  </div>
+                  <button
+                    ref={desktopDropdownButtonRef}
+                    onClick={() => handleDropdownToggle(desktopDropdownButtonRef)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-md transition-all duration-200"
+                  >
+                    {selectedLabel}
+                    <ChevronDown size={15} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-5 gap-5">
+                  {noticeStats.map((stat, index) => (
+                    <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shrink-0`}>
+                        <stat.icon size={22} className="text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm text-slate-500 leading-tight truncate">{stat.title}</p>
+                        <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Calendar + Inspector Summary */}
+              <div className="flex gap-5 flex-1 min-h-0">
+
+                {/* LEFT — Calendar 50% */}
+                <div className="w-1/2 flex flex-col">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-white/20 flex flex-col flex-1">
+
+                    {/* Month navigation */}
+                    <div className="flex items-center justify-between mb-4">
+                      <button
+                        onClick={prevMonth}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        <ChevronLeft size={16} className="text-slate-600" />
+                      </button>
+
+                      <span className="text-sm font-bold text-slate-700">{monthLabel}</span>
+
+                      <button
+                        onClick={nextMonth}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        <ChevronRight size={16} className="text-slate-600" />
+                      </button>
+                    </div>
+
+                    {/* Week labels */}
+                    <div className="grid grid-cols-7 mb-2">
+                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                        <div key={i} className="text-center text-xs font-semibold text-slate-400 py-1">{d}</div>
+                      ))}
+                    </div>
+
+                    {/* Days */}
+                    <div className="grid grid-cols-7 gap-y-2">
+                      {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} />)}
+
+                      {Array.from({ length: daysInMonth }).map((_, i) => {
+                        const day = i + 1;
+                        const hasEvent = !!desktopMockEvents[day];
+                        return (
+                          <div
+                            key={day}
+                            onClick={() => setSelectedDay(day)}
+                            className={`relative flex items-center justify-center h-12 w-12 mx-auto rounded-xl text-sm font-medium cursor-pointer transition-all
+                  ${isToday(day) && !isSelected(day) ? 'bg-blue-100 text-blue-700 font-bold' : ''}
+                  ${isSelected(day) ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'}
+                `}
+                          >
+                            {day}
+                            {hasEvent && (
+                              <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${isSelected(day) ? 'bg-white' : 'bg-blue-500'}`} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* ── UPCOMING EVENTS — Huwag alisin! ── */}
+                    <div className="mt-auto pt-4 border-t border-slate-100 space-y-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Upcoming</p>
+                      {Object.entries(desktopMockEvents).slice(0, 3).map(([day, events]) => (
+                        <div key={day} className="flex items-center space-x-2">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                          <p className="text-xs text-slate-600 truncate">{events[0].title}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+                </div>
+
+               <div className="w-1/2 flex flex-col md:p-8">
   <InspectorSummary />
 </div>
 
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </>
+    </ProtectedRoute>
   );
 }
+
+export default DashboardPage;
