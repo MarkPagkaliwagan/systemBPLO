@@ -31,7 +31,12 @@ export async function POST(req: NextRequest) {
 
   const v = violations[0];
   const now = new Date();
-  const interval = v.interval_days ?? 7;
+  const interval = v.interval_days;
+
+  if (interval === null || interval === undefined) {
+    return NextResponse.json({ success: false, error: "Interval days not set in database" });
+  }
+
   const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
 
   // Check interval
@@ -42,138 +47,67 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Decide notice content (support 0 as first notice)
+  // Determine notice level
+  const noticeLevel = v.notice_level ?? 0;
   let subjectText = "", textBody = "", htmlBody = "";
-  const noticeLevel = v.notice_level || 0;
-  if (noticeLevel === 0 || noticeLevel === 1) {
-    subjectText = "Notice 1: Business Violation";
-    textBody = `Your business has a violation: ${v.violation}. Resolve within ${interval} days.`;
-   htmlBody = `
-<div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
-  <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    
-    <div style="background:#0b3d91; color:#ffffff; padding:15px; text-align:center;">
-      <h2 style="margin:0;">PBLO - City of San Pablo</h2>
-      <p style="margin:5px 0 0; font-size:13px;">Business Compliance Notification</p>
-    </div>
 
-    <div style="padding:20px; color:#333;">
-      <p>Dear Business Owner,</p>
-
-      <p>This is to inform you that your business has been recorded with the following violation:</p>
-
-      <p style="background:#f1f5f9; padding:10px; border-left:4px solid #0b3d91;">
-        <strong>${v.violation}</strong>
-      </p>
-
-      <p>Please resolve this matter within <strong>${interval} days</strong> from receipt of this notice.</p>
-
-      <p>If you have already taken action, kindly disregard this message or coordinate with our office.</p>
-
-      <p style="margin-top:20px;">Thank you.</p>
-
-      <p>
-        <strong>Business Permits and Licensing Office</strong><br/>
-        City of San Pablo
-      </p>
-    </div>
-
-    <div style="background:#f4f6f8; padding:10px; text-align:center; font-size:12px; color:#777;">
-      This is a system-generated email. Please do not reply.
-    </div>
-
-  </div>
-</div>
-`;
-  } else if (noticeLevel === 2) {
-    subjectText = "Notice 2: Business Violation Unresolved";
-    textBody = `Your business violation is still unresolved: ${v.violation}. Immediate attention required.`;
-   htmlBody = `
-<div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
-  <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    
-    <div style="background:#b91c1c; color:#ffffff; padding:15px; text-align:center;">
-      <h2 style="margin:0;">PBLO - City of San Pablo</h2>
-      <p style="margin:5px 0 0; font-size:13px;">Second Notice</p>
-    </div>
-
-    <div style="padding:20px; color:#333;">
-      <p>Dear Business Owner,</p>
-
-      <p>Your previously reported violation remains unresolved:</p>
-
-      <p style="background:#fef2f2; padding:10px; border-left:4px solid #b91c1c;">
-        <strong>${v.violation}</strong>
-      </p>
-
-      <p><strong>Immediate action is required.</strong> Failure to comply may result in further administrative action.</p>
-
-      <p>Please coordinate with the Business Permits and Licensing Office as soon as possible.</p>
-
-      <p style="margin-top:20px;">Thank you.</p>
-
-      <p>
-        <strong>Business Permits and Licensing Office</strong><br/>
-        City of San Pablo
-      </p>
-    </div>
-
-    <div style="background:#f4f6f8; padding:10px; text-align:center; font-size:12px; color:#777;">
-      This is a system-generated email. Please do not reply.
-    </div>
-
-  </div>
-</div>
-`;
-  } else if (noticeLevel === 3) {
-    subjectText = "Final Notice: Business Violation";
-    textBody = `Final notice: ${v.violation}. Cease & Desist review pending.`;
-   htmlBody = `
-<div style="font-family: Arial, sans-serif; background:#f4f6f8; padding:20px;">
-  <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-    
-    <div style="background:#7f1d1d; color:#ffffff; padding:15px; text-align:center;">
-      <h2 style="margin:0;">PBLO - City of San Pablo</h2>
-      <p style="margin:5px 0 0; font-size:13px;">Final Notice</p>
-    </div>
-
-    <div style="padding:20px; color:#333;">
-      <p>Dear Business Owner,</p>
-
-      <p>This serves as your <strong>FINAL NOTICE</strong> regarding the violation below:</p>
-
-      <p style="background:#fee2e2; padding:10px; border-left:4px solid #7f1d1d;">
-        <strong>${v.violation}</strong>
-      </p>
-
-      <p>Failure to comply will result in <strong>Cease and Desist proceedings</strong> and possible legal action.</p>
-
-      <p>You are strongly advised to coordinate with our office immediately.</p>
-
-      <p style="margin-top:20px;">Thank you.</p>
-
-      <p>
-        <strong>Business Permits and Licensing Office</strong><br/>
-        City of San Pablo
-      </p>
-    </div>
-
-    <div style="background:#f4f6f8; padding:10px; text-align:center; font-size:12px; color:#777;">
-      This is a system-generated email. Please do not reply.
-    </div>
-
-  </div>
-</div>
-`;
+  switch (noticeLevel) {
+    case 0:
+      subjectText = "Notice 1: Business Violation";
+      textBody = `Your business has a violation: ${v.violation}. Resolve within ${interval} days.`;
+      htmlBody = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+          <h1 style="color:#065f46; font-size:24px; margin-bottom:10px;">BPLO - CITY OF SAN PABLO</h1>
+          <h2 style="font-size:20px; margin-bottom:10px;">Notice 1: Business Violation</h2>
+          <p>Your business has a violation: <strong>${v.violation}</strong></p>
+          <p>Please resolve within <strong>${interval} days</strong>.</p>
+          <hr style="border:none; border-top:1px solid #ccc; margin-top:20px;"/>
+          <p style="font-size:12px; color:#555;">This is an automated message. Please do not reply directly.</p>
+        </div>
+      `;
+      break;
+    case 1:
+      subjectText = "Notice 2: Business Violation Unresolved";
+      textBody = `Your business violation is still unresolved: ${v.violation}. Immediate attention required.`;
+      htmlBody = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+          <h1 style="color:#065f46; font-size:24px; margin-bottom:10px;">BPLO - CITY OF SAN PABLO</h1>
+          <h2 style="font-size:20px; margin-bottom:10px;">Notice 2: Business Violation Unresolved</h2>
+          <p>Your business violation is still unresolved: <strong>${v.violation}</strong></p>
+          <p>Immediate attention is required.</p>
+          <hr style="border:none; border-top:1px solid #ccc; margin-top:20px;"/>
+          <p style="font-size:12px; color:#555;">This is an automated message. Please do not reply directly.</p>
+        </div>
+      `;
+      break;
+    case 2:
+      subjectText = "Final Notice: Business Violation";
+      textBody = `Final notice: ${v.violation}. Cease & Desist review pending.`;
+      htmlBody = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+          <h1 style="color:#065f46; font-size:24px; margin-bottom:10px;">BPLO - CITY OF SAN PABLO</h1>
+          <h2 style="font-size:20px; margin-bottom:10px;">Final Notice: Business Violation</h2>
+          <p>Final notice: <strong>${v.violation}</strong></p>
+          <p>Cease & Desist review pending.</p>
+          <hr style="border:none; border-top:1px solid #ccc; margin-top:20px;"/>
+          <p style="font-size:12px; color:#555;">This is an automated message. Please do not reply directly.</p>
+        </div>
+      `;
+      break;
+    default:
+      return NextResponse.json({ success: false, error: "All notices already sent" });
   }
 
   // Send email
   await sendEmail(v.requestor_email!, subjectText, textBody, htmlBody);
 
   // Update DB
-  let updateData: any = { last_sent_time: now };
-  if (noticeLevel < 3) updateData.notice_level = noticeLevel + 1;
-  else updateData.cease_flag = true;
+  const updateData: any = { last_sent_time: now };
+  if (noticeLevel < 2) {
+    updateData.notice_level = noticeLevel + 1; // move to next notice
+  } else {
+    updateData.cease_flag = true; // final notice
+  }
 
   await supabase.from("business_violations").update(updateData).eq("id", id);
 
