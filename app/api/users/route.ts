@@ -11,8 +11,14 @@ async function validateUserRole(request: NextRequest): Promise<{ valid: boolean;
     }
 
     const sessionToken = authHeader.substring(7);
-    const sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
-
+    
+    // Parse the new token format: payload.signature
+    const [payloadB64, signature] = sessionToken.split('.');
+    if (!payloadB64 || !signature) {
+      return { valid: false };
+    }
+    
+    const sessionData = JSON.parse(atob(payloadB64));
     // Check session expiration
     if (Date.now() > sessionData.exp) {
       return { valid: false };

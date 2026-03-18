@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySessionToken } from '@/lib/session';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ✅ Get token from cookie or header
   const sessionToken =
     request.cookies.get('session-token')?.value ||
     request.headers.get('authorization')?.replace('Bearer ', '');
 
-  // ✅ PUBLIC ROUTES
   const publicExactRoutes = ['/'];
   const publicPrefixRoutes = [
     '/forgot-password',
@@ -25,60 +24,45 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ❌ No token → redirect to login
   if (!sessionToken) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  try {
-    // ✅ Decode token (Edge runtime safe)
-    const [payloadB64, signature] = sessionToken.split('.');
+  const sessionData = await verifySessionToken(sessionToken) as {
+    userId: string;
+    email: string;
+    role: string;
+    exp: number;
+  } | null;
 
-    if (!payloadB64 || !signature) {
-      throw new Error('Invalid token format');
-    }
-
-    const sessionData = JSON.parse(atob(payloadB64));
-
-    // ❌ Expired token
-    if (Date.now() > sessionData.exp) {
-      const response = NextResponse.redirect(new URL('/', request.url));
-      response.cookies.delete('session-token');
-      return response;
-    }
-
-    // ✅ ROLE-BASED ACCESS
-
-    // Super Admin only
-    if (pathname.startsWith('/SuperAdmin')) {
-      if (sessionData.role !== 'super_admin') {
-        return NextResponse.redirect(
-          new URL('/Admin/Inspection/management/analytics', request.url)
-        );
-      }
-    }
-
-    // Admin + Super Admin
-    if (pathname.startsWith('/Admin')) {
-      if (
-        sessionData.role !== 'admin' &&
-        sessionData.role !== 'super_admin'
-      ) {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-    }
-
-  } catch (error) {
-    // ❌ Invalid token
+  if (!sessionData) {
     const response = NextResponse.redirect(new URL('/', request.url));
     response.cookies.delete('session-token');
     return response;
   }
 
+  // Super Admin only
+  if (pathname.startsWith('/SuperAdmin')) {
+    if (sessionData.role !== 'super_admin') {
+      return NextResponse.redirect(
+        new URL('/Admin/Inspection/management/analytics', request.url)
+      );
+    }
+  }
+
+  // Admin + Super Admin
+  if (pathname.startsWith('/Admin')) {
+    if (
+      sessionData.role !== 'admin' &&
+      sessionData.role !== 'super_admin'
+    ) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
-// ✅ Apply middleware to all routes except static files
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
