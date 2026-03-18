@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { comparePassword } from '@/lib/passwordUtils';
+import { createSessionToken } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,21 +36,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ SESSION DATA
     const sessionData = {
       userId: user.id,
       email: user.email,
       role: user.role,
-      exp: Date.now() + (24 * 60 * 60 * 1000),
+      exp: Date.now() + 24 * 60 * 60 * 1000,
     };
 
-    // ✅ CREATE TOKEN (payload.signature)
-    const payload = btoa(JSON.stringify(sessionData));
-
-    // simple signature (pwede mo palitan later with crypto)
-    const signature = btoa('my-secret-key');
-
-    const sessionToken = `${payload}.${signature}`;
+   const sessionToken = await createSessionToken(user.id, user.role);;
 
     const response = NextResponse.json({
       user: {
@@ -60,10 +54,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ✅ ALWAYS SET COOKIE (wag na production only)
     response.cookies.set('session-token', sessionToken, {
       httpOnly: true,
-      secure: false, // set true pag deployed
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24,
