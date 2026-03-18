@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabaseClient";
 import InspectorSummary from "./inspectorsummary";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
-function DashboardPage() {
+function DashboardPageContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -310,15 +310,14 @@ function DashboardPage() {
   );
 
   return (
-    <ProtectedRoute requiredRole="super_admin">
-      <>
-        <Sidebar
-          isCollapsed={isCollapsed}
-          setIsCollapsed={setIsCollapsed}
-          isMobile={isMobile}
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-        />
+    <>
+      <Sidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
+        isMobile={isMobile}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
 
       <PortalDropdown />
 
@@ -390,10 +389,10 @@ function DashboardPage() {
         </div>
       )}
 
-        {/* ── DESKTOP ── */}
-        {!isMobile && (
-          <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-            <div className="px-8 py-6 h-full flex flex-col">
+      {/* ── DESKTOP ── */}
+      {!isMobile && (
+        <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+          <div className="px-8 py-6 h-full flex flex-col">
 
             <div className="mb-4 shrink-0">
               <div className="flex items-center justify-between">
@@ -528,13 +527,18 @@ function DashboardPage() {
                 <InspectorSummary />
               </div>
 
-              </div>
             </div>
           </div>
-        )}
-      </>
-    </ProtectedRoute>
+        </div>
+      )}
+    </>
   );
 }
 
-export default DashboardPage;
+export default function DashboardPage() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <DashboardPageContent />
+    </ProtectedRoute>
+  );
+}

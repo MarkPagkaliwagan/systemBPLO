@@ -409,7 +409,7 @@ export default function ManualAddBusiness() {
                 <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6">
                     <button
                         onClick={() => router.back()}
-                        className="px-6 py-2 border rounded-lg hover:bg-gray-100 w-full sm:w-auto"
+                        className="px-6 py-2 border text-black rounded-lg hover:bg-blue-400 w-full sm:w-auto"
                     >
                         Cancel
                     </button>
@@ -435,7 +435,7 @@ export default function ManualAddBusiness() {
                     <div className="flex flex-col sm:flex-row justify-end gap-3">
                         <button
                             onClick={() => setShowConfirm(false)}
-                            className="px-4 py-2 border rounded w-full sm:w-auto"
+                            className="px-4 py-2 border text-black rounded w-full sm:w-auto"
                         >
                             Cancel
                         </button>
