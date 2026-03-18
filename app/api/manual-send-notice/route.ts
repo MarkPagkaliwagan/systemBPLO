@@ -19,6 +19,7 @@ async function sendEmail(to: string, subject: string, text: string, html: string
 }
 
 export async function POST(req: NextRequest) {
+  
   const { id } = await req.json();
 
   const { data: violations } = await supabase
@@ -30,6 +31,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Violation not found" });
 
   const v = violations[0];
+  if (v.cease_flag) {
+  return NextResponse.json({ 
+    success: false, 
+    error: "All notices already sent / Cease & Desist" 
+  });
+}
   const now = new Date();
   const interval = v.interval_days;
 
@@ -100,14 +107,16 @@ export async function POST(req: NextRequest) {
 
   // Send email
   await sendEmail(v.requestor_email!, subjectText, textBody, htmlBody);
+const updateData: any = { last_sent_time: now };
 
-  // Update DB
-  const updateData: any = { last_sent_time: now };
-  if (noticeLevel < 2) {
-    updateData.notice_level = noticeLevel + 1; // move to next notice
-  } else {
-    updateData.cease_flag = true; // final notice
-  }
+if (noticeLevel < 2) {
+  // Move to next notice
+  updateData.notice_level = noticeLevel + 1;
+} else {
+  // Final notice, stop sending
+  updateData.cease_flag = true;
+  updateData.notice_level = 3; // optional but prevents sending again
+}
 
   await supabase.from("business_violations").update(updateData).eq("id", id);
 
