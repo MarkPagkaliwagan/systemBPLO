@@ -1,4 +1,3 @@
-// app/module-2-inspection/Review Modal/ReviewModal.tsx
 "use client";
 
 import { useState, useRef } from "react";
