@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FiHome, FiBookOpen, FiAlertCircle } from "react-icons/fi";
 import AddEventModal, { BusinessRecord } from "../Admin/Inspection/management/Modal/AddBusinessRecordModal;";
@@ -16,10 +16,28 @@ interface MobileBottomNavProps {
   onAddEvent?: (event: BusinessRecord) => void;
 }
 
+const LoadingModal = ({ isOpen }: { isOpen: boolean }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-5 shadow-2xl">
+        <div className="mb-3 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-green-600" />
+        <p className="text-sm font-medium text-gray-700">Loading page...</p>
+      </div>
+    </div>
+  );
+};
+
 const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
   const pathname = usePathname();
   const router   = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+
+  useEffect(() => {
+    setIsPageLoading(false);
+  }, [pathname]);
 
   const getUserData = () => {
     if (typeof window !== 'undefined') {
@@ -51,14 +69,14 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
 
   const navItems = getNavItems();
 
- const getActiveTab = (): string => {
-  if (pathname.includes("/Compliance")) return "compliance";  // Check Compliance first
-  if (pathname.includes("/analytics") || pathname.includes("/Dashboard")) return "home";
-  if (pathname.includes("/review")) return "scheduling";
-  if (pathname.includes("/masterlist")) return "business-registry";
-  if (pathname.includes("/notifCompliance")) return "settings";
-  return "home";
-};
+  const getActiveTab = (): string => {
+    if (pathname.includes("/Compliance")) return "compliance";
+    if (pathname.includes("/analytics") || pathname.includes("/Dashboard")) return "home";
+    if (pathname.includes("/review")) return "scheduling";
+    if (pathname.includes("/masterlist")) return "business-registry";
+    if (pathname.includes("/notifCompliance")) return "settings";
+    return "home";
+  };
 
   const activeTab = getActiveTab();
 
@@ -68,7 +86,12 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
       <button
         key={item.id}
         className="flex flex-col items-center flex-1 transition-all active:scale-90"
-        onClick={() => router.push(item.href)}
+        onClick={() => {
+          if (item.href !== pathname) {
+            setIsPageLoading(true);
+          }
+          router.push(item.href);
+        }}
       >
         <div className={`transition-colors ${isActive ? "text-green-800" : "text-gray-400 group-hover:text-white"}`}>
           {item.icon}
@@ -89,7 +112,6 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
               <React.Fragment key={`nav-group-${index}`}>
                 {renderNavItem(item)}
 
-                {/* Center + button */}
                 <div className="relative flex-1 flex justify-center -top-6">
                   <button
                     onClick={() => setModalOpen(true)}
@@ -106,6 +128,9 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
           return renderNavItem(item);
         })}
       </nav>
+
+      {/* Loading Modal */}
+      <LoadingModal isOpen={isPageLoading} />
 
       {/* Add Event Modal */}
       <AddEventModal
