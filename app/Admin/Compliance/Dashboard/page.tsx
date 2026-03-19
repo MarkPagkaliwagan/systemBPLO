@@ -599,11 +599,17 @@ function ViolationsPageContent() {
                       </tr>
                     ))
                   ) : violations.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="text-center py-10 text-gray-500">
-                        NO DATA FOUND
-                      </td>
-                    </tr>
+  <tr>
+    <td colSpan={9} className="text-center py-10 text-gray-500 space-y-2">
+      <div>NO DATA FOUND</div>
+      <button
+        onClick={() => window.location.href = "/Admin/Inspection/Management/Review"}
+        className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+      >
+        + Add Business Violation
+      </button>
+    </td>
+  </tr>
                   ) : (
                     violations.map((v) => (
                       <tr
@@ -806,7 +812,15 @@ function ViolationsPageContent() {
                   </div>
                 ))
               ) : violations.length === 0 ? (
-                <div className="text-center py-10 text-gray-500">NO DATA FOUND</div>
+  <div className="text-center py-10 text-gray-500 space-y-2">
+    <div>NO DATA FOUND</div>
+    <button
+      onClick={() => window.location.href = "/Admin/Inspection/Management/Review"}
+      className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+    >
+      + Add Business Violation
+    </button>
+  </div>
               ) : (
                 violations.map((v) => (
                   <div
