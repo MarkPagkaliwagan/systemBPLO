@@ -98,7 +98,7 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
     },
   ];
 
-  return userRole === 'super_admin' ? superAdminItems : adminItems;
+  return userRole === "super_admin" ? superAdminItems : adminItems;
 };
 
 const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => {
@@ -110,7 +110,7 @@ const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => 
       }
     }
   }
-  
+
   // Handle specific paths for new structure
   if (pathname.includes("/review")) return "Scheduling";
   if (pathname.includes("/masterlist")) return "Business Registry";
@@ -118,9 +118,22 @@ const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => 
   if (pathname.includes("/Compliance")) return "Compliance Notice";
   if (pathname.includes("/users")) return "User Management";
   if (pathname.includes("/notifCompliance")) return "Settings";
-  
+
   return "Dashboard";
 };
+
+function LoadingModal({ isOpen }: { isOpen: boolean }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-5 shadow-2xl">
+        <div className="mb-3 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-green-600" />
+        <p className="text-sm font-medium text-gray-700">Loading page...</p>
+      </div>
+    </div>
+  );
+}
 
 export default function Sidebar({
   isCollapsed,
@@ -133,15 +146,18 @@ export default function Sidebar({
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
   const getUserData = () => {
-    if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem('user');
-      return userData ? JSON.parse(userData) : { name: 'User Name', email: 'user@example.com', role: 'admin' };
+    if (typeof window !== "undefined") {
+      const userData = localStorage.getItem("user");
+      return userData
+        ? JSON.parse(userData)
+        : { name: "User Name", email: "user@example.com", role: "admin" };
     }
-    return { name: 'User Name', email: 'user@example.com', role: 'admin' };
+    return { name: "User Name", email: "user@example.com", role: "admin" };
   };
 
   const userRole = getUserData().role;
@@ -149,26 +165,27 @@ export default function Sidebar({
 
   useEffect(() => {
     setCurrentPageLabel(getCurrentPageLabel(pathname, sidebarItems));
+    setIsPageLoading(false);
   }, [pathname, userRole]);
 
   useEffect(() => {
-    const activeParent = sidebarItems.find(item =>
-      item.children?.some(child => child.href === pathname)
+    const activeParent = sidebarItems.find((item) =>
+      item.children?.some((child) => child.href === pathname)
     );
     if (activeParent && !expandedItems.includes(activeParent.id)) {
-      setExpandedItems(prev => [...prev, activeParent.id]);
+      setExpandedItems((prev) => [...prev, activeParent.id]);
     }
-    
+
     // Update expanded items based on current pathname for new structure
     if (pathname.includes("/review") && !expandedItems.includes("scheduling")) {
-      setExpandedItems(prev => [...prev, "scheduling"]);
+      setExpandedItems((prev) => [...prev, "scheduling"]);
     }
   }, [pathname, sidebarItems]);
 
   const toggleExpanded = (itemId: string) => {
-    setExpandedItems(prev =>
+    setExpandedItems((prev) =>
       prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
+        ? prev.filter((id) => id !== itemId)
         : [...prev, itemId]
     );
   };
@@ -179,31 +196,48 @@ export default function Sidebar({
 
   const confirmLogout = async () => {
     setIsLoggingOut(true);
-    
+
     try {
       // Call logout API to clear the HTTP-only cookie
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
       });
     } catch (error) {
-      console.error('Logout API error:', error);
+      console.error("Logout API error:", error);
     }
-    
+
     // Clear localStorage
-    localStorage.removeItem('user');
-    localStorage.removeItem('sessionToken');
-    localStorage.removeItem('sessionExpiry');
-    
+    localStorage.removeItem("user");
+    localStorage.removeItem("sessionToken");
+    localStorage.removeItem("sessionExpiry");
+
     // Redirect to login page
-    window.location.href = '/';
+    window.location.href = "/";
+  };
+
+  const handleStartNavigation = (
+    href?: string,
+    hasChildren?: boolean
+  ) => {
+    if (!href || hasChildren) return;
+
+    if (href !== pathname) {
+      setIsPageLoading(true);
+    }
+
+    if (isMobile) {
+      setIsMobileMenuOpen(false);
+    } else {
+      setIsDesktopMenuOpen(false);
+    }
   };
 
   const renderNavItem = (item: SidebarItem, level: number = 0) => {
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedItems.includes(item.id);
     const isActive = item.href === pathname;
-    const hasActiveChild = item.children?.some(child => child.href === pathname);
+    const hasActiveChild = item.children?.some((child) => child.href === pathname);
 
     return (
       <div key={item.id}>
@@ -214,8 +248,7 @@ export default function Sidebar({
               e.preventDefault();
               toggleExpanded(item.id);
             } else {
-              if (isMobile) setIsMobileMenuOpen(false);
-              else setIsDesktopMenuOpen(false);
+              handleStartNavigation(item.href, !!hasChildren);
             }
           }}
           className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer
@@ -228,9 +261,7 @@ export default function Sidebar({
         >
           <span
             className={`shrink-0 transition-colors ${
-              isActive || hasActiveChild
-                ? "text-green-600"
-                : "text-gray-500"
+              isActive || hasActiveChild ? "text-green-600" : "text-gray-500"
             }`}
           >
             {item.icon}
@@ -253,9 +284,7 @@ export default function Sidebar({
 
         {hasChildren && isExpanded && (
           <div className="mt-1 space-y-1">
-            {item.children?.map(child =>
-              renderNavItem(child, level + 1)
-            )}
+            {item.children?.map((child) => renderNavItem(child, level + 1))}
           </div>
         )}
       </div>
@@ -285,7 +314,6 @@ export default function Sidebar({
             </div>
           </div>
 
-          {/* Mobile Hamburger Button — green-500 bg, white icon */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 rounded-xl bg-green-900 hover:bg-green-900 transition"
@@ -308,27 +336,28 @@ export default function Sidebar({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex flex-col h-full pb-30">
-                {/* Header - fixed at top */}
                 <div className="flex-shrink-0 mb-6">
                   <h2 className="text-lg font-semibold text-gray-800 tracking-wide">
                     Navigation
                   </h2>
                 </div>
 
-                {/* Navigation menu - scrollable */}
                 <nav className="flex-1 overflow-y-auto space-y-2">
-                  {sidebarItems.map(item => renderNavItem(item))}
+                  {sidebarItems.map((item) => renderNavItem(item))}
                 </nav>
 
-                {/* User section - fixed at bottom */}
                 <div className="flex-shrink-0 border-t pt-4">
                   <div className="flex items-center space-x-3 mb-3">
                     <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                       <FiUser className="w-4 h-4 text-gray-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{getUserData().name}</p>
-                      <p className="text-xs text-gray-500">{getUserData().email}</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {getUserData().name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {getUserData().email}
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -355,11 +384,11 @@ export default function Sidebar({
         )}
 
         <div className="h-16"></div>
-        
-        {/* Add Mobile Bottom Navigation */}
+
         <MobileBottomNav />
-        
-        {/* Logout Modal */}
+
+        <LoadingModal isOpen={isPageLoading} />
+
         <LogoutModal
           isOpen={isLogoutModalOpen}
           onClose={() => setIsLogoutModalOpen(false)}
@@ -393,7 +422,6 @@ export default function Sidebar({
         </div>
 
         <div className="relative">
-          {/* Desktop Hamburger Button — green-900 bg, white icon */}
           <button
             onClick={() => setIsDesktopMenuOpen(!isDesktopMenuOpen)}
             className="p-2 rounded-xl bg-green-900 hover:bg-green-900 transition"
@@ -407,7 +435,7 @@ export default function Sidebar({
 
           {isDesktopMenuOpen && (
             <div className="absolute right-0 mt-3 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 space-y-2">
-              {sidebarItems.map(item => renderNavItem(item))}
+              {sidebarItems.map((item) => renderNavItem(item))}
 
               <div className="border-t pt-4 mt-3">
                 <div className="flex items-center space-x-3 mb-3">
@@ -415,8 +443,12 @@ export default function Sidebar({
                     <FiUser className="w-4 h-4 text-gray-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{getUserData().name}</p>
-                    <p className="text-xs text-gray-500">{getUserData().email}</p>
+                    <p className="text-sm font-medium text-gray-800">
+                      {getUserData().name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {getUserData().email}
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-1">
@@ -443,8 +475,9 @@ export default function Sidebar({
       </div>
 
       <div className="h-16"></div>
-      
-      {/* Logout Modal */}
+
+      <LoadingModal isOpen={isPageLoading} />
+
       <LogoutModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
