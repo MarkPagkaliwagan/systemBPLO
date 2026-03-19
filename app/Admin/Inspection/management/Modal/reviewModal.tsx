@@ -99,7 +99,7 @@ interface ReviewModalProps {
 
 export default function ReviewModal({ selectedRow, showReviewModal, onClose, onSave, isMobile }: ReviewModalProps) {
   const [showSavedToast, setShowSavedToast] = useState(false);
-
+  
   if (!showReviewModal || !selectedRow) return null;
 
   const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
