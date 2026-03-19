@@ -45,7 +45,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Check token expiration
-    if (Date.now() > tokenData.exp) {
+    const currentTime = Date.now();
+    const tokenExpiration = parseInt(tokenData.exp);
+    
+    console.log('=== EXPIRATION DEBUG ===');
+    console.log('Current time:', currentTime);
+    console.log('Token expiration:', tokenExpiration);
+    console.log('Is expired:', currentTime > tokenExpiration);
+    console.log('========================');
+    
+    if (currentTime > tokenExpiration) {
       return NextResponse.json(
         { error: 'Reset token has expired' },
         { status: 400 }
