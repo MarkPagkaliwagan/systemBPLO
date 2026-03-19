@@ -22,16 +22,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get session token from Authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Get session token from HTTP-only cookie
+    const sessionToken = request.cookies.get('session-token')?.value;
+    
+    if (!sessionToken) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
-
-    const sessionToken = authHeader.substring(7);
     
     // Decode and validate session token
     let sessionData;

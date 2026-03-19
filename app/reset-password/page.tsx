@@ -140,8 +140,6 @@ function ResetPasswordContent() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 sm:p-6 font-sans text-gray-900">
       <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-md">
-
-        {/* Logo */}
         <div className="flex justify-center mb-6">
           <img
             src="/bplo-logo.png"
@@ -171,11 +169,7 @@ function ResetPasswordContent() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* New Password */}
           <div>
-            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              New Password
-            </label>
             <div className="relative">
               <input
                 type={showPasswords.new ? "text" : "password"}
@@ -199,12 +193,7 @@ function ResetPasswordContent() {
               Must be at least 6 characters long
             </p>
           </div>
-
-          {/* Confirm New Password */}
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm New Password
-            </label>
             <div className="relative">
               <input
                 type={showPasswords.confirm ? "text" : "password"}
@@ -225,8 +214,6 @@ function ResetPasswordContent() {
               </button>
             </div>
           </div>
-
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -235,8 +222,6 @@ function ResetPasswordContent() {
             {loading ? 'Resetting Password...' : 'Reset Password'}
           </button>
         </form>
-
-        {/* Back to Login */}
         <div className="mt-8 text-center">
           <Link 
             href="/" 
