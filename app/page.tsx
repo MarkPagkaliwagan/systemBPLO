@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import Spinner from "./components/Spinner";
+import OtpModal from "./components/OtpModal";
 
 export default function LoginPage() {
 
@@ -14,6 +15,10 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpUser, setOtpUser] = useState<any>(null);
+  const [otpError, setOtpError] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({
@@ -26,6 +31,7 @@ export default function LoginPage() {
     e.preventDefault();
 
     setLoading(true);
+    setOtpError("");
 
     try {
       const response = await fetch("/api/auth", {
@@ -42,17 +48,16 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store user data in localStorage for client-side access (non-sensitive)
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("sessionExpiry", Date.now() + data.expiresIn);
-
-        // Redirect to appropriate dashboard based on user role
-        if (data.user.role === 'super_admin') {
-          window.location.href = "/SuperAdmin/Inspection/management/analytics";
-        } else if (data.user.role === 'admin') {
-          window.location.href = "/Admin/Inspection/management/analytics";
+        if (data.requiresOTP) {
+          // Credentials valid, show OTP modal
+          setOtpUser(data.user);
+          setShowOtpModal(true);
+          
+          // Automatically send OTP
+          await sendOtp(data.user.email, data.user.id);
         } else {
-          window.location.href = "/Admin/Inspection/management/analytics";
+          // Fallback for direct login (shouldn't happen with new flow)
+          handleSuccessfulLogin(data);
         }
       } else {
         // Handle specific error messages
@@ -64,6 +69,91 @@ export default function LoginPage() {
       alert("Network error. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOtpModalClose = () => {
+    if (!otpLoading) {
+      setShowOtpModal(false);
+      setOtpUser(null);
+      setOtpError("");
+    }
+  };
+
+  const sendOtp = async (email: string, userId: string) => {
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: form.username.trim(),
+          password: form.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send OTP");
+      }
+    } catch (error) {
+      console.error("Send OTP error:", error);
+      setOtpError("Failed to send OTP. Please try again.");
+    }
+  };
+
+  const handleOtpVerify = async (otp: string) => {
+    setOtpLoading(true);
+    setOtpError("");
+
+    try {
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: otpUser.email,
+          otp: otp,
+          userId: otpUser.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // OTP verified successfully, complete login
+        handleSuccessfulLogin(data);
+        setShowOtpModal(false);
+      } else {
+        setOtpError(data.error || "Invalid OTP. Please try again.");
+      }
+    } catch (error) {
+      console.error("OTP verification error:", error);
+      setOtpError("Network error. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOtpResend = async () => {
+    await sendOtp(otpUser.email, otpUser.id);
+  };
+
+  const handleSuccessfulLogin = (data: any) => {
+    // Store user data in localStorage for client-side access (non-sensitive)
+    localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem("sessionExpiry", Date.now() + data.expiresIn);
+
+    // Redirect to appropriate dashboard based on user role
+    if (data.user.role === 'super_admin') {
+      window.location.href = "/SuperAdmin/Inspection/management/analytics";
+    } else if (data.user.role === 'admin') {
+      window.location.href = "/Admin/Inspection/management/analytics";
+    } else {
+      window.location.href = "/Admin/Inspection/management/analytics";
     }
   };
 
@@ -124,6 +214,16 @@ export default function LoginPage() {
         </div>
 
       </div>
+
+      <OtpModal
+        isOpen={showOtpModal}
+        onClose={handleOtpModalClose}
+        email={otpUser?.email || ""}
+        onVerify={handleOtpVerify}
+        onResend={handleOtpResend}
+        isLoading={otpLoading}
+        error={otpError}
+      />
 
     </div>
 
