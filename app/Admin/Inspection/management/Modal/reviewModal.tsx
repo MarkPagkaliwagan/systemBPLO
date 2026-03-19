@@ -188,7 +188,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
           <div className={`${isMobile ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-3 gap-6"}`}>
 
             {/* ── Business Information Card ── */}
-            <div className={`${isMobile ? "w-full" : "lg:col-span-2"} bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-xl border border-gray-200`}>
+           <div className={`${isMobile ? "w-full" : "lg:col-span-2"} bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-xl border border-gray-200 h-full`}>
               <div className="flex items-center mb-3">
                 <div className="w-9 h-9 bg-green-600 rounded-full flex items-center justify-center mr-3">
                   <FiBriefcase className="w-4 h-4 text-white" />
@@ -199,7 +199,7 @@ export default function ReviewModal({ selectedRow, showReviewModal, onClose, onS
                 </div>
               </div>
 
-              <div className={`${isMobile ? "max-h-64" : "h-150"} overflow-y-auto pr-1 space-y-3`}>
+              <div className="flex flex-col h-full overflow-y-auto pr-1 space-y-3">
 
                 {/* Business Details */}
                 <div className="bg-white rounded-lg p-3 border border-gray-200">
@@ -567,7 +567,7 @@ function ReviewForm({
         {photoPreview && (
           <div className="mb-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
             <div className="relative">
-              <img src={photoPreview} alt="Inspection photo" className="w-full max-h-64 object-cover" />
+              <img src={photoPreview} alt="Inspection photo" className="w-full max-h-[400px] object-contain" />
               <div className="absolute top-2 right-2 flex gap-2">
                 <button type="button" onClick={openCamera}
                   className="flex items-center gap-1 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium rounded-lg border border-gray-200 hover:bg-white shadow-sm transition-colors">
