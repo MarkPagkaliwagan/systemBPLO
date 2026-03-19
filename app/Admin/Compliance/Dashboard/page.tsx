@@ -603,7 +603,7 @@ function ViolationsPageContent() {
     <td colSpan={9} className="text-center py-10 text-gray-500 space-y-2">
       <div>NO DATA FOUND</div>
       <button
-        onClick={() => window.location.href = "/Admin/Inspection/Management/Review"}
+        onClick={() => window.location.href = "/Admin/Inspection/management/review"}
         className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
       >
         + Add Business Violation
@@ -815,7 +815,7 @@ function ViolationsPageContent() {
   <div className="text-center py-10 text-gray-500 space-y-2">
     <div>NO DATA FOUND</div>
     <button
-      onClick={() => window.location.href = "/Admin/Inspection/Management/Review"}
+      onClick={() => window.location.href = "/Admin/Inspection/management/review"}
       className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
     >
       + Add Business Violation
