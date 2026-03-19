@@ -69,19 +69,13 @@ export default function ChangePasswordPage() {
     setLoading(true);
 
     try {
-      const sessionToken = localStorage.getItem('sessionToken');
-      if (!sessionToken) {
-        setError("Session expired. Please login again.");
-        router.push('/');
-        return;
-      }
-
+      // Don't check session token here - let the API handle it via HTTP-only cookie
       const response = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${sessionToken}`
+          "Content-Type": "application/json"
         },
+        credentials: "include", // Important: include cookies
         body: JSON.stringify({
           currentPassword: form.currentPassword,
           newPassword: form.newPassword
