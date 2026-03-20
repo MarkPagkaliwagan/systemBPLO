@@ -24,12 +24,11 @@ export async function POST(request: NextRequest) {
 
     // Find valid OTP code
     const { data: otpRecord, error: otpError } = await supabase
-      .from('otp_codes')
+      .from('email_verification_codes')
       .select('*')
       .eq('user_id', userId)
       .eq('email', email.toLowerCase().trim())
       .eq('code', otp)
-      .eq('purpose', 'email_verification')
       .eq('is_used', false)
       .gt('expires_at', new Date().toISOString())
       .single();
@@ -43,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Mark OTP as used
     await supabase
-      .from('otp_codes')
+      .from('email_verification_codes')
       .update({ is_used: true })
       .eq('id', otpRecord.id);
 
@@ -75,9 +74,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Clean up any old OTP codes for this user
+    // Clean up any old email verification codes for this user
     await supabase
-      .from('otp_codes')
+      .from('email_verification_codes')
       .delete()
       .eq('user_id', user.id);
 
@@ -92,7 +91,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Email verified successfully',
-      email: user.email,
+      user: {
+        id: user.id,
+        name: user.full_name || user.name,
+        email: user.email,
+        role: user.role,
+      },
       verified: true
     });
 

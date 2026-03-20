@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
-import { generateOTP, generateOTPEmailTemplate } from '@/lib/otpUtils';
+import { generateOTP } from '@/lib/otpUtils';
 import { generateEmailVerificationTemplate } from '@/lib/emailTemplates';
 import { sendEmail } from '@/lib/sendEmail';
 
@@ -30,24 +30,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Clean up any existing OTP codes for this user
+    // Clean up any existing email verification codes for this user
     await supabase
-      .from('otp_codes')
+      .from('email_verification_codes')
       .delete()
-      .eq('user_id', user.id)
-      .lt('expires_at', new Date().toISOString());
+      .eq('user_id', user.id);
 
     // Generate new OTP
     const { code, expiresAt } = generateOTP();
 
     // Store OTP in database
     const { error: otpError } = await supabase
-      .from('otp_codes')
+      .from('email_verification_codes')
       .insert({
         user_id: user.id,
         email: user.email,
         code: code,
-        purpose: 'email_verification',
         expires_at: expiresAt.toISOString(),
         is_used: false
       });

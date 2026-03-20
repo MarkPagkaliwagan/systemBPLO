@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
         password: hashedNewPassword,
         password_reset_token: null,
         password_reset_expires: null
+        // Don't set email_verified: true - let user verify email separately
       })
       .eq('id', user.id);
 

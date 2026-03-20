@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Clean up any existing OTP codes for this user
+    // Clean up any existing login 2FA OTP codes for this user
     await supabase
-      .from('otp_codes')
+      .from('login_2fa_otp')
       .delete()
       .eq('user_id', user.id)
       .lt('expires_at', new Date().toISOString());
@@ -50,12 +50,11 @@ export async function POST(request: NextRequest) {
 
     // Store OTP in database
     const { error: otpError } = await supabase
-      .from('otp_codes')
+      .from('login_2fa_otp')
       .insert({
         user_id: user.id,
         email: user.email,
         code: code,
-        purpose: 'login_2fa',
         expires_at: expiresAt.toISOString(),
         is_used: false
       });
@@ -71,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Send OTP email
     try {
       const emailHtml = generateOTPEmailTemplate(code, user.email);
-      await sendEmail(user.email, 'BPLO - OTP Verification Code', emailHtml);
+      await sendEmail(user.email, 'BPLO - Login OTP Verification Code', emailHtml);
     } catch (emailError) {
       console.error('Email sending error:', emailError);
       return NextResponse.json(

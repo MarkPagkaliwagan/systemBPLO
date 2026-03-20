@@ -200,7 +200,7 @@ export const generateEmailVerificationTemplate = (verificationCode: string, user
         <div class="verification-code">${verificationCode}</div>
         
         <div class="warning">
-          <strong>Important:</strong> This verification code will expire in 10 minutes for security reasons. Please use it immediately.
+          <strong>Important:</strong> This verification code will expire in 2 minutes for security reasons. Please use it immediately.
         </div>
         
         <p><strong>How to verify:</strong></p>

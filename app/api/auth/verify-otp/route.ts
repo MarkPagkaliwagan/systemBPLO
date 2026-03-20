@@ -23,12 +23,11 @@ export async function POST(request: NextRequest) {
 
     // Find valid OTP code
     const { data: otpRecord, error: otpError } = await supabase
-      .from('otp_codes')
+      .from('login_2fa_otp')
       .select('*')
       .eq('user_id', userId)
       .eq('email', email.toLowerCase().trim())
       .eq('code', otp)
-      .eq('purpose', 'login_2fa')
       .eq('is_used', false)
       .gt('expires_at', new Date().toISOString())
       .single();
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Mark OTP as used
     await supabase
-      .from('otp_codes')
+      .from('login_2fa_otp')
       .update({ is_used: true })
       .eq('id', otpRecord.id);
 
@@ -63,9 +62,9 @@ export async function POST(request: NextRequest) {
     // Create session token
     const sessionToken = await createSessionToken(user.id, user.role);
 
-    // Clean up any old OTP codes for this user
+    // Clean up any old login 2FA OTP codes for this user
     await supabase
-      .from('otp_codes')
+      .from('login_2fa_otp')
       .delete()
       .eq('user_id', user.id);
 
