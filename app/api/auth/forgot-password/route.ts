@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'SUPABASE UPDATE ERROR', detail: updateError.message }, { status: 500 });
     }
 
-    const resetUrl = `https://system-bplo.vercel.app/reset-password?token=${resetToken}`;
+   const resetUrl = `https://system-bplo.vercel.app/reset-password?token=${resetToken}`;
 
    try {
   await sendEmail(

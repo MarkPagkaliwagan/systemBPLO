@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
-import { createSessionToken } from '@/lib/session';
+import { generateVerificationSuccessTemplate } from '@/lib/emailTemplates';
+import { sendEmail } from '@/lib/sendEmail';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,14 +17,14 @@ export async function POST(request: NextRequest) {
     // Validate OTP format
     if (!/^\d{6}$/.test(otp)) {
       return NextResponse.json(
-        { error: 'Invalid OTP format' },
+        { error: 'Invalid verification code format' },
         { status: 400 }
       );
     }
 
     // Find valid OTP code
     const { data: otpRecord, error: otpError } = await supabase
-      .from('login_2fa_otp')
+      .from('email_verification_codes')
       .select('*')
       .eq('user_id', userId)
       .eq('email', email.toLowerCase().trim())
@@ -34,14 +35,14 @@ export async function POST(request: NextRequest) {
 
     if (otpError || !otpRecord) {
       return NextResponse.json(
-        { error: 'Invalid or expired OTP' },
+        { error: 'Invalid or expired verification code' },
         { status: 401 }
       );
     }
 
     // Mark OTP as used
     await supabase
-      .from('login_2fa_otp')
+      .from('email_verification_codes')
       .update({ is_used: true })
       .eq('id', otpRecord.id);
 
@@ -59,40 +60,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session token
-    const sessionToken = await createSessionToken(user.id, user.role);
+    // Mark email as verified
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ email_verified: true })
+      .eq('id', userId);
 
-    // Clean up any old login 2FA OTP codes for this user
+    if (updateError) {
+      console.error('Error updating email verification:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to verify email' },
+        { status: 500 }
+      );
+    }
+
+    // Clean up any old email verification codes for this user
     await supabase
-      .from('login_2fa_otp')
+      .from('email_verification_codes')
       .delete()
       .eq('user_id', user.id);
 
-    // Create response with session
-    const response = NextResponse.json({
+    // Send verification success email
+    try {
+      const successEmailHtml = generateVerificationSuccessTemplate(user.full_name || user.email);
+      await sendEmail(user.email, 'Email Successfully Verified - BPLO', successEmailHtml);
+    } catch (emailError) {
+      console.error('Success email error:', emailError);
+      // Don't fail the verification if email fails
+    }
+
+    return NextResponse.json({
+      message: 'Email verified successfully',
       user: {
         id: user.id,
-        name: user.name,
+        name: user.full_name || user.name,
         email: user.email,
         role: user.role,
       },
-      sessionToken,
-      expiresIn: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+      verified: true
     });
-
-    // Set HTTP-only cookie
-    response.cookies.set('session-token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24,
-    });
-
-    return response;
 
   } catch (error) {
-    console.error('Verify OTP error:', error);
+    console.error('Verify email error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

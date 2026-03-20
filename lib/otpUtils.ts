@@ -9,8 +9,8 @@ export const generateOTP = (): OTPData => {
   // Generate 6-digit numeric code
   const code = crypto.randomInt(100000, 999999).toString();
   
-  // Set expiry to 10 minutes from now
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  // Set expiry to 2 minutes from now
+  const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
   
   return { code, expiresAt };
 };

@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import Spinner from "./components/Spinner";
-import OtpModal from "./components/OtpModal";
+import EmailVerificationModal from "./components/EmailVerificationModal";
+import LoginOtpModal from "./components/LoginOtpModal";
 
 export default function LoginPage() {
 
@@ -16,9 +17,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
   const [otpUser, setOtpUser] = useState<any>(null);
+  const [verificationUser, setVerificationUser] = useState<any>(null);
   const [otpError, setOtpError] = useState("");
+  const [verificationError, setVerificationError] = useState("");
+  const [verificationSuccess, setVerificationSuccess] = useState("");
+  const [otpSuccess, setOtpSuccess] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
+  const [verificationLoading, setVerificationLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({
@@ -32,6 +39,7 @@ export default function LoginPage() {
 
     setLoading(true);
     setOtpError("");
+    setVerificationError("");
 
     try {
       const response = await fetch("/api/auth", {
@@ -48,7 +56,15 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        if (data.requiresOTP) {
+        if (data.requiresEmailVerification) {
+          // User needs to verify email first
+          setVerificationUser(data.user);
+          setVerificationError(""); // Clear any previous errors
+          setShowEmailVerificationModal(true);
+          
+          // Automatically send verification email
+          await sendVerificationEmail(data.user.email, data.user.id);
+        } else if (data.requiresOTP) {
           // Credentials valid, show OTP modal
           setOtpUser(data.user);
           setShowOtpModal(true);
@@ -105,8 +121,10 @@ export default function LoginPage() {
   };
 
   const handleOtpVerify = async (otp: string) => {
+    console.log('handleOtpVerify called - otp:', otp, 'current otpLoading:', otpLoading);
     setOtpLoading(true);
     setOtpError("");
+    console.log('Set otpLoading to true');
 
     try {
       const response = await fetch("/api/auth/verify-otp", {
@@ -122,11 +140,16 @@ export default function LoginPage() {
       });
 
       const data = await response.json();
+      console.log('OTP verify response:', data);
 
       if (response.ok) {
         // OTP verified successfully, complete login
-        handleSuccessfulLogin(data);
-        setShowOtpModal(false);
+        setOtpSuccess("Login verification successful!");
+        
+        setTimeout(() => {
+          setShowOtpModal(false);
+          handleSuccessfulLogin(data);
+        }, 1500);
       } else {
         setOtpError(data.error || "Invalid OTP. Please try again.");
       }
@@ -134,12 +157,110 @@ export default function LoginPage() {
       console.error("OTP verification error:", error);
       setOtpError("Network error. Please try again.");
     } finally {
+      console.log('Setting otpLoading to false');
       setOtpLoading(false);
     }
   };
 
   const handleOtpResend = async () => {
-    await sendOtp(otpUser.email, otpUser.id);
+    setOtpLoading(true);
+    try {
+      await sendOtp(otpUser.email, otpUser.id);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const sendVerificationEmail = async (email: string, userId: string) => {
+    setVerificationError(""); // Clear previous errors
+    try {
+      const response = await fetch("/api/auth/send-verification-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: email,
+          userId: userId
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send verification email");
+      }
+    } catch (error) {
+      console.error("Send verification email error:", error);
+      setVerificationError("Failed to send verification email. Please try again.");
+    }
+  };
+
+  const handleEmailVerificationModalClose = () => {
+    if (!verificationLoading) {
+      setShowEmailVerificationModal(false);
+      setVerificationUser(null);
+      setVerificationError("");
+    }
+  };
+
+  const handleEmailVerification = async (otp: string) => {
+    console.log('handleEmailVerification called - otp:', otp, 'current verificationLoading:', verificationLoading);
+    setVerificationLoading(true);
+    setVerificationError("");
+    console.log('Set verificationLoading to true');
+
+    try {
+      const response = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: verificationUser.email,
+          otp: otp,
+          userId: verificationUser.id
+        })
+      });
+
+      const data = await response.json();
+      console.log('Email verify response:', data);
+
+      if (response.ok) {
+        // Email verified successfully, go directly to dashboard
+        setVerificationSuccess("Your email has been verified successfully!");
+        
+        setTimeout(() => {
+          setShowEmailVerificationModal(false);
+          setVerificationUser(null);
+          
+          // Direct to dashboard with user data from verify-email response
+          handleSuccessfulLogin({
+            user: data.user,
+            sessionToken: "verified-session-token", // or create real session
+            expiresIn: 24 * 60 * 60 * 1000
+          });
+        }, 1500);
+      } else {
+        setVerificationError(data.error || "Invalid verification code. Please try again.");
+      }
+    } catch (error) {
+      console.error("Email verification error:", error);
+      setVerificationError("Network error. Please try again.");
+    } finally {
+      console.log('Setting verificationLoading to false');
+      setVerificationLoading(false);
+    }
+  };
+
+  const handleEmailVerificationResend = async () => {
+    setVerificationError(""); // Clear previous errors before resending
+    setVerificationLoading(true);
+    try {
+      await sendVerificationEmail(verificationUser.email, verificationUser.id);
+    } finally {
+      setVerificationLoading(false);
+    }
   };
 
   const handleSuccessfulLogin = (data: any) => {
@@ -215,7 +336,7 @@ export default function LoginPage() {
 
       </div>
 
-      <OtpModal
+      <LoginOtpModal
         isOpen={showOtpModal}
         onClose={handleOtpModalClose}
         email={otpUser?.email || ""}
@@ -223,6 +344,17 @@ export default function LoginPage() {
         onResend={handleOtpResend}
         isLoading={otpLoading}
         error={otpError}
+        success={otpSuccess}
+      />
+
+      <EmailVerificationModal
+        isOpen={showEmailVerificationModal}
+        onClose={handleEmailVerificationModalClose}
+        email={verificationUser?.email || ""}
+        onVerify={handleEmailVerification}
+        onResend={handleEmailVerificationResend}
+        isLoading={verificationLoading}
+        error={verificationError}
       />
 
     </div>

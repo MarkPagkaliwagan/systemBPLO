@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
-import { hashPassword, validatePassword } from '@/lib/passwordUtils';
+import { hashPassword } from '@/lib/passwordUtils';
+import { validatePassword, generateSecurePassword } from '@/lib/clientPasswordUtils';
+import { generateWelcomeEmailTemplate } from '@/lib/emailTemplates';
+import { sendEmail } from '@/lib/sendEmail';
+import crypto from 'crypto';
 
 // Helper function to validate user role
 async function validateUserRole(request: NextRequest): Promise<{ valid: boolean; userRole?: string }> {
@@ -61,7 +65,9 @@ export async function GET(request: NextRequest) {
       id: user.id,
       name: user.full_name, // Map full_name to name for frontend
       email: user.email,
+      contact_no: user.contact_no,
       role: user.role,
+      email_verified: user.email_verified,
       createdAt: user.created_at
     }));
 
@@ -87,23 +93,28 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, contact_no, role } = body;
 
     // Basic validation
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !role) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { error: 'Name, email, and role are required' },
         { status: 400 }
       );
     }
 
-    // Password strength validation
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      return NextResponse.json(
-        { error: passwordValidation.message },
-        { status: 400 }
-      );
+    // Generate secure password if not provided
+    const finalPassword = password || generateSecurePassword();
+
+    // Password strength validation (if password provided)
+    if (password) {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        return NextResponse.json(
+          { error: passwordValidation.message },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if user already exists
@@ -121,7 +132,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password before storing
-    const hashedPassword = await hashPassword(password);
+    const hashedPassword = await hashPassword(finalPassword);
+
+    // Generate password reset token for new user
+    const resetToken = Buffer.from(JSON.stringify({
+      userId: crypto.randomUUID(), // Temporary ID, will be replaced after user creation
+      email: email,
+      timestamp: Date.now(),
+      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours from now
+    })).toString('base64');
 
     // Create new user
     const { data: newUser, error } = await supabase
@@ -131,7 +150,11 @@ export async function POST(request: NextRequest) {
           full_name: name, // Map name to full_name column
           email,
           password: hashedPassword, // Store hashed password
+          contact_no: contact_no || null,
           role,
+          email_verified: false, // New users need to verify email
+          password_reset_token: resetToken,
+          password_reset_expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
@@ -147,11 +170,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Update reset token with actual user ID
+    const updatedResetToken = Buffer.from(JSON.stringify({
+      userId: newUser.id,
+      email: email,
+      timestamp: Date.now(),
+      exp: Date.now() + (24 * 60 * 60 * 1000)
+    })).toString('base64');
+
+    await supabase
+      .from('users')
+      .update({
+        password_reset_token: updatedResetToken
+      })
+      .eq('id', newUser.id);
+
+    // Send welcome email with reset password link
+    try {
+      const resetUrl = `https://system-bplo.vercel.app/reset-password?token=${updatedResetToken}`;
+      const welcomeEmailHtml = generateWelcomeEmailTemplate(name, email, finalPassword, resetUrl);
+      
+      await sendEmail(email, 'Welcome to BPLO Inspection Management System', welcomeEmailHtml);
+    } catch (emailError) {
+      console.error('Welcome email error:', emailError);
+      // Don't fail the user creation if email fails, but log it
+    }
+
     // Transform response to match expected format
     const transformedUser = {
       id: newUser.id,
       name: newUser.full_name, // Map full_name to name for frontend
       email: newUser.email,
+      contact_no: newUser.contact_no,
       role: newUser.role,
       createdAt: newUser.created_at
     };

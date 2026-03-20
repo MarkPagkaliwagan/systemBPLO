@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { FiMail, FiRefreshCw } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from 'react';
+import { FiShield, FiRefreshCw, FiX } from 'react-icons/fi';
 import Spinner from './Spinner';
 
-interface OtpModalProps {
+interface LoginOtpModalProps {
   isOpen: boolean;
   onClose: () => void;
   email: string;
@@ -12,26 +12,28 @@ interface OtpModalProps {
   onResend: () => Promise<void>;
   isLoading?: boolean;
   error?: string;
+  success?: string;
 }
 
-const OtpModal: React.FC<OtpModalProps> = ({ 
+const LoginOtpModal: React.FC<LoginOtpModalProps> = ({ 
   isOpen, 
   onClose, 
   email, 
   onVerify, 
   onResend, 
   isLoading = false,
-  error 
+  error,
+  success 
 }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
   const [canResend, setCanResend] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
+  const isSubmitting = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
       setOtp(['', '', '', '', '', '']);
-      setTimeLeft(600);
+      setTimeLeft(120);
       setCanResend(false);
       return;
     }
@@ -49,6 +51,30 @@ const OtpModal: React.FC<OtpModalProps> = ({
     return () => clearInterval(timer);
   }, [isOpen]);
 
+  useEffect(() => {
+    const otpString = otp.join('');
+    console.log('OTP useEffect - otpString:', otpString, 'isLoading:', isLoading, 'isSubmitting:', isSubmitting.current);
+    
+    if (otpString.length === 6 && !isLoading && !isSubmitting.current) {
+      // Mark as submitting to prevent multiple submissions
+      isSubmitting.current = true;
+      
+      // Add small delay for better UX
+      const timer = setTimeout(() => {
+        console.log('Auto-submitting OTP:', otpString);
+        onVerify(otpString);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [otp, onVerify]); // Remove isLoading from dependencies
+
+  // Reset submission flag when loading changes
+  useEffect(() => {
+    if (!isLoading) {
+      isSubmitting.current = false;
+    }
+  }, [isLoading]);
+
   const handleInputChange = (index: number, value: string) => {
     if (value.length > 1) return;
     if (!/^\d*$/.test(value)) return;
@@ -59,14 +85,14 @@ const OtpModal: React.FC<OtpModalProps> = ({
 
     // Auto-focus next input
     if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-input-${index + 1}`);
+      const nextInput = document.getElementById(`login-otp-input-${index + 1}`);
       nextInput?.focus();
     }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-input-${index - 1}`);
+      const prevInput = document.getElementById(`login-otp-input-${index - 1}`);
       prevInput?.focus();
     }
   };
@@ -77,6 +103,13 @@ const OtpModal: React.FC<OtpModalProps> = ({
     if (/^\d+$/.test(pastedData)) {
       const newOtp = pastedData.split('').concat(Array(6 - pastedData.length).fill(''));
       setOtp(newOtp);
+
+      // Auto-submit if 6 digits were pasted
+      if (pastedData.length === 6 && !isLoading) {
+        setTimeout(() => {
+          onVerify(pastedData);
+        }, 100); // Small delay to ensure state is updated
+      }
     }
   };
 
@@ -89,16 +122,13 @@ const OtpModal: React.FC<OtpModalProps> = ({
   };
 
   const handleResend = async () => {
-    setResendLoading(true);
     try {
       await onResend();
-      setTimeLeft(600);
+      setTimeLeft(120);
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
     } catch (error) {
       console.error('Resend error:', error);
-    } finally {
-      setResendLoading(false);
     }
   };
 
@@ -118,24 +148,47 @@ const OtpModal: React.FC<OtpModalProps> = ({
       />
 
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all scale-100 opacity-100">
-        <div className="bg-green-900 px-6 py-4 rounded-t-2xl">
+        {/* Close button */}
+        <button
+          onClick={!isLoading ? onClose : undefined}
+          disabled={isLoading}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed z-10"
+        >
+          <FiX size={20} />
+        </button>
+
+        {/* Header */}
+        <div className="bg-green-800 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-center space-x-3">
-            <FiMail className="w-6 h-6 text-white" />
-            <h2 className="text-lg font-semibold text-white">Email Verification</h2>
+            <FiShield className="w-6 h-6 text-white" />
+            <h2 className="text-lg font-semibold text-white">OTP Login Verification</h2>
           </div>
         </div>
         
         <div className="px-6 py-6">
           <div className="text-center mb-6">
             <p className="text-gray-600 mb-2">
-              We've sent a 6-digit code to:
+              Enter the 6-digit code sent to:
             </p>
             <p className="font-semibold text-gray-800">{email}</p>
           </div>
 
-          {error && (
+          {error && !success && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
+              <div className="flex items-center">
+                <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center mr-3">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-8-8a1 1 0 111.414 0L8 9.586 7.293a1 1 0 00-1.414 1.414L8 11.414l2.293 2.293a1 1 0 001.414 0l4-4a1 1 0 00-1.414-1.414L8 7.586 5.293a1 1 0 00-1.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium">{success}</p>
+              </div>
             </div>
           )}
 
@@ -144,14 +197,14 @@ const OtpModal: React.FC<OtpModalProps> = ({
               {otp.map((digit, index) => (
                 <input
                   key={index}
-                  id={`otp-input-${index}`}
+                  id={`login-otp-input-${index}`}
                   type="text"
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleInputChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all"
+                  className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                   disabled={isLoading}
                 />
               ))}
@@ -162,7 +215,7 @@ const OtpModal: React.FC<OtpModalProps> = ({
               disabled={isLoading || otp.join('').length !== 6}
               className={`w-full py-3 font-medium rounded-xl transition-colors duration-200 ${
                 isLoading || otp.join('').length !== 6
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'  
                   : 'bg-green-800 hover:bg-green-900 text-white'
               }`}
             >
@@ -182,13 +235,13 @@ const OtpModal: React.FC<OtpModalProps> = ({
             {canResend && (
               <button
                 onClick={handleResend}
-                disabled={resendLoading}
-                className={`inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors ${
-                  resendLoading ? 'opacity-50 cursor-not-allowed' : ''
+                disabled={isLoading}
+                className={`inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium transition-colors ${
+                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                <FiRefreshCw className={`w-4 h-4 ${resendLoading ? 'animate-spin' : ''}`} />
-                <span>{resendLoading ? 'Sending...' : 'Resend Code'}</span>
+                <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'Sending...' : 'Resend Code'}</span>
               </button>
             )}
           </div>
@@ -208,4 +261,4 @@ const OtpModal: React.FC<OtpModalProps> = ({
   );
 };
 
-export default OtpModal;
+export default LoginOtpModal;

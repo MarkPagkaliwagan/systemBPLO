@@ -1,56 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
-import { comparePassword } from '@/lib/passwordUtils';
-import { generateOTP, generateOTPEmailTemplate } from '@/lib/otpUtils';
+import { generateOTP } from '@/lib/otpUtils';
+import { generateEmailVerificationTemplate } from '@/lib/emailTemplates';
 import { sendEmail } from '@/lib/sendEmail';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { email, userId } = await request.json();
 
-    if (!email || !password) {
+    if (!email || !userId) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Email and user ID are required' },
         { status: 400 }
       );
     }
 
-    // First validate credentials
+    // Get user data
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
+      .eq('id', userId)
       .eq('email', email.toLowerCase().trim())
       .single();
 
     if (error || !user) {
       return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
-    const isPasswordValid = await comparePassword(password, user.password);
-
-    if (!isPasswordValid) {
-      return NextResponse.json(
-        { error: 'Invalid credentials' },
-        { status: 401 }
-      );
-    }
-
-    // Clean up any existing login 2FA OTP codes for this user
+    // Clean up any existing email verification codes for this user
     await supabase
-      .from('login_2fa_otp')
+      .from('email_verification_codes')
       .delete()
-      .eq('user_id', user.id)
-      .lt('expires_at', new Date().toISOString());
+      .eq('user_id', user.id);
 
     // Generate new OTP
     const { code, expiresAt } = generateOTP();
 
     // Store OTP in database
     const { error: otpError } = await supabase
-      .from('login_2fa_otp')
+      .from('email_verification_codes')
       .insert({
         user_id: user.id,
         email: user.email,
@@ -62,31 +53,31 @@ export async function POST(request: NextRequest) {
     if (otpError) {
       console.error('OTP storage error:', otpError);
       return NextResponse.json(
-        { error: 'Failed to generate OTP' },
+        { error: 'Failed to generate verification code' },
         { status: 500 }
       );
     }
 
-    // Send OTP email
+    // Send verification email
     try {
-      const emailHtml = generateOTPEmailTemplate(code, user.email);
-      await sendEmail(user.email, 'BPLO - Login OTP Verification Code', emailHtml);
+      const emailHtml = generateEmailVerificationTemplate(code, user.email);
+      await sendEmail(user.email, 'BPLO - Email Verification Code', emailHtml);
     } catch (emailError) {
       console.error('Email sending error:', emailError);
       return NextResponse.json(
-        { error: 'Failed to send OTP email' },
+        { error: 'Failed to send verification email' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
-      message: 'OTP sent successfully',
+      message: 'Verification code sent successfully',
       email: user.email,
       userId: user.id
     });
 
   } catch (error) {
-    console.error('Send OTP error:', error);
+    console.error('Send verification email error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
