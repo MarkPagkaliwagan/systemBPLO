@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -23,7 +23,6 @@ const supabase = createClient(
 
 const BIN_FIELD = "Business Identification Number";
 const BUSINESS_NAME_FIELD = "Business Name";
-const INSPECTOR_FIELD = "assigned_inspector";
 
 type ToastType = "success" | "error" | "info";
 
@@ -37,7 +36,11 @@ export default function ManualAddBusiness() {
     const router = useRouter();
 
     const [loading, setLoading] = useState(false);
+
     const [form, setForm] = useState<Record<string, any>>({});
+    const [inspectorInput, setInspectorInput] = useState<string>("");
+    const [inspectorList, setInspectorList] = useState<string[]>([]);
+    const [inspectorError, setInspectorError] = useState<string | null>(null);
 
     // live validation errors state (key -> message)
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -134,7 +137,7 @@ export default function ManualAddBusiness() {
         }
 
         if (decimalAllowedLabels.includes(label)) {
-            if (!/^\d+(\.\d+)?$/.test(v)) return `${label} must be a valid number.`; 
+            if (!/^\d+(\.\d+)?$/.test(v)) return `${label} must be a valid number.`;
             return null;
         }
 
@@ -236,6 +239,55 @@ export default function ManualAddBusiness() {
 
         return () => window.clearTimeout(delay);
     }, [form[BIN_FIELD]]);
+
+    /* ---------- HANDLE INSPECTOR CHIP INPUT ---------- */
+    const handleInspectorKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && inspectorInput.trim() !== "") {
+            e.preventDefault();
+
+            const candidate = inspectorInput.trim();
+
+            if (!candidate) {
+                setInspectorError("Inspector name is required.");
+                return;
+            }
+
+            setInspectorError(null);
+
+            if (!inspectorList.includes(candidate)) {
+                const updatedList = [...inspectorList, candidate];
+                setInspectorList(updatedList);
+                setForm((prev: Record<string, any>) => ({
+                    ...prev,
+                    assigned_inspector: updatedList
+                }));
+            } else {
+                setInspectorError("Inspector already added.");
+            }
+
+            setInspectorInput("");
+        }
+
+        if (e.key === "Backspace" && inspectorInput === "" && inspectorList.length > 0) {
+            const newList = [...inspectorList];
+            newList.pop();
+
+            setInspectorList(newList);
+            setForm((prev: Record<string, any>) => ({
+                ...prev,
+                assigned_inspector: newList
+            }));
+        }
+    };
+
+    const removeInspector = (name: string) => {
+        const newList = inspectorList.filter((e) => e !== name);
+        setInspectorList(newList);
+        setForm((prev: Record<string, any>) => ({
+            ...prev,
+            assigned_inspector: newList
+        }));
+    };
 
     /* ---------- CLEAN DATA BEFORE SAVE ---------- */
     const cleanData = (data: Record<string, any>) => {
@@ -339,7 +391,7 @@ export default function ManualAddBusiness() {
                     title="Quick Business Entry"
                     icon={<FiBriefcase />}
                     collapsible={false}
-                    note="Fill this first. The rest is optional."
+                    note="Main fields only"
                 >
                     <Input
                         label={BIN_FIELD}
@@ -365,14 +417,50 @@ export default function ManualAddBusiness() {
                         placeholder="Enter business name"
                         required
                     />
-                    <Input
-                        label="Inspector Name"
-                        fieldKey={INSPECTOR_FIELD}
-                        value={form[INSPECTOR_FIELD] ?? ""}
-                        onChange={handleChange}
-                        placeholder="Enter inspector name"
-                        helperText="Name only, no email."
-                    />
+                    <div className="flex flex-col">
+                        <label className="text-sm text-gray-600 mb-1">Inspector</label>
+                        <div
+                            className={`flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-[44px] items-center focus-within:ring-2 ${
+                                Object.keys(errors).some((k) => k.startsWith("assigned_inspector"))
+                                    ? "ring-1 ring-red-400 border-red-300"
+                                    : "focus-within:ring-green-900 border-green-100"
+                            }`}
+                        >
+                            {inspectorList.map((name, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-center bg-green-100 text-green-900 px-2 py-1 rounded-full text-xs sm:text-sm"
+                                >
+                                    {name}
+                                    <button
+                                        type="button"
+                                        className="ml-1"
+                                        onClick={() => removeInspector(name)}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                            <input
+                                type="text"
+                                value={inspectorInput}
+                                onChange={(e) => {
+                                    setInspectorInput(e.target.value);
+
+                                    if (e.target.value.trim() === "") {
+                                        setInspectorError(null);
+                                    } else {
+                                        setInspectorError(null);
+                                    }
+                                }}
+                                onKeyDown={handleInspectorKeyDown}
+                                placeholder="Type name and press Enter"
+                                className="flex-1 outline-none border-none text-black px-1 py-1 min-w-[100px] sm:min-w-[120px]"
+                            />
+                        </div>
+                        {inspectorError && <p className="text-xs text-red-600 mt-1">{inspectorError}</p>}
+                        <p className="text-xs text-gray-500 mt-1">Optional only.</p>
+                    </div>
                     <Input
                         label="Business Nature"
                         value={form["Business Nature"] ?? ""}
@@ -384,8 +472,7 @@ export default function ManualAddBusiness() {
                         onChange={handleChange}
                     />
 
-                    {/* BUTTONS INSIDE QUICK ENTRY */}
-                    <div className="sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row justify-end gap-4 pt-2">
+                    <div className="sm:col-span-1 lg:col-span-3 flex flex-col sm:flex-row justify-end gap-4 pt-2">
                         <button
                             onClick={() => router.back()}
                             className="px-6 py-2 border border-green-900 text-green-900 rounded-lg hover:bg-green-50 w-full sm:w-auto transition"
@@ -397,104 +484,108 @@ export default function ManualAddBusiness() {
                             disabled={loading}
                             className="px-6 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto transition"
                         >
-                            {loading ? "Saving..." : "Save"}
+                            {loading ? "Saving..." : "Save Record"}
                         </button>
                     </div>
                 </Section>
 
-                {/* OPTIONAL DETAILS - ONE DROPDOWN */}
-                <Section
-                    title="Optional Details"
-                    icon={<FiChevronDown />}
-                    collapsible
-                    note="All fields below are optional."
-                >
-                    <FieldGroup title="Incharge Information">
-                        <Input label="Incharge First Name" value={form["Incharge First Name"] ?? ""} onChange={handleChange} />
-                        <Input label="Incharge Middle Name" value={form["Incharge Middle Name"] ?? ""} onChange={handleChange} />
-                        <Input label="Incharge Last Name" value={form["Incharge Last Name"] ?? ""} onChange={handleChange} />
-                        <Input label="Incharge Extension Name" value={form["Incharge Extension Name"] ?? ""} onChange={handleChange} />
-                        <Input label="Incharge Sex" value={form["Incharge Sex"] ?? ""} onChange={handleChange} />
-                        <Input label="Citizenship" value={form["Citizenship"] ?? ""} onChange={handleChange} />
-                        <Input label="Birth Date" type="date" value={form["Birth Date"] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                {/* OPTIONAL SECTIONS IN ONE DROPDOWN */}
+                <Section title="Additional Details" icon={<FiClipboard />} collapsible note="Optional only">
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2">
+                        Incharge Information
+                    </div>
+                    <Input label="Incharge First Name" value={form["Incharge First Name"] ?? ""} onChange={handleChange} />
+                    <Input label="Incharge Middle Name" value={form["Incharge Middle Name"] ?? ""} onChange={handleChange} />
+                    <Input label="Incharge Last Name" value={form["Incharge Last Name"] ?? ""} onChange={handleChange} />
+                    <Input label="Incharge Extension Name" value={form["Incharge Extension Name"] ?? ""} onChange={handleChange} />
+                    <Input label="Incharge Sex" value={form["Incharge Sex"] ?? ""} onChange={handleChange} />
+                    <Input label="Citizenship" value={form["Citizenship"] ?? ""} onChange={handleChange} />
+                    <Input label="Birth Date" type="date" value={form["Birth Date"] ?? ""} onChange={handleChange} />
 
-                    <FieldGroup title="Office Address">
-                        <Input label="Office Street" value={form["Office Street"] ?? ""} onChange={handleChange} />
-                        <Input label="Office Region" value={form["Office Region"] ?? ""} onChange={handleChange} />
-                        <Input label="Office Province" value={form["Office Province"] ?? ""} onChange={handleChange} />
-                        <Input label="Office Municipality" value={form["Office Municipality"] ?? ""} onChange={handleChange} />
-                        <Input label="Office Barangay" value={form["Office Barangay"] ?? ""} onChange={handleChange} />
-                        <Input label="Office Zipcode" value={form["Office Zipcode"] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">
+                        Office Address
+                    </div>
+                    <Input label="Office Street" value={form["Office Street"] ?? ""} onChange={handleChange} />
+                    <Input label="Office Region" value={form["Office Region"] ?? ""} onChange={handleChange} />
+                    <Input label="Office Province" value={form["Office Province"] ?? ""} onChange={handleChange} />
+                    <Input label="Office Municipality" value={form["Office Municipality"] ?? ""} onChange={handleChange} />
+                    <Input label="Office Barangay" value={form["Office Barangay"] ?? ""} onChange={handleChange} />
+                    <Input label="Office Zipcode" value={form["Office Zipcode"] ?? ""} onChange={handleChange} />
 
-                    <FieldGroup title="Financial Information">
-                        <Input label="Capital" type="number" value={form["Capital"] ?? ""} onChange={handleChange} />
-                        <Input label="Gross Amount" type="number" value={form["Gross Amount"] ?? ""} onChange={handleChange} />
-                        <Input label="Gross Amount Essential" type="number" value={form["Gross Amount Essential"] ?? ""} onChange={handleChange} />
-                        <Input label="Gross Amount Non-Essential" type="number" value={form["Gross Amount Non-Essential"] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">
+                        Financial Information
+                    </div>
+                    <Input label="Capital" type="number" value={form["Capital"] ?? ""} onChange={handleChange} />
+                    <Input label="Gross Amount" type="number" value={form["Gross Amount"] ?? ""} onChange={handleChange} />
+                    <Input label="Gross Amount Essential" type="number" value={form["Gross Amount Essential"] ?? ""} onChange={handleChange} />
+                    <Input label="Gross Amount Non-Essential" type="number" value={form["Gross Amount Non-Essential"] ?? ""} onChange={handleChange} />
 
-                    <FieldGroup title="Requestor Information">
-                        <Input label="Requestor First Name" value={form["Requestor First Name"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Middle Name" value={form["Requestor Middle Name"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Last Name" value={form["Requestor Last Name"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Extension Name" value={form["Requestor Extension Name"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Email" value={form["Requestor Email"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Mobile No." value={form["Requestor Mobile No."] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Sex" value={form["Requestor Sex"] ?? ""} onChange={handleChange} />
-                        <Input label="Civil Status" value={form["Civil Status"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Street" value={form["Requestor Street"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Province" value={form["Requestor Province"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Municipality" value={form["Requestor Municipality"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Barangay" value={form["Requestor Barangay"] ?? ""} onChange={handleChange} />
-                        <Input label="Requestor Zipcode" value={form["Requestor Zipcode"] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">
+                        Requestor Information
+                    </div>
+                    <Input label="Requestor First Name" value={form["Requestor First Name"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Middle Name" value={form["Requestor Middle Name"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Last Name" value={form["Requestor Last Name"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Extension Name" value={form["Requestor Extension Name"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Email" value={form["Requestor Email"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Mobile No." value={form["Requestor Mobile No."] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Sex" value={form["Requestor Sex"] ?? ""} onChange={handleChange} />
+                    <Input label="Civil Status" value={form["Civil Status"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Street" value={form["Requestor Street"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Province" value={form["Requestor Province"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Municipality" value={form["Requestor Municipality"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Barangay" value={form["Requestor Barangay"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor Zipcode" value={form["Requestor Zipcode"] ?? ""} onChange={handleChange} />
 
-                    <FieldGroup title="Transaction Information">
-                        <Input label="Transaction ID" value={form["Transaction ID"] ?? ""} onChange={handleChange} />
-                        <Input label="Reference No." value={form["Reference No."] ?? ""} onChange={handleChange} />
-                        <Input label="Module Type" value={form["Module Type"] ?? ""} onChange={handleChange} />
-                        <Input label="Transaction Type" value={form["Transaction Type"] ?? ""} onChange={handleChange} />
-                        <Input label="Transaction Date" type="datetime-local" value={form["Transaction Date"] ?? ""} onChange={handleChange} />
-                        <Input label="SITE Transaction Status" value={form["SITE Transaction Status"] ?? ""} onChange={handleChange} />
-                        <Input label="CORE Transaction Status" value={form["CORE Transaction Status"] ?? ""} onChange={handleChange} />
-                        <Input label="Reject Remarks" value={form["Reject Remarks"] ?? ""} onChange={handleChange} />
-                        <Input label="SOA No." value={form["SOA No."] ?? ""} onChange={handleChange} />
-                        <Input label="Term" value={form["Term"] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">
+                        Transaction Information
+                    </div>
+                    <Input label="Transaction ID" value={form["Transaction ID"] ?? ""} onChange={handleChange} />
+                    <Input label="Reference No." value={form["Reference No."] ?? ""} onChange={handleChange} />
+                    <Input label="Module Type" value={form["Module Type"] ?? ""} onChange={handleChange} />
+                    <Input label="Transaction Type" value={form["Transaction Type"] ?? ""} onChange={handleChange} />
+                    <Input label="Transaction Date" type="datetime-local" value={form["Transaction Date"] ?? ""} onChange={handleChange} />
+                    <Input label="SITE Transaction Status" value={form["SITE Transaction Status"] ?? ""} onChange={handleChange} />
+                    <Input label="CORE Transaction Status" value={form["CORE Transaction Status"] ?? ""} onChange={handleChange} />
+                    <Input label="Reject Remarks" value={form["Reject Remarks"] ?? ""} onChange={handleChange} />
+                    <Input label="SOA No." value={form["SOA No."] ?? ""} onChange={handleChange} />
+                    <Input label="Term" value={form["Term"] ?? ""} onChange={handleChange} />
 
-                    <FieldGroup title="Payment Information">
-                        <Input label="Annual Amount" type="number" value={form["Annual Amount"] ?? ""} onChange={handleChange} />
-                        <Input label="Amount Paid" type="number" value={form["Amount Paid"] ?? ""} onChange={handleChange} />
-                        <Input label="Balance" type="number" value={form["Balance"] ?? ""} onChange={handleChange} />
-                        <Input label="Payment Type" value={form["Payment Type"] ?? ""} onChange={handleChange} />
-                        <Input label="Payment Date" type="date" value={form["Payment Date"] ?? ""} onChange={handleChange} />
-                        <Input label="O.R. No." value={form["O.R. No."] ?? ""} onChange={handleChange} />
-                        <Input label="O.R. Date" type="date" value={form["O.R. Date"] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">
+                        Payment Information
+                    </div>
+                    <Input label="Annual Amount" type="number" value={form["Annual Amount"] ?? ""} onChange={handleChange} />
+                    <Input label="Amount Paid" type="number" value={form["Amount Paid"] ?? ""} onChange={handleChange} />
+                    <Input label="Balance" type="number" value={form["Balance"] ?? ""} onChange={handleChange} />
+                    <Input label="Payment Type" value={form["Payment Type"] ?? ""} onChange={handleChange} />
+                    <Input label="Payment Date" type="date" value={form["Payment Date"] ?? ""} onChange={handleChange} />
+                    <Input label="O.R. No." value={form["O.R. No."] ?? ""} onChange={handleChange} />
+                    <Input label="O.R. Date" type="date" value={form["O.R. Date"] ?? ""} onChange={handleChange} />
 
-                    <FieldGroup title="Permit / Clearance">
-                        <Input label="Brgy. Clearance Status" value={form["Brgy. Clearance Status"] ?? ""} onChange={handleChange} />
-                        <Input label="Brgy. Clearance No." value={form["Brgy. Clearance No."] ?? ""} onChange={handleChange} />
-                        <Input label="Permit No." value={form["Permit No."] ?? ""} onChange={handleChange} />
-                        <Input label="Business Plate No." value={form["Business Plate No."] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">
+                        Permit / Clearance
+                    </div>
+                    <Input label="Brgy. Clearance Status" value={form["Brgy. Clearance Status"] ?? ""} onChange={handleChange} />
+                    <Input label="Brgy. Clearance No." value={form["Brgy. Clearance No."] ?? ""} onChange={handleChange} />
+                    <Input label="Permit No." value={form["Permit No."] ?? ""} onChange={handleChange} />
+                    <Input label="Business Plate No." value={form["Business Plate No."] ?? ""} onChange={handleChange} />
 
-                    <FieldGroup title="Closure / Retirement">
-                        <Input label="Actual Closure Date" type="date" value={form["Actual Closure Date"] ?? ""} onChange={handleChange} />
-                        <Input label="Retirement Reason" value={form["Retirement Reason"] ?? ""} onChange={handleChange} />
-                        <Input label="Source Type" value={form["Source Type"] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">
+                        Closure / Retirement
+                    </div>
+                    <Input label="Actual Closure Date" type="date" value={form["Actual Closure Date"] ?? ""} onChange={handleChange} />
+                    <Input label="Retirement Reason" value={form["Retirement Reason"] ?? ""} onChange={handleChange} />
+                    <Input label="Source Type" value={form["Source Type"] ?? ""} onChange={handleChange} />
 
-                    <FieldGroup title="Inspection / Review">
-                        <Input label="violation" value={form["violation"] ?? ""} onChange={handleChange} />
-                        <Input label="review_action" value={form["review_action"] ?? ""} onChange={handleChange} />
-                        <Input label="review_date" type="date" value={form["review_date"] ?? ""} onChange={handleChange} />
-                        <Input label="reviewed_by" value={form["reviewed_by"] ?? ""} onChange={handleChange} />
-                        <Input label="status" value={form["status"] ?? ""} onChange={handleChange} />
-                        <Input label="scheduled_date" type="date" value={form["scheduled_date"] ?? ""} onChange={handleChange} />
-                    </FieldGroup>
+                    <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">
+                        Inspection / Review
+                    </div>
+                    <Input label="violation" value={form["violation"] ?? ""} onChange={handleChange} />
+                    <Input label="review_action" value={form["review_action"] ?? ""} onChange={handleChange} />
+                    <Input label="review_date" type="date" value={form["review_date"] ?? ""} onChange={handleChange} />
+                    <Input label="reviewed_by" value={form["reviewed_by"] ?? ""} onChange={handleChange} />
+                    <Input label="status" value={form["status"] ?? ""} onChange={handleChange} />
+                    <Input label="scheduled_date" type="date" value={form["scheduled_date"] ?? ""} onChange={handleChange} />
                 </Section>
             </div>
         </div>
@@ -518,13 +609,13 @@ function Section({
     if (!collapsible) {
         return (
             <div className="bg-white border border-green-100 rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div className="flex items-start justify-between gap-3 mb-4 sm:mb-5">
+                <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5">
                     <div className="flex items-center gap-2 font-semibold text-green-900">
                         {icon}
                         {title}
                     </div>
+                    {note && <span className="text-xs text-gray-500">{note}</span>}
                 </div>
-                {note && <p className="text-xs text-gray-500 mb-4 -mt-2">{note}</p>}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {children}
                 </div>
@@ -535,13 +626,15 @@ function Section({
     return (
         <details className="bg-white border border-green-100 rounded-2xl shadow-sm group">
             <summary className="cursor-pointer list-none px-4 sm:px-6 py-4 flex items-center justify-between gap-3 text-green-900 font-semibold">
-                <div className="flex items-center gap-2">
-                    {icon}
-                    <span>{title}</span>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        {icon}
+                        <span>{title}</span>
+                    </div>
+                    {note && <span className="text-xs text-gray-500 font-normal">{note}</span>}
                 </div>
                 <FiChevronDown className="w-5 h-5 transition-transform duration-200 group-open:rotate-180" />
             </summary>
-            {note && <p className="px-4 sm:px-6 pb-3 text-xs text-gray-500">{note}</p>}
             <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {children}
@@ -551,26 +644,8 @@ function Section({
     );
 }
 
-function FieldGroup({
-    title,
-    children
-}: {
-    title: string;
-    children: any;
-}) {
-    return (
-        <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-green-100 bg-green-50/40 p-3 sm:p-4">
-            <div className="text-sm font-semibold text-green-900 mb-3">{title}</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {children}
-            </div>
-        </div>
-    );
-}
-
 function Input({
     label,
-    fieldKey,
     type = "text",
     value,
     onChange,
@@ -581,7 +656,6 @@ function Input({
     inputMode
 }: {
     label: string;
-    fieldKey?: string;
     type?: string;
     value?: any;
     onChange: any;
@@ -592,7 +666,6 @@ function Input({
     inputMode?: "text" | "numeric" | "decimal" | "tel" | "email" | "url" | "search";
 }) {
     const isError = !!error;
-    const key = fieldKey ?? label;
 
     return (
         <div className="flex flex-col">
@@ -603,7 +676,7 @@ function Input({
             <input
                 type={type}
                 value={value ?? ""}
-                onChange={(e) => onChange(key, e.target.value)}
+                onChange={(e) => onChange(label, e.target.value)}
                 placeholder={placeholder}
                 inputMode={inputMode}
                 className={`border rounded-lg px-3 py-2 text-black outline-none w-full transition
