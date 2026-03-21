@@ -39,16 +39,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Clean up any existing login 2FA OTP codes for this user
-    await supabase
+    console.log('Cleaning up existing OTP codes for user:', user.id);
+    const { error: deleteError } = await supabase
       .from('login_2fa_otp')
       .delete()
       .eq('user_id', user.id)
       .lt('expires_at', new Date().toISOString());
 
+    if (deleteError) {
+      console.error('Delete error:', deleteError);
+    } else {
+      console.log('Successfully cleaned up existing OTP codes');
+    }
+
     // Generate new OTP
     const { code, expiresAt } = generateOTP();
+    console.log('Generated OTP:', code, 'expires at:', expiresAt.toISOString());
 
     // Store OTP in database
+    console.log('Storing OTP for user:', user.id, 'email:', user.email);
     const { error: otpError } = await supabase
       .from('login_2fa_otp')
       .insert({
@@ -61,10 +70,13 @@ export async function POST(request: NextRequest) {
 
     if (otpError) {
       console.error('OTP storage error:', otpError);
+      console.error('OTP error details:', JSON.stringify(otpError, null, 2));
       return NextResponse.json(
         { error: 'Failed to generate OTP' },
         { status: 500 }
       );
+    } else {
+      console.log('OTP stored successfully in database');
     }
 
     // Send OTP email
