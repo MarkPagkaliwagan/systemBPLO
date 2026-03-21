@@ -216,6 +216,100 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    // Validate user role - only super_admin can update users
+    const { valid, userRole } = await validateUserRole(request);
+    if (!valid || userRole !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'Access denied. Super admin privileges required.' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { id, name, email, contact_no, role } = body;
+
+    if (!id || !name || !email || !role) {
+      return NextResponse.json(
+        { error: 'ID, name, email, and role are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user exists
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !existingUser) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if email is being changed and if new email already exists
+    if (email) {
+      const { data: emailCheck } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .neq('id', id)
+        .single();
+
+      if (emailCheck) {
+        return NextResponse.json(
+          { error: 'User with this email already exists' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Update user
+    const { data: updatedUser, error } = await supabase
+      .from('users')
+      .update({
+        full_name: name,
+        email,
+        contact_no: contact_no || null,
+        role,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating user in Supabase:', error);
+      return NextResponse.json(
+        { error: 'Failed to update user' },
+        { status: 500 }
+      );
+    }
+
+    // Transform response to match expected format
+    const transformedUser = {
+      id: updatedUser.id,
+      name: updatedUser.full_name,
+      email: updatedUser.email,
+      contact_no: updatedUser.contact_no,
+      role: updatedUser.role,
+      createdAt: updatedUser.created_at
+    };
+
+    return NextResponse.json(transformedUser);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return NextResponse.json(
+      { error: 'Failed to update user' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     // Validate user role - only super_admin can delete users

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { FiMail, FiRefreshCw } from 'react-icons/fi';
-import Spinner from './Spinner';
+import React, { useState, useEffect } from "react";
+import { FiMail, FiRefreshCw } from "react-icons/fi";
+import Spinner from "./Spinner";
 
 interface OtpModalProps {
   isOpen: boolean;
@@ -12,24 +12,26 @@ interface OtpModalProps {
   onResend: () => Promise<void>;
   isLoading?: boolean;
   error?: string;
+  success?: string;
 }
 
-const OtpModal: React.FC<OtpModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  email, 
-  onVerify, 
-  onResend, 
+const EmailVerificationModal: React.FC<OtpModalProps> = ({
+  isOpen,
+  onClose,
+  email,
+  onVerify,
+  onResend,
   isLoading = false,
-  error 
+  error,
+  success,
 }) => {
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [timeLeft, setTimeLeft] = useState(120);
   const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
-      setOtp(['', '', '', '', '', '']);
+      setOtp(["", "", "", "", "", ""]);
       setTimeLeft(120);
       setCanResend(false);
       return;
@@ -54,26 +56,22 @@ const OtpModal: React.FC<OtpModalProps> = ({
       newOtp[index] = value;
       setOtp(newOtp);
 
-      // Auto-focus next input
       if (value && index < 5) {
         const nextInput = document.getElementById(`otp-input-${index + 1}`);
         nextInput?.focus();
       }
 
-      // Auto-submit when 6 digits are entered
-      const otpString = newOtp.join('');
-      console.log('EmailVerification handleInputChange - otpString:', otpString, 'isLoading:', isLoading);
+      const otpString = newOtp.join("");
       if (otpString.length === 6 && value && !isLoading) {
         setTimeout(() => {
-          console.log('Auto-submitting email verification:', otpString);
           onVerify(otpString);
-        }, 100); // Small delay to ensure state is updated
+        }, 100);
       }
     }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       const prevInput = document.getElementById(`otp-input-${index - 1}`);
       prevInput?.focus();
     }
@@ -81,23 +79,21 @@ const OtpModal: React.FC<OtpModalProps> = ({
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').slice(0, 6);
+    const pastedData = e.clipboardData.getData("text").slice(0, 6);
     if (/^\d+$/.test(pastedData)) {
-      const newOtp = pastedData.split('').concat(Array(6 - pastedData.length).fill(''));
+      const newOtp = pastedData
+        .split("")
+        .concat(Array(6 - pastedData.length).fill(""));
       setOtp(newOtp);
-
-      // Auto-submit if 6 digits were pasted
       if (pastedData.length === 6 && !isLoading) {
-        setTimeout(() => {
-          onVerify(pastedData);
-        }, 100); // Small delay to ensure state is updated
+        setTimeout(() => onVerify(pastedData), 100);
       }
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const otpString = otp.join('');
+    const otpString = otp.join("");
     if (otpString.length === 6) {
       await onVerify(otpString);
     }
@@ -108,35 +104,38 @@ const OtpModal: React.FC<OtpModalProps> = ({
       await onResend();
       setTimeLeft(120);
       setCanResend(false);
-      setOtp(['', '', '', '', '', '']);
+      setOtp(["", "", "", "", "", ""]);
     } catch (error) {
-      console.error('Resend error:', error);
+      console.error("Resend error:", error);
     }
   };
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={!isLoading ? onClose : undefined}
       />
 
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all scale-100 opacity-100">
+        {/* Header */}
         <div className="bg-green-900 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-center space-x-3">
             <FiMail className="w-6 h-6 text-white" />
-            <h2 className="text-lg font-semibold text-white">Email Verification</h2>
+            <h2 className="text-lg font-semibold text-white">
+              Email Verification
+            </h2>
           </div>
         </div>
-        
+
         <div className="px-6 py-6">
           <div className="text-center mb-6">
             <p className="text-gray-600 mb-2">
@@ -145,9 +144,32 @@ const OtpModal: React.FC<OtpModalProps> = ({
             <p className="font-semibold text-gray-800">{email}</p>
           </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+          {/* Error */}
+          {error && !success && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
               {error}
+            </div>
+          )}
+
+          {/* Success */}
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
+              <div className="flex items-center">
+                <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
+                  <svg
+                    className="w-4 h-4 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium">{success}</p>
+              </div>
             </div>
           )}
 
@@ -163,44 +185,46 @@ const OtpModal: React.FC<OtpModalProps> = ({
                   onChange={(e) => handleInputChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all"
-                  disabled={isLoading}
+                  className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || !!success}
                 />
               ))}
             </div>
 
             <button
               type="submit"
-              disabled={isLoading || otp.join('').length !== 6}
+              disabled={
+                isLoading || otp.join("").length !== 6 || !!success
+              }
               className={`w-full py-3 font-medium rounded-xl transition-colors duration-200 ${
-                isLoading || otp.join('').length !== 6
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-800 hover:bg-green-900 text-white'
+                isLoading || otp.join("").length !== 6 || !!success
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-green-800 hover:bg-green-900 text-white"
               }`}
             >
-              {isLoading ? <Spinner /> : 'Verify Email'}
+              {isLoading ? <Spinner /> : "Verify Email"}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 mb-2">
-              {canResend ? (
-                "Didn't receive the code?"
-              ) : (
-                `Code expires in ${formatTime(timeLeft)}`
-              )}
+              {canResend
+                ? "Didn't receive the code?"
+                : `Code expires in ${formatTime(timeLeft)}`}
             </p>
-            
-            {canResend && (
+
+            {canResend && !success && (
               <button
                 onClick={handleResend}
                 disabled={isLoading}
                 className={`inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors ${
-                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  isLoading ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
-                <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                <span>{isLoading ? 'Sending...' : 'Resend Code'}</span>
+                <FiRefreshCw
+                  className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+                />
+                <span>{isLoading ? "Sending..." : "Resend Code"}</span>
               </button>
             )}
           </div>
@@ -209,8 +233,8 @@ const OtpModal: React.FC<OtpModalProps> = ({
         <div className="px-6 pb-4">
           <button
             onClick={!isLoading ? onClose : undefined}
-            disabled={isLoading}
-            className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+            disabled={isLoading || !!success}
+            className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -220,4 +244,4 @@ const OtpModal: React.FC<OtpModalProps> = ({
   );
 };
 
-export default OtpModal;
+export default EmailVerificationModal;

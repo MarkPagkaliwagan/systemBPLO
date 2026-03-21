@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
 import { hashPassword } from '@/lib/passwordUtils';
-
+import { supabase } from '@/lib/supabaseClient';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
