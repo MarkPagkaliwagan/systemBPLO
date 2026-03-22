@@ -44,6 +44,62 @@ function parseAssignedInspectors(value: string | null | undefined): string[] {
   return [trimmed];
 }
 
+function formatDate(dateString: string | null) {
+  if (!dateString) return "-";
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return dateString;
+
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getBarTheme(index: number) {
+  const themes = [
+    {
+      bar: "bg-gradient-to-r from-emerald-500 to-emerald-600",
+      ring: "border-emerald-200 hover:border-emerald-300",
+      selected: "ring-emerald-100 border-emerald-300",
+      text: "text-emerald-700",
+    },
+    {
+      bar: "bg-gradient-to-r from-sky-500 to-blue-600",
+      ring: "border-sky-200 hover:border-sky-300",
+      selected: "ring-sky-100 border-sky-300",
+      text: "text-sky-700",
+    },
+    {
+      bar: "bg-gradient-to-r from-violet-500 to-indigo-600",
+      ring: "border-violet-200 hover:border-violet-300",
+      selected: "ring-violet-100 border-violet-300",
+      text: "text-violet-700",
+    },
+    {
+      bar: "bg-gradient-to-r from-amber-500 to-orange-600",
+      ring: "border-amber-200 hover:border-amber-300",
+      selected: "ring-amber-100 border-amber-300",
+      text: "text-amber-700",
+    },
+    {
+      bar: "bg-gradient-to-r from-rose-500 to-pink-600",
+      ring: "border-rose-200 hover:border-rose-300",
+      selected: "ring-rose-100 border-rose-300",
+      text: "text-rose-700",
+    },
+    {
+      bar: "bg-gradient-to-r from-cyan-500 to-teal-600",
+      ring: "border-cyan-200 hover:border-cyan-300",
+      selected: "ring-cyan-100 border-cyan-300",
+      text: "text-cyan-700",
+    },
+  ];
+
+  return themes[index % themes.length];
+}
+
 export default function InspectorSummary() {
   const [records, setRecords] = useState<RecordType[]>([]);
   const [inspectors, setInspectors] = useState<InspectorCount[]>([]);
@@ -123,67 +179,78 @@ export default function InspectorSummary() {
   return (
     <>
       <div className="w-full bg-gradient-to-b from-slate-50 to-white p-3 md:p-4">
-        {/* Header */}
-        <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
-            <FiClipboard size={18} className="text-emerald-700" />
+        {/* Title Bar */}
+        <div className="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+                <FiClipboard size={19} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-white md:text-lg">
+                  Inspector Workload
+                </h2>
+                <p className="text-[11px] text-white/80">
+                  Click an inspector to view assigned records
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm md:text-base font-semibold text-slate-900">
-              Inspector Workload
-            </h2>
-            <p className="text-[11px] text-slate-500">
-              Click an inspector to view assigned records
+
+          <div className="p-4">
+            <div className="max-h-[68vh] space-y-3 overflow-y-auto pr-1">
+              {inspectors.length > 0 ? (
+                inspectors.map((inspector, index) => {
+                  const progress = (inspector.total / maxTasks) * 100;
+                  const isSelected = selectedInspector === inspector.name;
+                  const theme = getBarTheme(index);
+
+                  return (
+                    <button
+                      key={inspector.name}
+                      onClick={() => setSelectedInspector(inspector.name)}
+                      className={`group w-full rounded-2xl border bg-white p-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm ${
+                        isSelected
+                          ? `${theme.selected} ring-1`
+                          : `${theme.ring}`
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <span className="truncate text-sm font-medium text-slate-900">
+                          {inspector.name}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-slate-500">
+                          {inspector.total} record{inspector.total > 1 ? "s" : ""}
+                        </span>
+                      </div>
+
+                      <div className="h-10 w-full overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`relative flex h-10 items-center justify-center rounded-full ${theme.bar} transition-all duration-300`}
+                          style={{
+                            width: `${Math.max(progress, 10)}%`,
+                            minWidth: "4.5rem",
+                          }}
+                        >
+                          <span className="text-sm font-semibold text-white drop-shadow-sm">
+                            {inspector.total}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+                  No inspectors found
+                </div>
+              )}
+            </div>
+
+            <p className="mt-3 text-[11px] text-slate-500">
+              Click an inspector to view assigned records.
             </p>
           </div>
-        </div>
-
-        {/* Inspector list */}
-        <div className="max-h-[68vh] overflow-y-auto pr-1 space-y-2">
-          {inspectors.length > 0 ? (
-            inspectors.map((inspector) => {
-              const progress = (inspector.total / maxTasks) * 100;
-              const isSelected = selectedInspector === inspector.name;
-
-              return (
-                <button
-                  key={inspector.name}
-                  onClick={() => setSelectedInspector(inspector.name)}
-                  className={`group w-full rounded-2xl border bg-white px-3 py-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm ${
-                    isSelected
-                      ? "border-emerald-300 ring-1 ring-emerald-100"
-                      : "border-slate-200 hover:border-emerald-200"
-                  }`}
-                >
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <span className="truncate text-sm font-medium text-slate-900">
-                      {inspector.name}
-                    </span>
-
-                    <span className="shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                      {inspector.total}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-1.5 rounded-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 transition-all duration-300"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="w-10 shrink-0 text-right text-[11px] text-slate-500">
-                      {Math.round(progress)}%
-                    </span>
-                  </div>
-                </button>
-              );
-            })
-          ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
-              No inspectors found
-            </div>
-          )}
         </div>
       </div>
 
@@ -236,16 +303,25 @@ export default function InspectorSummary() {
                 <thead className="sticky top-0 bg-slate-50">
                   <tr className="border-b border-slate-200">
                     <th className="p-3 text-left font-medium text-slate-600">BIN</th>
-                    <th className="p-3 text-left font-medium text-slate-600">Business Name</th>
-                    <th className="p-3 text-left font-medium text-slate-600">Scheduled Date</th>
+                    <th className="p-3 text-left font-medium text-slate-600">
+                      Business Name
+                    </th>
+                    <th className="p-3 text-left font-medium text-slate-600">
+                      Scheduled Date
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRecords.map((row, i) => (
-                    <tr key={i} className="border-b border-slate-100 transition-colors hover:bg-emerald-50/40">
-                      <td className="p-3">{row["Business Identification Number"]}</td>
-                      <td className="p-3">{row["Business Name"]}</td>
-                      <td className="p-3">{row.scheduled_date}</td>
+                    <tr
+                      key={i}
+                      className="border-b border-slate-100 transition-colors hover:bg-emerald-50/40"
+                    >
+                      <td className="p-3">
+                        {row["Business Identification Number"] || "-"}
+                      </td>
+                      <td className="p-3">{row["Business Name"] || "-"}</td>
+                      <td className="p-3">{formatDate(row.scheduled_date)}</td>
                     </tr>
                   ))}
 
