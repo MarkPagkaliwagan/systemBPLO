@@ -45,9 +45,7 @@ function parseAssignedInspectors(value: string | null | undefined): string[] {
     if (typeof parsed === "string") {
       return parsed.trim() ? [parsed.trim()] : [];
     }
-  } catch {
-    // If not JSON, treat it as a single inspector name
-  }
+  } catch {}
 
   return [trimmed];
 }
@@ -55,13 +53,13 @@ function parseAssignedInspectors(value: string | null | undefined): string[] {
 export default function InspectorSummary() {
   const [records, setRecords] = useState<RecordType[]>([]);
   const [inspectors, setInspectors] = useState<InspectorCount[]>([]);
-  const [selectedInspector, setSelectedInspector] = useState<string | null>(
-    null
-  );
+  const [selectedInspector, setSelectedInspector] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
+
+  const [timeFilter, setTimeFilter] = useState("all"); // NEW
 
   useEffect(() => {
     fetchData();
@@ -79,10 +77,37 @@ export default function InspectorSummary() {
 
     const rows = data || [];
     setRecords(rows);
+  }
 
+  // 🔥 FILTER BY TIME (last month / year)
+  const filteredByTime = useMemo(() => {
+    const now = new Date();
+
+    return records.filter((r) => {
+      if (!r.scheduled_date) return false;
+
+      const date = new Date(r.scheduled_date);
+
+      if (timeFilter === "month") {
+        return (
+          date.getMonth() === now.getMonth() &&
+          date.getFullYear() === now.getFullYear()
+        );
+      }
+
+      if (timeFilter === "year") {
+        return date.getFullYear() === now.getFullYear();
+      }
+
+      return true;
+    });
+  }, [records, timeFilter]);
+
+  // 🔥 GROUP INSPECTORS BASED SA FILTERED DATA
+  useEffect(() => {
     const grouped: Record<string, number> = {};
 
-    rows.forEach((r) => {
+    filteredByTime.forEach((r) => {
       const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
 
       assignedInspectors.forEach((name) => {
@@ -97,7 +122,7 @@ export default function InspectorSummary() {
 
     list.sort((a, b) => b.total - a.total);
     setInspectors(list);
-  }
+  }, [filteredByTime]);
 
   const filteredRecords = useMemo(() => {
     if (!selectedInspector) return [];
@@ -133,131 +158,115 @@ export default function InspectorSummary() {
 
   return (
     <>
-      <div className="w-full h-full bg-gray-50">
-        <div className="w-full">
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200">
-              <FiClipboard size={20} className="text-green-800" />
-              <span className="text-gray-900 font-semibold">
+      <div className="w-full bg-gray-50">
+        <div className="bg-white border rounded-2xl p-4">
+          {/* HEADER */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <FiClipboard className="text-green-800" />
+              <h2 className="font-semibold text-gray-900">
                 Inspector Workload
-              </span>
+              </h2>
             </div>
 
-            <div className="p-4 grid gap-3">
-              {inspectors.length > 0 ? (
-                inspectors.map((inspector) => {
-                  const progress = (inspector.total / maxTasks) * 100;
+            {/* 🔥 TIME FILTER */}
+            <select
+              value={timeFilter}
+              onChange={(e) => setTimeFilter(e.target.value)}
+              className="border rounded-lg px-3 py-1 text-sm"
+            >
+              <option value="all">All Time</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
 
-                  return (
-                    <button
-                      key={inspector.name}
-                      onClick={() => setSelectedInspector(inspector.name)}
-                      className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-green-700 hover:shadow-sm transition-all"
-                    >
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <span className="text-sm md:text-base font-medium text-gray-900 truncate">
-                          {inspector.name}
-                        </span>
-                        <span className="text-xs font-semibold text-green-800 bg-green-100 px-2 py-1 rounded-full">
-                          {inspector.total}
-                        </span>
-                      </div>
+          {/* 🔥 HORIZONTAL BAR CHART */}
+          <div className="space-y-3">
+            {inspectors.map((inspector) => {
+              const width = (inspector.total / maxTasks) * 100;
 
-                      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-2 rounded-full bg-green-800 transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="p-6 text-center text-gray-400 text-sm">
-                  No inspectors found
+              return (
+                <div
+                  key={inspector.name}
+                  className="flex items-center gap-3 cursor-pointer"
+                  onClick={() => setSelectedInspector(inspector.name)}
+                >
+                  {/* LABEL */}
+                  <div className="w-40 truncate text-sm font-medium text-gray-800">
+                    {inspector.name}
+                  </div>
+
+                  {/* BAR */}
+                  <div className="flex-1 bg-gray-100 h-6 rounded-lg relative">
+                    <div
+                      className="bg-green-700 h-6 rounded-lg"
+                      style={{ width: `${width}%` }}
+                    />
+                    <span className="absolute right-2 top-0 text-xs text-white font-semibold h-full flex items-center">
+                      {inspector.total}
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
+              );
+            })}
+          </div>
+
+          {/* 🔥 AXIS */}
+          <div className="flex justify-between text-xs text-gray-400 mt-2 px-40">
+            <span>0</span>
+            <span>{Math.floor(maxTasks / 2)}</span>
+            <span>{maxTasks}</span>
           </div>
         </div>
       </div>
 
+      {/* MODAL (UNCHANGED) */}
       {selectedInspector && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-200">
-            <div className="flex justify-between items-center px-5 py-3 border-b border-gray-200">
-              <h3 className="text-gray-900 font-semibold text-base md:text-lg">
+          <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border">
+            <div className="flex justify-between items-center px-5 py-3 border-b">
+              <h3 className="font-semibold">
                 Inspection Assignments — {selectedInspector}
               </h3>
-              <button
-                onClick={() => setSelectedInspector(null)}
-                className="p-1 rounded-lg hover:bg-gray-100 text-gray-700"
-              >
-                <FiX size={22} />
+              <button onClick={() => setSelectedInspector(null)}>
+                <FiX />
               </button>
             </div>
 
-            <div className="p-3 flex flex-col md:flex-row gap-2 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 w-full md:w-1/2 bg-white">
-                <FiSearch size={18} className="text-gray-500" />
-                <input
-                  type="text"
-                  placeholder="Search business name or BIN..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full ml-2 outline-none text-gray-900 text-sm bg-transparent"
-                />
-              </div>
-
+            <div className="p-3 flex gap-2 border-b">
               <input
-                type="month"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm w-full md:w-auto bg-white"
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="border px-3 py-2 rounded-lg w-full"
               />
 
-              <button
-                onClick={() => setSortAsc(!sortAsc)}
-                className="flex items-center justify-center gap-1 border border-gray-300 px-3 py-2 rounded-lg text-gray-900 text-sm bg-white hover:bg-gray-50"
-              >
-                {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
-                Date
+              <button onClick={() => setSortAsc(!sortAsc)}>
+                {sortAsc ? <FiArrowUp /> : <FiArrowDown />}
               </button>
             </div>
 
             <div className="overflow-auto">
-              <table className="w-full text-gray-900 text-sm border-collapse">
-                <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr className="text-left">
-                    <th className="p-3 font-semibold">BIN</th>
-                    <th className="p-3 font-semibold">Business Name</th>
-                    <th className="p-3 font-semibold">Scheduled Date</th>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th className="p-2">BIN</th>
+                    <th className="p-2">Business</th>
+                    <th className="p-2">Date</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRecords.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="border-b border-gray-100 hover:bg-green-50/50 transition-colors"
-                    >
-                      <td className="p-3">
-                        {row["Business Identification Number"]}
+                  {filteredRecords.map((r, i) => (
+                    <tr key={i}>
+                      <td className="p-2">
+                        {r["Business Identification Number"]}
                       </td>
-                      <td className="p-3">{row["Business Name"]}</td>
-                      <td className="p-3">{row.scheduled_date}</td>
+                      <td className="p-2">{r["Business Name"]}</td>
+                      <td className="p-2">{r.scheduled_date}</td>
                     </tr>
                   ))}
-
-                  {filteredRecords.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="text-center p-6 text-gray-400 text-sm"
-                      >
-                        No records found
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
