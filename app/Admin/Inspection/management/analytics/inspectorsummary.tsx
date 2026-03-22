@@ -2,13 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import {
-  FiClipboard,
-  FiX,
-  FiSearch,
-  FiArrowUp,
-  FiArrowDown,
-} from "react-icons/fi";
+import { FiClipboard, FiX, FiSearch, FiArrowUp, FiArrowDown } from "react-icons/fi";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,9 +47,7 @@ function parseAssignedInspectors(value: string | null | undefined): string[] {
 export default function InspectorSummary() {
   const [records, setRecords] = useState<RecordType[]>([]);
   const [inspectors, setInspectors] = useState<InspectorCount[]>([]);
-  const [selectedInspector, setSelectedInspector] = useState<string | null>(
-    null
-  );
+  const [selectedInspector, setSelectedInspector] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
@@ -70,9 +62,9 @@ export default function InspectorSummary() {
       .from("business_records")
       .select(
         `assigned_inspector,
-        "Business Identification Number",
-        "Business Name",
-        scheduled_date`
+         "Business Identification Number",
+         "Business Name",
+         scheduled_date`
       );
 
     const rows = data || [];
@@ -126,78 +118,61 @@ export default function InspectorSummary() {
     return list;
   }, [records, selectedInspector, search, monthFilter, sortAsc]);
 
-  const maxTasks =
-    inspectors.length > 0 ? Math.max(...inspectors.map((i) => i.total)) : 1;
-
-  const totalAssignments = inspectors.reduce((sum, item) => sum + item.total, 0);
+  const maxTasks = inspectors.length > 0 ? Math.max(...inspectors.map((i) => i.total)) : 1;
 
   return (
     <>
-      <div className="w-full bg-gray-50 p-3 md:p-4">
+      <div className="w-full bg-gradient-to-b from-slate-50 to-white p-3 md:p-4">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-4">
-          <FiClipboard size={18} className="text-emerald-700" />
-          <span className="text-gray-900 font-semibold text-sm md:text-base">
-            Inspector Workload
-          </span>
-        </div>
-
-        {/* Stats (no card wrapper) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          <div className="rounded-xl border border-gray-200 bg-white p-3">
-            <div className="text-[11px] text-gray-500">Inspectors</div>
-            <div className="text-xl font-bold text-gray-900">
-              {inspectors.length}
-            </div>
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
+            <FiClipboard size={18} className="text-emerald-700" />
           </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-3">
-            <div className="text-[11px] text-gray-500">
-              Total Assignments
-            </div>
-            <div className="text-xl font-bold text-gray-900">
-              {totalAssignments}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-3">
-            <div className="text-[11px] text-gray-500">Highest Load</div>
-            <div className="text-xl font-bold text-gray-900">
-              {maxTasks}
-            </div>
+          <div>
+            <h2 className="text-sm md:text-base font-semibold text-slate-900">
+              Inspector Workload
+            </h2>
+            <p className="text-[11px] text-slate-500">
+              Click an inspector to view assigned records
+            </p>
           </div>
         </div>
 
-        {/* Inspector list ONLY scroll */}
-        <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-1">
+        {/* Inspector list */}
+        <div className="max-h-[68vh] overflow-y-auto pr-1 space-y-2">
           {inspectors.length > 0 ? (
             inspectors.map((inspector) => {
               const progress = (inspector.total / maxTasks) * 100;
+              const isSelected = selectedInspector === inspector.name;
 
               return (
                 <button
                   key={inspector.name}
                   onClick={() => setSelectedInspector(inspector.name)}
-                  className="w-full text-left rounded-xl border border-gray-200 bg-white px-3 py-3 hover:border-emerald-600 hover:shadow-sm transition-all"
+                  className={`group w-full rounded-2xl border bg-white px-3 py-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm ${
+                    isSelected
+                      ? "border-emerald-300 ring-1 ring-emerald-100"
+                      : "border-slate-200 hover:border-emerald-200"
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-sm font-semibold text-gray-900 truncate">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="truncate text-sm font-medium text-slate-900">
                       {inspector.name}
                     </span>
 
-                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    <span className="shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
                       {inspector.total}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-2.5 rounded-full bg-emerald-600"
+                        className="h-1.5 rounded-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <span className="w-10 text-right text-[11px] text-gray-500">
+                    <span className="w-10 shrink-0 text-right text-[11px] text-slate-500">
                       {Math.round(progress)}%
                     </span>
                   </div>
@@ -205,38 +180,38 @@ export default function InspectorSummary() {
               );
             })
           ) : (
-            <div className="p-6 text-center text-gray-400 text-sm border border-dashed rounded-xl">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
               No inspectors found
             </div>
           )}
         </div>
       </div>
 
-      {/* Modal (unchanged) */}
+      {/* Modal */}
       {selectedInspector && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-200">
-            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
-              <h3 className="text-gray-900 font-semibold text-sm md:text-base">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
+          <div className="flex max-h-[90vh] w-full max-w-[95%] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <h3 className="text-sm font-semibold text-slate-900 md:text-base">
                 Inspection Assignments — {selectedInspector}
               </h3>
               <button
                 onClick={() => setSelectedInspector(null)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-700"
+                className="rounded-lg p-1.5 text-slate-700 transition-colors hover:bg-slate-100"
               >
                 <FiX size={20} />
               </button>
             </div>
 
-            <div className="p-3 flex flex-col md:flex-row gap-2 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 w-full md:w-1/2 bg-white">
-                <FiSearch size={16} className="text-gray-500" />
+            <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50 p-3 md:flex-row">
+              <div className="flex w-full items-center rounded-xl border border-slate-300 bg-white px-3 py-2 md:w-1/2">
+                <FiSearch size={16} className="text-slate-500" />
                 <input
                   type="text"
                   placeholder="Search business name or BIN..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full ml-2 outline-none text-gray-900 text-sm bg-transparent"
+                  className="ml-2 w-full bg-transparent text-sm text-slate-900 outline-none"
                 />
               </div>
 
@@ -244,12 +219,12 @@ export default function InspectorSummary() {
                 type="month"
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm bg-white"
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
               />
 
               <button
                 onClick={() => setSortAsc(!sortAsc)}
-                className="flex items-center gap-1 border border-gray-300 px-3 py-2 rounded-lg text-sm bg-white"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50"
               >
                 {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
                 Date
@@ -257,20 +232,18 @@ export default function InspectorSummary() {
             </div>
 
             <div className="overflow-auto">
-              <table className="w-full text-gray-900 text-sm">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    <th className="p-3 text-left">BIN</th>
-                    <th className="p-3 text-left">Business Name</th>
-                    <th className="p-3 text-left">Scheduled Date</th>
+              <table className="w-full text-sm text-slate-900">
+                <thead className="sticky top-0 bg-slate-50">
+                  <tr className="border-b border-slate-200">
+                    <th className="p-3 text-left font-medium text-slate-600">BIN</th>
+                    <th className="p-3 text-left font-medium text-slate-600">Business Name</th>
+                    <th className="p-3 text-left font-medium text-slate-600">Scheduled Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRecords.map((row, i) => (
-                    <tr key={i} className="border-b hover:bg-emerald-50/40">
-                      <td className="p-3">
-                        {row["Business Identification Number"]}
-                      </td>
+                    <tr key={i} className="border-b border-slate-100 transition-colors hover:bg-emerald-50/40">
+                      <td className="p-3">{row["Business Identification Number"]}</td>
                       <td className="p-3">{row["Business Name"]}</td>
                       <td className="p-3">{row.scheduled_date}</td>
                     </tr>
@@ -278,7 +251,7 @@ export default function InspectorSummary() {
 
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="text-center p-6 text-gray-400">
+                      <td colSpan={3} className="p-6 text-center text-slate-400">
                         No records found
                       </td>
                     </tr>
