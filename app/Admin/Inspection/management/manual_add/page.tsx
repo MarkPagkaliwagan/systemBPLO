@@ -42,6 +42,9 @@ export default function ManualAddBusiness() {
     const [inspectorList, setInspectorList] = useState<string[]>([]);
     const [inspectorError, setInspectorError] = useState<string | null>(null);
 
+    const [adminUsers, setAdminUsers] = useState<string[]>([]);
+    const [selectedAdminInspector, setSelectedAdminInspector] = useState<string>("");
+
     // live validation errors state (key -> message)
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -51,6 +54,31 @@ export default function ManualAddBusiness() {
 
     // custom notifications
     const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+    /* ---------- LOAD ADMIN USERS FOR INSPECTOR DROPDOWN ---------- */
+    useEffect(() => {
+        const loadAdminUsers = async () => {
+            const { data, error } = await supabase
+                .from("users")
+                .select("full_name, role")
+                .eq("role", "admin")
+                .order("full_name", { ascending: true });
+
+            if (error) {
+                console.error("Failed to load admin users:", error.message);
+                return;
+            }
+
+            const names =
+                data
+                    ?.map((item) => String(item.full_name ?? "").trim())
+                    .filter((name) => name.length > 0) ?? [];
+
+            setAdminUsers(names);
+        };
+
+        loadAdminUsers();
+    }, []);
 
     /* ---------- TOASTS ---------- */
     const addToast = (type: ToastType, message: string) => {
@@ -157,24 +185,24 @@ export default function ManualAddBusiness() {
         return null;
     };
 
-const checkBinDuplicateNow = async (rawValue: any) => {
-    const bin = normalizeDigits(rawValue);
+    const checkBinDuplicateNow = async (rawValue: any) => {
+        const bin = normalizeDigits(rawValue);
 
-    if (!bin) return false;
+        if (!bin) return false;
 
-    const { data, error } = await supabase
-        .from("business_records")
-        .select('"Business Identification Number"') // ✅ FIXED
-        .eq(BIN_FIELD, bin)
-        .limit(1);
+        const { data, error } = await supabase
+            .from("business_records")
+            .select('"Business Identification Number"') // ✅ FIXED
+            .eq(BIN_FIELD, bin)
+            .limit(1);
 
-    if (error) {
-        console.error("BIN duplicate check error:", error.message);
-        return false;
-    }
+        if (error) {
+            console.error("BIN duplicate check error:", error.message);
+            return false;
+        }
 
-    return !!data && data.length > 0;
-};
+        return !!data && data.length > 0;
+    };
 
     const validateAll = async (): Promise<Record<string, string>> => {
         const foundErrors: Record<string, string> = {};
@@ -240,31 +268,33 @@ const checkBinDuplicateNow = async (rawValue: any) => {
         return () => window.clearTimeout(delay);
     }, [form[BIN_FIELD]]);
 
+    /* ---------- INSPECTOR HELPERS ---------- */
+    const addInspectorName = (rawName: string) => {
+        const candidate = rawName.trim();
+
+        if (!candidate) {
+            setInspectorError("Inspector name is required.");
+            return;
+        }
+
+        if (!inspectorList.includes(candidate)) {
+            const updatedList = [...inspectorList, candidate];
+            setInspectorList(updatedList);
+            setForm((prev: Record<string, any>) => ({
+                ...prev,
+                assigned_inspector: updatedList
+            }));
+            setInspectorError(null);
+        } else {
+            setInspectorError("Inspector already added.");
+        }
+    };
+
     /* ---------- HANDLE INSPECTOR CHIP INPUT ---------- */
     const handleInspectorKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && inspectorInput.trim() !== "") {
             e.preventDefault();
-
-            const candidate = inspectorInput.trim();
-
-            if (!candidate) {
-                setInspectorError("Inspector name is required.");
-                return;
-            }
-
-            setInspectorError(null);
-
-            if (!inspectorList.includes(candidate)) {
-                const updatedList = [...inspectorList, candidate];
-                setInspectorList(updatedList);
-                setForm((prev: Record<string, any>) => ({
-                    ...prev,
-                    assigned_inspector: updatedList
-                }));
-            } else {
-                setInspectorError("Inspector already added.");
-            }
-
+            addInspectorName(inspectorInput);
             setInspectorInput("");
         }
 
@@ -419,47 +449,84 @@ const checkBinDuplicateNow = async (rawValue: any) => {
                     />
                     <div className="flex flex-col">
                         <label className="text-sm text-gray-600 mb-1">Inspector</label>
-                        <div
-                            className={`flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-[44px] items-center focus-within:ring-2 ${
-                                Object.keys(errors).some((k) => k.startsWith("assigned_inspector"))
-                                    ? "ring-1 ring-red-400 border-red-300"
-                                    : "focus-within:ring-green-900 border-green-100"
-                            }`}
-                        >
-                            {inspectorList.map((name, idx) => (
-                                <div
-                                    key={idx}
-                                    className="flex items-center bg-green-100 text-green-900 px-2 py-1 rounded-full text-xs sm:text-sm"
-                                >
-                                    {name}
-                                    <button
-                                        type="button"
-                                        className="ml-1"
-                                        onClick={() => removeInspector(name)}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
-                            ))}
-                            <input
-                                type="text"
-                                value={inspectorInput}
-                                onChange={(e) => {
-                                    setInspectorInput(e.target.value);
 
-                                    if (e.target.value.trim() === "") {
-                                        setInspectorError(null);
-                                    } else {
-                                        setInspectorError(null);
-                                    }
-                                }}
-                                onKeyDown={handleInspectorKeyDown}
-                                placeholder="Type name and press Enter"
-                                className="flex-1 outline-none border-none text-black px-1 py-1 min-w-[100px] sm:min-w-[120px]"
-                            />
+                        <div className="flex flex-col gap-3">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <select
+                                    value={selectedAdminInspector}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setSelectedAdminInspector(value);
+                                        if (value) {
+                                            addInspectorName(value);
+                                            setSelectedAdminInspector("");
+                                        }
+                                    }}
+                                    className="border rounded-lg px-3 py-2 text-black outline-none w-full sm:w-[260px] transition border-green-100 focus:ring-2 focus:ring-green-900"
+                                >
+                                    <option value="">Select admin name</option>
+                                    {adminUsers.map((name) => (
+                                        <option key={name} value={name}>
+                                            {name}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <input
+                                    type="text"
+                                    value={inspectorInput}
+                                    onChange={(e) => {
+                                        setInspectorInput(e.target.value);
+                                        if (e.target.value.trim() === "") {
+                                            setInspectorError(null);
+                                        } else {
+                                            setInspectorError(null);
+                                        }
+                                    }}
+                                    onKeyDown={handleInspectorKeyDown}
+                                    placeholder="Or type name and press Enter"
+                                    className={`flex-1 border rounded-lg px-3 py-2 text-black outline-none w-full transition ${
+                                        Object.keys(errors).some((k) => k.startsWith("assigned_inspector"))
+                                            ? "border-red-400 focus:ring-2 focus:ring-red-300"
+                                            : "border-green-100 focus:ring-2 focus:ring-green-900"
+                                    }`}
+                                />
+                            </div>
+
+                            <div
+                                className={`flex flex-wrap gap-2 border rounded-lg px-2 py-2 min-h-[44px] items-center focus-within:ring-2 ${
+                                    Object.keys(errors).some((k) => k.startsWith("assigned_inspector"))
+                                        ? "ring-1 ring-red-400 border-red-300"
+                                        : "focus-within:ring-green-900 border-green-100"
+                                }`}
+                            >
+                                {inspectorList.map((name, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="flex items-center bg-green-100 text-green-900 px-2 py-1 rounded-full text-xs sm:text-sm"
+                                    >
+                                        {name}
+                                        <button
+                                            type="button"
+                                            className="ml-1"
+                                            onClick={() => removeInspector(name)}
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                ))}
+                                {inspectorList.length === 0 && (
+                                    <span className="text-xs text-gray-400 px-1">
+                                        No inspector added yet
+                                    </span>
+                                )}
+                            </div>
                         </div>
+
                         {inspectorError && <p className="text-xs text-red-600 mt-1">{inspectorError}</p>}
-                        <p className="text-xs text-gray-500 mt-1">Optional only.</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Optional only. You can choose from admin names or type a new one and press Enter.
+                        </p>
                     </div>
                     <Input
                         label="Business Nature"
