@@ -8,6 +8,8 @@ import {
   FiSearch,
   FiArrowUp,
   FiArrowDown,
+  FiBarChart2,
+  FiLayers,
 } from "react-icons/fi";
 
 const supabase = createClient(
@@ -131,49 +133,124 @@ export default function InspectorSummary() {
   const maxTasks =
     inspectors.length > 0 ? Math.max(...inspectors.map((i) => i.total)) : 1;
 
+  const totalAssigned = inspectors.reduce((sum, item) => sum + item.total, 0);
+
   return (
     <>
-      <div className="w-full h-full bg-gray-50">
-        <div className="w-full">
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200">
-              <FiClipboard size={20} className="text-green-800" />
-              <span className="text-gray-900 font-semibold">
-                Inspector Workload
-              </span>
+      <div className="w-full h-full bg-slate-50 p-4 md:p-6">
+        <div className="w-full max-w-[1400px] mx-auto space-y-4">
+          {/* Dashboard Header */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between gap-3 px-4 md:px-5 py-4 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-2xl bg-green-50 flex items-center justify-center">
+                  <FiBarChart2 size={22} className="text-green-800" />
+                </div>
+                <div>
+                  <h2 className="text-lg md:text-xl font-semibold text-slate-900">
+                    Inspector Workload Dashboard
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    Horizontal bar chart view of inspector assignments
+                  </p>
+                </div>
+              </div>
+
+              <div className="hidden md:flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200">
+                <FiLayers className="text-green-800" />
+                <span>{inspectors.length} inspectors</span>
+              </div>
             </div>
 
-            <div className="p-4 grid gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 md:p-5 bg-slate-50/70">
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <p className="text-xs font-medium text-slate-500">Total Assigned</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">
+                  {totalAssigned}
+                </p>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <p className="text-xs font-medium text-slate-500">Inspectors</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">
+                  {inspectors.length}
+                </p>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <p className="text-xs font-medium text-slate-500">Highest Workload</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">
+                  {inspectors[0]?.name || "-"}
+                </p>
+              </div>
+            </div>
+
+            {/* Chart Area */}
+            <div className="p-4 md:p-5">
               {inspectors.length > 0 ? (
-                inspectors.map((inspector) => {
-                  const progress = (inspector.total / maxTasks) * 100;
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm md:text-base font-semibold text-slate-900">
+                      Workload Distribution
+                    </h3>
+                    <span className="text-xs text-slate-500">
+                      Click a bar to view records
+                    </span>
+                  </div>
 
-                  return (
-                    <button
-                      key={inspector.name}
-                      onClick={() => setSelectedInspector(inspector.name)}
-                      className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-green-700 hover:shadow-sm transition-all"
-                    >
-                      <div className="flex items-center justify-between gap-3 mb-2">
-                        <span className="text-sm md:text-base font-medium text-gray-900 truncate">
-                          {inspector.name}
-                        </span>
-                        <span className="text-xs font-semibold text-green-800 bg-green-100 px-2 py-1 rounded-full">
-                          {inspector.total}
-                        </span>
-                      </div>
+                  <div className="space-y-4">
+                    {inspectors.map((inspector) => {
+                      const progress = (inspector.total / maxTasks) * 100;
 
-                      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-2 rounded-full bg-green-800 transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </button>
-                  );
-                })
+                      return (
+                        <button
+                          key={inspector.name}
+                          onClick={() => setSelectedInspector(inspector.name)}
+                          className="w-full text-left group"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr_70px] gap-3 md:gap-4 items-center">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <div className="h-2.5 w-2.5 rounded-full bg-green-700 shrink-0" />
+                                <span className="text-sm md:text-base font-medium text-slate-900 truncate">
+                                  {inspector.name}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="relative h-10 flex items-center">
+                              <div className="absolute inset-0 h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-green-700 to-green-500 transition-all duration-300 group-hover:from-green-800 group-hover:to-green-600"
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+
+                              <div className="absolute left-0 right-0 top-[-18px] hidden md:flex justify-between text-[10px] text-slate-400 px-1">
+                                <span>0</span>
+                                <span>{Math.ceil(maxTasks / 2)}</span>
+                                <span>{maxTasks}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex md:justify-end">
+                              <span className="inline-flex items-center justify-center min-w-14 px-3 py-1.5 rounded-full bg-green-100 text-green-800 text-sm font-semibold border border-green-200">
+                                {inspector.total}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-5 flex items-center gap-2 text-xs text-slate-500">
+                    <div className="h-3 w-3 rounded-full bg-green-700" />
+                    <span>Bar length = number of assignments</span>
+                  </div>
+                </div>
               ) : (
-                <div className="p-6 text-center text-gray-400 text-sm">
+                <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-400 text-sm">
                   No inspectors found
                 </div>
               )}
