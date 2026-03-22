@@ -31,9 +31,7 @@ function parseAssignedInspectors(value: string | null | undefined): string[] {
     const parsed = JSON.parse(trimmed);
 
     if (Array.isArray(parsed)) {
-      return parsed
-        .map((item) => String(item).trim())
-        .filter((item) => item.length > 0);
+      return parsed.map((item) => String(item).trim()).filter((item) => item.length > 0);
     }
 
     if (typeof parsed === "string") {
@@ -74,7 +72,6 @@ export default function InspectorSummary() {
 
     rows.forEach((r) => {
       const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
-
       assignedInspectors.forEach((name) => {
         grouped[name] = (grouped[name] || 0) + 1;
       });
@@ -122,24 +119,22 @@ export default function InspectorSummary() {
 
   return (
     <>
-      <div className="w-full bg-gradient-to-b from-slate-50 to-white p-3 md:p-4">
+      <div className="w-full bg-gradient-to-b from-slate-50 to-white p-4">
         {/* Header */}
-        <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
-            <FiClipboard size={18} className="text-emerald-700" />
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 shadow-md">
+            <FiClipboard size={20} />
           </div>
           <div>
-            <h2 className="text-sm md:text-base font-semibold text-slate-900">
-              Inspector Workload
-            </h2>
-            <p className="text-[11px] text-slate-500">
+            <h2 className="text-lg font-semibold text-slate-900">Inspector Workload</h2>
+            <p className="text-sm text-slate-500">
               Click an inspector to view assigned records
             </p>
           </div>
         </div>
 
-        {/* Inspector list */}
-        <div className="max-h-[68vh] overflow-y-auto pr-1 space-y-2">
+        {/* Inspector Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
           {inspectors.length > 0 ? (
             inspectors.map((inspector) => {
               const progress = (inspector.total / maxTasks) * 100;
@@ -149,30 +144,28 @@ export default function InspectorSummary() {
                 <button
                   key={inspector.name}
                   onClick={() => setSelectedInspector(inspector.name)}
-                  className={`group w-full rounded-2xl border bg-white px-3 py-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm ${
+                  className={`group w-full rounded-2xl border bg-white p-4 text-left shadow-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-1 ${
                     isSelected
                       ? "border-emerald-300 ring-1 ring-emerald-100"
-                      : "border-slate-200 hover:border-emerald-200"
+                      : "border-slate-200"
                   }`}
                 >
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <span className="truncate text-sm font-medium text-slate-900">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="truncate text-base font-medium text-slate-900">
                       {inspector.name}
                     </span>
-
-                    <span className="shrink-0 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
                       {inspector.total}
                     </span>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-1.5 rounded-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-500 transition-all duration-300"
+                        className="h-2 rounded-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 transition-all duration-300"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
-                    <span className="w-10 shrink-0 text-right text-[11px] text-slate-500">
+                    <span className="w-12 text-right text-sm text-slate-500">
                       {Math.round(progress)}%
                     </span>
                   </div>
@@ -180,7 +173,7 @@ export default function InspectorSummary() {
               );
             })
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+            <div className="col-span-full rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-slate-400">
               No inspectors found
             </div>
           )}
@@ -189,10 +182,11 @@ export default function InspectorSummary() {
 
       {/* Modal */}
       {selectedInspector && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-[95%] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-900 md:text-base">
+              <h3 className="text-base font-semibold text-slate-900">
                 Inspection Assignments — {selectedInspector}
               </h3>
               <button
@@ -203,7 +197,8 @@ export default function InspectorSummary() {
               </button>
             </div>
 
-            <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50 p-3 md:flex-row">
+            {/* Filters */}
+            <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center">
               <div className="flex w-full items-center rounded-xl border border-slate-300 bg-white px-3 py-2 md:w-1/2">
                 <FiSearch size={16} className="text-slate-500" />
                 <input
@@ -231,6 +226,7 @@ export default function InspectorSummary() {
               </button>
             </div>
 
+            {/* Records Table */}
             <div className="overflow-auto">
               <table className="w-full text-sm text-slate-900">
                 <thead className="sticky top-0 bg-slate-50">
@@ -242,7 +238,10 @@ export default function InspectorSummary() {
                 </thead>
                 <tbody>
                   {filteredRecords.map((row, i) => (
-                    <tr key={i} className="border-b border-slate-100 transition-colors hover:bg-emerald-50/40">
+                    <tr
+                      key={i}
+                      className="border-b border-slate-100 transition-colors hover:bg-emerald-50/40"
+                    >
                       <td className="p-3">{row["Business Identification Number"]}</td>
                       <td className="p-3">{row["Business Name"]}</td>
                       <td className="p-3">{row.scheduled_date}</td>
