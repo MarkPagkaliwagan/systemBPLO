@@ -79,6 +79,7 @@ export default function InspectorSummary() {
   const [monthFilter, setMonthFilter] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
 
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -96,25 +97,49 @@ export default function InspectorSummary() {
     const rows = data || [];
     setRecords(rows);
 
-    const grouped: Record<string, number> = {};
+const grouped: Record<string, number> = {};
 
-    rows.forEach((r) => {
-      const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
+records.forEach((r) => {
+  const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
 
-      assignedInspectors.forEach((name) => {
-        grouped[name] = (grouped[name] || 0) + 1;
-      });
-    });
-
-    const list = Object.keys(grouped).map((name) => ({
-      name,
-      total: grouped[name],
-    }));
-
-    list.sort((a, b) => b.total - a.total);
-    setInspectors(list);
+  // Apply same filter as filteredRecords
+  if (monthFilter && r.scheduled_date) {
+    const date = new Date(r.scheduled_date);
+    const now = new Date();
+    let include = true;
+    switch (monthFilter) {
+      case "last_7_days":
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(now.getDate() - 7);
+        include = date >= sevenDaysAgo && date <= now;
+        break;
+      case "last_month":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        include = date >= lastMonth && date < thisMonth;
+        break;
+      case "last_year":
+        const lastYear = new Date(now.getFullYear() - 1, 0, 1);
+        const thisYear = new Date(now.getFullYear(), 0, 1);
+        include = date >= lastYear && date < thisYear;
+        break;
+    }
+    if (!include) return;
   }
 
+  assignedInspectors.forEach((name) => {
+    grouped[name] = (grouped[name] || 0) + 1;
+  });
+});
+
+const list = Object.keys(grouped).map((name) => ({
+  name,
+  total: grouped[name],
+}));
+
+list.sort((a, b) => b.total - a.total);
+setInspectors(list);
+  }
   const filteredRecords = useMemo(() => {
     if (!selectedInspector) return [];
 
@@ -131,9 +156,29 @@ export default function InspectorSummary() {
       );
     }
 
-    if (monthFilter) {
-      list = list.filter((r) => r.scheduled_date?.startsWith(monthFilter));
+  if (monthFilter) {
+  const now = new Date();
+  list = list.filter((r) => {
+    if (!r.scheduled_date) return false;
+    const date = new Date(r.scheduled_date);
+    switch (monthFilter) {
+      case "last_7_days":
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(now.getDate() - 7);
+        return date >= sevenDaysAgo && date <= now;
+      case "last_month":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        return date >= lastMonth && date < thisMonth;
+      case "last_year":
+        const lastYear = new Date(now.getFullYear() - 1, 0, 1);
+        const thisYear = new Date(now.getFullYear(), 0, 1);
+        return date >= lastYear && date < thisYear;
+      default:
+        return true;
     }
+  });
+}
 
     list.sort((a, b) => {
       const da = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
@@ -148,77 +193,96 @@ export default function InspectorSummary() {
 
 return (
   <>
-    <div
-      className="w-full max-h-115 overflow-hidden rounded-3xl bg-linear-to-b from-slate-50 to-white p-3 md:p-4 shadow-md"
-    >
-      {/* Main Panel */}
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        {/* Header */}
-        <div className="border-b border-slate-200 bg-white px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
-              <FiClipboard size={18} className="text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 md:text-lg">
-                Inspector Workload
-              </h2>
-              <p className="text-[12px] text-slate-500">
-                Click one inspector to view assigned records
-              </p>
-              </div>
-            </div>
-          </div>
 
-          {/* Flat List */}
-          <div className="p-4">
-            <div className="max-h-[68vh] overflow-y-auto pr-1">
-              {inspectors.length > 0 ? (
-                <div className="space-y-2">
-                  {inspectors.map((inspector, index) => {
-                    const progress = (inspector.total / maxTasks) * 100;
-                    const isSelected = selectedInspector === inspector.name;
-                    const barTheme = getBarTheme(index);
-
-                    return (
-                      <button
-                        key={inspector.name}
-                        onClick={() => setSelectedInspector(inspector.name)}
-                        className={`w-full rounded-2xl px-3 py-3 text-left transition-all duration-200 ${
-                          isSelected
-                            ? "bg-slate-100"
-                            : "hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="w-28 shrink-0 truncate text-sm font-medium text-slate-900 md:w-44">
-                            {inspector.name}
-                          </span>
-
-                          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                              className={`h-full rounded-full ${barTheme} transition-all duration-300`}
-                              style={{ width: `${Math.max(progress, 8)}%` }}
-                            />
-                          </div>
-
-                          <span className="w-8 shrink-0 text-right text-sm font-semibold text-slate-700">
-                            {inspector.total}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
-                  No inspectors found
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+  {/* Main Panel */}
+  <div className="flex flex-col h-130 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    {/* Header */}
+ <div className="border-b border-slate-200 bg-white px-4 py-4 shrink-0">
+  <div className="flex items-center justify-between gap-3">
+    {/* Left side: icon + title */}
+    <div className="flex items-center gap-3">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
+        <FiClipboard size={18} className="text-white" />
       </div>
+      <div>
+        <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+          Inspector Workload
+        </h2>
+        <p className="text-[12px] text-slate-500">
+          Click one inspector to view assigned records
+        </p>
+      </div>
+    </div>
+
+    {/* Right side: Filter & Sort */}
+    <div className="flex items-center gap-2">
+      <select
+        value={monthFilter}
+        onChange={(e) => setMonthFilter(e.target.value)}
+        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
+      >
+        <option value="">All Dates</option>
+        <option value="last_7_days">Last 7 Days</option>
+        <option value="last_month">Last Month</option>
+        <option value="last_year">Last Year</option>
+      </select>
+
+      <button
+        onClick={() => setSortAsc(!sortAsc)}
+        className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50"
+      >
+        {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
+        Date
+      </button>
+    </div>
+  </div>
+</div>
+
+    {/* Scrollable Inspector List */}
+    <div className="flex-1 overflow-y-auto p-4">
+      {inspectors.length > 0 ? (
+        <div className="space-y-2">
+          {inspectors.map((inspector, index) => {
+            const progress = (inspector.total / maxTasks) * 100;
+            const isSelected = selectedInspector === inspector.name;
+            const barTheme = getBarTheme(index);
+
+            return (
+              <button
+                key={inspector.name}
+                onClick={() => setSelectedInspector(inspector.name)}
+                className={`w-full rounded-2xl px-3 py-3 text-left transition-all duration-200 ${
+                  isSelected ? "bg-slate-100" : "hover:bg-slate-50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-28 shrink-0 truncate text-sm font-medium text-slate-900 md:w-44">
+                    {inspector.name}
+                  </span>
+
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full ${barTheme} transition-all duration-300`}
+                      style={{ width: `${Math.max(progress, 8)}%` }}
+                    />
+                  </div>
+
+                  <span className="w-8 shrink-0 text-right text-sm font-semibold text-slate-700">
+                    {inspector.total}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+          No inspectors found
+        </div>
+      )}
+    </div>
+  </div>
+
 
       {/* Modal */}
       {selectedInspector && (

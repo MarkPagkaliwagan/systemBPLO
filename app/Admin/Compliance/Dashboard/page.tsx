@@ -52,6 +52,8 @@ function ViolationsPageContent() {
   const [autoSend, setAutoSend] = useState(false);
   const [editingInterval, setEditingInterval] = useState<number | null>(null);
   const [intervalValue, setIntervalValue] = useState<number>(7);
+  const [sendingNoticeId, setSendingNoticeId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
@@ -79,6 +81,18 @@ function ViolationsPageContent() {
       setLoading(false);
     }
   };
+
+const toggleSelect = (id: number) => {
+  const v = violations.find((x) => x.id === id);
+  if (!v || v.resolved || v.cease_flag) return;
+
+  setSelectedIds((prev) =>
+    prev.includes(id)
+      ? prev.filter((i) => i !== id)
+      : [...prev, id]
+  );
+};
+
   // Custom modal state
   const [messageModal, setMessageModal] = useState<{
     open: boolean;
@@ -360,9 +374,8 @@ function ViolationsPageContent() {
     );
     return new Date() >= nextSend;
   };
-
   const sendNoticeNow = async (id: number) => {
-    setLoading(true);
+    setSendingNoticeId(id); // <-- show loading for this notice
     try {
       const res = await fetch("/api/manual-send-notice", {
         method: "POST",
@@ -387,10 +400,9 @@ function ViolationsPageContent() {
       console.error(err);
       openMessageModal("Error", "Error sending notice.", "error");
     } finally {
-      setLoading(false);
+      setSendingNoticeId(null); // <-- hide loading
     }
   };
-
   const askSendNotice = (v: Violation) => {
     openConfirmModal(
       "Send Notice",
@@ -427,6 +439,48 @@ function ViolationsPageContent() {
     return <FiInfo className="text-3xl text-blue-600" />;
   };
 
+const handleBulkSend = async () => {
+  openConfirmModal(
+    "Bulk Send Notice",
+    `Send notice to ${selectedIds.length} businesses?`,
+    async () => {
+      closeConfirmModal();
+
+      try {
+        await Promise.all(selectedIds.map((id) => sendNoticeNow(id)));
+
+        openMessageModal("Success", "All notices sent.", "success");
+      } catch (err) {
+        openMessageModal("Error", "Some notices failed.", "error");
+      }
+
+      setSelectedIds([]);
+    },
+    "Send All"
+  );
+};
+const handleBulkResolve = async () => {
+  openConfirmModal(
+    "Bulk Resolve",
+    `Mark ${selectedIds.length} as resolved?`,
+    async () => {
+      closeConfirmModal();
+
+      try {
+        await Promise.all(
+          selectedIds.map((id) => handleMarkResolved(id))
+        );
+
+        openMessageModal("Success", "All marked resolved.", "success");
+      } catch (err) {
+        openMessageModal("Error", "Some failed.", "error");
+      }
+
+      setSelectedIds([]);
+    },
+    "Resolve All"
+  );
+};
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="flex-1 flex flex-col md:flex-row pt-10 md:pt-16 px-4 md:px-6">
@@ -454,6 +508,7 @@ function ViolationsPageContent() {
                 Track business violations and notices
               </p>
             </div>
+            
 
             <div className="self-start md:self-auto bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm">
               <div className="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-1">
@@ -493,7 +548,38 @@ function ViolationsPageContent() {
               <span className="text-gray-600">Cease &amp; Desist</span>
             </div>
           </div>
+          
+{selectedIds.length > 0 && (
+  <div className="flex gap-2 mb-3">
+    <button
+      onClick={handleBulkSend}
+      className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
+    >
+      Send Notice ({selectedIds.length})
+    </button>
 
+    <button
+      onClick={handleBulkResolve}
+      className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"
+    >
+      Mark Resolved ({selectedIds.length})
+    </button>
+  </div>
+)}
+{selectedIds.length > 0 && (
+  <div className="flex items-center justify-between mb-3">
+    <span className="text-sm text-gray-600">
+      {selectedIds.length} selected
+    </span>
+
+    <button
+      onClick={() => setSelectedIds([])}
+      className="text-xs text-red-600 underline"
+    >
+      Clear selection
+    </button>
+  </div>
+)}
           {/* Table / Cards */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
             {/* Desktop Table */}
@@ -501,6 +587,27 @@ function ViolationsPageContent() {
               <table className="min-w-full table-fixed">
                 <thead className="bg-green-900 text-white">
                   <tr>
+                    <th className="px-4 py-3">
+  <input
+  type="checkbox"
+  onChange={(e) => {
+    if (e.target.checked) {
+      const selectable = violations
+        .filter((v) => !v.resolved && !v.cease_flag)
+        .map((v) => v.id);
+
+      setSelectedIds(selectable);
+    } else {
+      setSelectedIds([]);
+    }
+  }}
+  checked={
+    violations.filter((v) => !v.resolved && !v.cease_flag).length > 0 &&
+    selectedIds.length ===
+      violations.filter((v) => !v.resolved && !v.cease_flag).length
+  }
+/>
+</th>
                     <th
                       className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
                       onClick={() => toggleSort("business_name")}
@@ -630,14 +737,28 @@ function ViolationsPageContent() {
                           + Add Business Violation
                         </button>
                       </td>
+                      
                     </tr>
                   ) : (
                     violations.map((v) => (
-                      <tr
-                        key={v.id}
-                        onClick={() => openBusinessDetails(v.business_id)}
-                        className={`${getRowClasses(v)} transition-colors cursor-pointer`}
-                      >
+                  <tr
+  key={v.id}
+  onClick={() => openBusinessDetails(v.business_id)}
+className={`${getRowClasses(v)} transition-colors cursor-pointer ${
+  selectedIds.includes(v.id) ? "bg-blue-100" : ""
+}`}
+>
+<td
+  className="px-4 py-4"
+  onClick={(e) => e.stopPropagation()}
+>
+  <input
+    type="checkbox"
+    checked={selectedIds.includes(v.id)}
+    disabled={v.resolved || v.cease_flag}
+    onChange={() => toggleSelect(v.id)}
+  />
+</td>
                         <td className="px-6 py-4 align-top">
                           <div className="text-sm font-medium text-gray-900">
                             {v.business_name || "N/A"}
@@ -755,7 +876,33 @@ function ViolationsPageContent() {
                                     : "bg-green-600 text-white hover:bg-green-700"
                                 }`}
                               >
-                                Send Notice
+                                {sendingNoticeId === v.id ? (
+                                  <span className="flex items-center gap-1">
+                                    <svg
+                                      className="animate-spin h-4 w-4 text-white"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                      ></circle>
+                                      <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                      ></path>
+                                    </svg>
+                                    Sending...
+                                  </span>
+                                ) : (
+                                  "Send Notice"
+                                )}
                               </button>
 
                               <button
@@ -876,17 +1023,28 @@ function ViolationsPageContent() {
                   </button>
                 </div>
               ) : (
-                violations.map((v) => (
-                  <div
-                    key={v.id}
-                    onClick={() => openBusinessDetails(v.business_id)}
-                    className={`border rounded-xl p-4 shadow-sm space-y-2 ${getRowClasses(v)} cursor-pointer`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div
-                        onClick={() => openBusinessDetails(v.business_id)}
-                        className="cursor-pointer"
-                      >
+violations.map((v) => (
+  <div
+    key={v.id}
+    onClick={() => openBusinessDetails(v.business_id)}
+className={`${getRowClasses(v)} transition-colors cursor-pointer ${
+  selectedIds.includes(v.id) ? "bg-green-50" : ""
+}`}
+    
+  >
+<div className="flex justify-between items-center">
+  <input
+    type="checkbox"
+    checked={selectedIds.includes(v.id)}
+    disabled={v.resolved || v.cease_flag}
+    onClick={(e) => e.stopPropagation()}
+    onChange={() => toggleSelect(v.id)}
+  />
+
+  <div
+    onClick={() => openBusinessDetails(v.business_id)}
+    className="cursor-pointer flex-1 ml-2"
+  >
                         <div className="font-semibold text-gray-900 text-sm">
                           {v.business_name || "N/A"}
                         </div>
@@ -990,9 +1148,34 @@ function ViolationsPageContent() {
                               : "bg-green-600 text-white hover:bg-green-700"
                           }`}
                         >
-                          Send Notice
+                          {sendingNoticeId === v.id ? (
+                            <span className="flex items-center gap-1">
+                              <svg
+                                className="animate-spin h-4 w-4 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                ></path>
+                              </svg>
+                              Sending...
+                            </span>
+                          ) : (
+                            "Send Notice"
+                          )}
                         </button>
-
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
