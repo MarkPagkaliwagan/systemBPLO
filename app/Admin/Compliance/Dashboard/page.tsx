@@ -18,7 +18,7 @@ import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
 import DetailsForBusinessFormModal from "./DetailsForBusinessFormModal";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 type Violation = {
@@ -56,29 +56,29 @@ function ViolationsPageContent() {
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const openBusinessDetails = async (businessId: string) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("business_records")
-        .select("*")
-        .eq("Business Identification Number", businessId)
-        .single();
+  setLoading(true);
+  try {
+    const { data, error } = await supabase
+      .from("business_records")
+      .select("*")
+      .eq("Business Identification Number", businessId)
+      .single();
 
-      if (error) {
-        console.error(error);
-        openMessageModal("Error", "Failed to load business details.", "error");
-        return;
-      }
-
-      setSelectedBusiness(data);
-      setDetailsModalOpen(true);
-    } catch (err) {
-      console.error(err);
-      openMessageModal("Error", "Something went wrong.", "error");
-    } finally {
-      setLoading(false);
+    if (error) {
+      console.error(error);
+      openMessageModal("Error", "Failed to load business details.", "error");
+      return;
     }
-  };
+
+    setSelectedBusiness(data);
+    setDetailsModalOpen(true);
+  } catch (err) {
+    console.error(err);
+    openMessageModal("Error", "Something went wrong.", "error");
+  } finally {
+    setLoading(false);
+  }
+};
   // Custom modal state
   const [messageModal, setMessageModal] = useState<{
     open: boolean;
@@ -105,13 +105,13 @@ function ViolationsPageContent() {
     message: "",
     confirmText: "Yes",
     cancelText: "Cancel",
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const openMessageModal = (
     title: string,
     message: string,
-    type: ModalType = "info",
+    type: ModalType = "info"
   ) => {
     setMessageModal({
       open: true,
@@ -133,7 +133,7 @@ function ViolationsPageContent() {
     message: string,
     onConfirm: () => void | Promise<void>,
     confirmText = "Yes",
-    cancelText = "Cancel",
+    cancelText = "Cancel"
   ) => {
     setConfirmModal({
       open: true,
@@ -204,11 +204,7 @@ function ViolationsPageContent() {
       setViolations(data || []);
     } catch (err) {
       console.error(err);
-      openMessageModal(
-        "Error",
-        "Something went wrong while loading data.",
-        "error",
-      );
+      openMessageModal("Error", "Something went wrong while loading data.", "error");
     } finally {
       setLoading(false);
     }
@@ -299,8 +295,7 @@ function ViolationsPageContent() {
   };
 
   const renderSortIcon = (key: keyof Violation) => {
-    if (sortKey !== key)
-      return <FiChevronDown className="inline ml-1 text-green-200" />;
+    if (sortKey !== key) return <FiChevronDown className="inline ml-1 text-green-200" />;
     return sortAsc ? (
       <FiChevronUp className="inline ml-1 text-green-200" />
     ) : (
@@ -355,9 +350,7 @@ function ViolationsPageContent() {
     const lastSent = v.last_sent_time ? new Date(v.last_sent_time) : null;
     const interval = v.interval_days ?? 7;
     if (!lastSent) return true;
-    const nextSend = new Date(
-      lastSent.getTime() + interval * 24 * 60 * 60 * 1000,
-    );
+    const nextSend = new Date(lastSent.getTime() + interval * 24 * 60 * 60 * 1000);
     return new Date() >= nextSend;
   };
 
@@ -375,11 +368,7 @@ function ViolationsPageContent() {
       if (data.success) {
         openMessageModal("Success", "Notice sent successfully.", "success");
       } else {
-        openMessageModal(
-          "Error",
-          data.error || "Failed to send notice.",
-          "error",
-        );
+        openMessageModal("Error", data.error || "Failed to send notice.", "error");
       }
 
       await fetchViolations();
@@ -400,7 +389,7 @@ function ViolationsPageContent() {
         await sendNoticeNow(v.id);
       },
       "Send",
-      "Cancel",
+      "Cancel"
     );
   };
 
@@ -413,7 +402,7 @@ function ViolationsPageContent() {
         await handleMarkResolved(v.id);
       },
       "Mark Resolved",
-      "Cancel",
+      "Cancel"
     );
   };
 
@@ -495,7 +484,7 @@ function ViolationsPageContent() {
           </div>
 
           {/* Table / Cards */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
             {/* Desktop Table */}
             <div className="w-full overflow-x-auto hidden md:block">
               <table className="min-w-full table-fixed">
@@ -540,38 +529,34 @@ function ViolationsPageContent() {
                                 const checked = e.target.checked;
                                 setAutoSend(checked);
 
-                                const { error } = await supabase
-                                  .from("settings")
-                                  .upsert({
-                                    key: "auto_send",
-                                    value: checked,
-                                  });
+                                const { error } = await supabase.from("settings").upsert({
+                                  key: "auto_send",
+                                  value: checked,
+                                });
 
                                 if (error) {
                                   console.error(error);
                                   openMessageModal(
                                     "Error",
                                     "Failed to update auto send.",
-                                    "error",
+                                    "error"
                                   );
                                 } else {
                                   openMessageModal(
                                     "Saved",
                                     `Auto send is now ${checked ? "ON" : "OFF"}.`,
-                                    "success",
+                                    "success"
                                   );
                                 }
                               }}
                             />
                             <div
-                              className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${
-                                autoSend ? "bg-green-600" : ""
-                              }`}
+                              className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""
+                                }`}
                             />
                             <div
-                              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
-                                autoSend ? "translate-x-5" : ""
-                              }`}
+                              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""
+                                }`}
                             />
                           </div>
                           <span className="ml-2 text-xs font-medium text-gray-100 flex items-center gap-1">
@@ -614,28 +599,23 @@ function ViolationsPageContent() {
                       </tr>
                     ))
                   ) : violations.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={9}
-                        className="text-center py-10 text-gray-500 space-y-2"
-                      >
-                        <div>NO DATA FOUND</div>
-                        <button
-                          onClick={() =>
-                            (window.location.href =
-                              "/Admin/Inspection/management/review")
-                          }
-                          className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                        >
-                          + Add Business Violation
-                        </button>
-                      </td>
-                    </tr>
+  <tr>
+    <td colSpan={9} className="text-center py-10 text-gray-500 space-y-2">
+      <div>NO DATA FOUND</div>
+      <button
+        onClick={() => window.location.href = "/Admin/Inspection/management/review"}
+        className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+      >
+        + Add Business Violation
+      </button>
+    </td>
+  </tr>
                   ) : (
                     violations.map((v) => (
-                 <tr
+                      <tr
   key={v.id}
-  className={`${getRowClasses(v)} transition-colors`}
+  onClick={() => openBusinessDetails(v.business_id)}
+  className={`${getRowClasses(v)} transition-colors cursor-pointer`}
 >
                         <td className="px-6 py-4 align-top">
                           <div className="text-sm font-medium text-gray-900">
@@ -646,8 +626,7 @@ function ViolationsPageContent() {
                           </div>
                           {v.last_sent_time && (
                             <div className="text-xs text-gray-400 mt-1">
-                              Last sent:{" "}
-                              {new Date(v.last_sent_time).toLocaleString()}
+                              Last sent: {new Date(v.last_sent_time).toLocaleString()}
                             </div>
                           )}
                         </td>
@@ -672,16 +651,11 @@ function ViolationsPageContent() {
 
                         <td className="px-6 py-4 align-top">
                           {editingInterval === v.id ? (
-                            <div
-  className="flex gap-2 items-center"
-  onClick={(e) => e.stopPropagation()}
->
+                            <div className="flex gap-2 items-center">
                               <input
                                 type="number"
                                 value={intervalValue}
-                                onChange={(e) =>
-                                  setIntervalValue(Number(e.target.value))
-                                }
+                                onChange={(e) => setIntervalValue(Number(e.target.value))}
                                 className="w-16 border text-black rounded px-1 py-0.5 text-xs"
                               />
                               <button
@@ -699,15 +673,15 @@ function ViolationsPageContent() {
                             </div>
                           ) : (
 <div
+  title="Click to edit interval"
   onClick={(e) => {
     e.stopPropagation();
     setEditingInterval(v.id);
     setIntervalValue(v.interval_days ?? 7);
   }}
-  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 hover:bg-green-50 text-gray-700 hover:text-green-700 text-xs font-medium cursor-pointer transition"
+  className="cursor-pointer text-sm text-gray-700 hover:text-green-700 flex items-center gap-1 underline"
 >
-  {v.interval_days ?? 7} days
-  <FiChevronDown className="text-[10px] opacity-60" />
+  {v.interval_days ?? 7} days ✏️
 </div>
                           )}
                         </td>
@@ -717,50 +691,46 @@ function ViolationsPageContent() {
                         </td>
 
                         <td className="px-6 py-4 align-top">
-                          {v.resolved ? null : getStatusText(v) ===
-                            "Cease and Desist" ? (
+                          {v.resolved ? null : getStatusText(v) === "Cease and Desist" ? (
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askMarkResolved(v);
-                              }}
+  onClick={(e) => {
+    e.stopPropagation();
+    askMarkResolved(v);
+  }} 
                               disabled={v.resolved}
-                              className={`ml-2 px-2 py-1 text-xs rounded font-medium ${
-                                v.resolved
+                              className={`ml-2 px-2 py-1 text-xs rounded font-medium ${v.resolved
                                   ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                                   : "bg-blue-600 text-white hover:bg-blue-700"
-                              }`}
+                                }`}
                             >
                               Mark Resolved
                             </button>
                           ) : (
                             <>
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  askSendNotice(v);
-                                }}
+  onClick={(e) => {
+    e.stopPropagation();
+    askSendNotice(v);
+  }}
                                 disabled={autoSend || !canSendNotice(v)}
-                                className={`px-2 py-1 text-xs rounded font-medium ${
-                                  autoSend || !canSendNotice(v)
+                                className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v)
                                     ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                                     : "bg-green-600 text-white hover:bg-green-700"
-                                }`}
+                                  }`}
                               >
                                 Send Notice
                               </button>
 
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  askMarkResolved(v);
-                                }}
+                                                 <button
+  onClick={(e) => {
+    e.stopPropagation();
+    askMarkResolved(v);
+  }}
                                 disabled={v.resolved}
-                                className={`ml-2 px-2 py-1 text-xs rounded font-medium ${
-                                  v.resolved
+                                className={`ml-2 px-2 py-1 text-xs rounded font-medium ${v.resolved
                                     ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                                     : "bg-blue-600 text-white hover:bg-blue-700"
-                                }`}
+                                  }`}
                               >
                                 Mark Resolved
                               </button>
@@ -772,11 +742,7 @@ function ViolationsPageContent() {
                                     Next send:{" "}
                                     {new Date(
                                       new Date(v.last_sent_time).getTime() +
-                                        (v.interval_days ?? 7) *
-                                          24 *
-                                          60 *
-                                          60 *
-                                          1000,
+                                      (v.interval_days ?? 7) * 24 * 60 * 60 * 1000
                                     ).toLocaleString()}
                                   </div>
                                 )}
@@ -803,38 +769,30 @@ function ViolationsPageContent() {
                         const checked = e.target.checked;
                         setAutoSend(checked);
 
-                        const { error } = await supabase
-                          .from("settings")
-                          .upsert({
-                            key: "auto_send",
-                            value: checked,
-                          });
+                        const { error } = await supabase.from("settings").upsert({
+                          key: "auto_send",
+                          value: checked,
+                        });
 
                         if (error) {
                           console.error(error);
-                          openMessageModal(
-                            "Error",
-                            "Failed to update auto send.",
-                            "error",
-                          );
+                          openMessageModal("Error", "Failed to update auto send.", "error");
                         } else {
                           openMessageModal(
                             "Saved",
                             `Auto send is now ${checked ? "ON" : "OFF"}.`,
-                            "success",
+                            "success"
                           );
                         }
                       }}
                     />
                     <div
-                      className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${
-                        autoSend ? "bg-green-600" : ""
-                      }`}
+                      className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""
+                        }`}
                     />
                     <div
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
-                        autoSend ? "translate-x-5" : ""
-                      }`}
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""
+                        }`}
                     />
                   </div>
                   <span className="ml-2 text-sm font-medium text-gray-700 flex items-center gap-1">
@@ -855,40 +813,34 @@ function ViolationsPageContent() {
                   </div>
                 ))
               ) : violations.length === 0 ? (
-                <div className="text-center py-10 text-gray-500 space-y-2">
-                  <div>NO DATA FOUND</div>
-                  <button
-                    onClick={() =>
-                      (window.location.href =
-                        "/Admin/Inspection/management/review")
-                    }
-                    className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                  >
-                    + Add Business Violation
-                  </button>
-                </div>
+  <div className="text-center py-10 text-gray-500 space-y-2">
+    <div>NO DATA FOUND</div>
+    <button
+      onClick={() => window.location.href = "/Admin/Inspection/management/review"}
+      className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+    >
+      + Add Business Violation
+    </button>
+  </div>
               ) : (
                 violations.map((v) => (
                   <div
-                    key={v.id}
-                    onClick={() => openBusinessDetails(v.business_id)}
-                    className={`border rounded-xl p-4 shadow-sm space-y-2 ${getRowClasses(v)} cursor-pointer`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div
-                        onClick={() => openBusinessDetails(v.business_id)}
-                        className="cursor-pointer"
-                      >
-                        <div
+  key={v.id}
   onClick={() => openBusinessDetails(v.business_id)}
-  className="text-sm font-medium text-gray-900 hover:text-green-700 cursor-pointer transition"
+  className={`border rounded-xl p-4 shadow-sm space-y-2 ${getRowClasses(v)} cursor-pointer`}
 >
-  {v.business_name || "N/A"}
+                    <div className="flex justify-between items-center">
+                     <div
+  onClick={() => openBusinessDetails(v.business_id)}
+  className="cursor-pointer"
+>
+  <div className="font-semibold text-gray-900 text-sm">
+    {v.business_name || "N/A"}
+  </div>
+  <div className="text-xs text-gray-500">
+    {v.business_id}
+  </div>
 </div>
-                        <div className="text-xs text-gray-500">
-                          {v.business_id}
-                        </div>
-                      </div>
                       <StatusBadge v={v} />
                     </div>
 
@@ -909,9 +861,7 @@ function ViolationsPageContent() {
                           <input
                             type="number"
                             value={intervalValue}
-                            onChange={(e) =>
-                              setIntervalValue(Number(e.target.value))
-                            }
+                            onChange={(e) => setIntervalValue(Number(e.target.value))}
                             className="w-16 border rounded px-1 py-0.5 text-xs"
                           />
                           <button
@@ -928,16 +878,15 @@ function ViolationsPageContent() {
                           </button>
                         </span>
                       ) : (
-                        <span
+<span
   onClick={(e) => {
     e.stopPropagation();
     setEditingInterval(v.id);
     setIntervalValue(v.interval_days ?? 7);
   }}
-  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 hover:bg-green-50 text-gray-700 hover:text-green-700 text-xs font-medium cursor-pointer transition"
->
-  {v.interval_days ?? 7} days
-  <FiChevronDown className="text-[10px] opacity-60" />
+                          className="cursor-pointer text-gray-700 hover:text-green-700"
+                        >
+                          {v.interval_days ?? 7} days
                         </span>
                       )}
                     </div>
@@ -950,16 +899,15 @@ function ViolationsPageContent() {
 
                     {!v.resolved && getStatusText(v) === "Cease and Desist" && (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          askMarkResolved(v);
-                        }}
+  onClick={(e) => {
+    e.stopPropagation();
+    askMarkResolved(v);
+  }}
                         disabled={v.resolved}
-                        className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${
-                          v.resolved
+                        className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${v.resolved
                             ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                             : "bg-blue-600 text-white hover:bg-blue-700"
-                        }`}
+                          }`}
                       >
                         Mark Resolved
                       </button>
@@ -968,31 +916,29 @@ function ViolationsPageContent() {
                     {!v.resolved && getStatusText(v) !== "Cease and Desist" && (
                       <>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            askSendNotice(v);
-                          }}
+  onClick={(e) => {
+    e.stopPropagation();
+    askSendNotice(v);
+  }}
                           disabled={autoSend || !canSendNotice(v)}
-                          className={`px-2 py-1 text-xs rounded font-medium ${
-                            autoSend || !canSendNotice(v)
+                          className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v)
                               ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                               : "bg-green-600 text-white hover:bg-green-700"
-                          }`}
+                            }`}
                         >
                           Send Notice
                         </button>
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            askMarkResolved(v);
-                          }}
+                                            <button
+  onClick={(e) => {
+    e.stopPropagation();
+    askMarkResolved(v);
+  }}
                           disabled={v.resolved}
-                          className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${
-                            v.resolved
+                          className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${v.resolved
                               ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                               : "bg-blue-600 text-white hover:bg-blue-700"
-                          }`}
+                            }`}
                         >
                           Mark Resolved
                         </button>
@@ -1004,7 +950,7 @@ function ViolationsPageContent() {
                               Next send:{" "}
                               {new Date(
                                 new Date(v.last_sent_time).getTime() +
-                                  (v.interval_days ?? 7) * 24 * 60 * 60 * 1000,
+                                (v.interval_days ?? 7) * 24 * 60 * 60 * 1000
                               ).toLocaleString()}
                             </div>
                           )}
@@ -1108,10 +1054,10 @@ function ViolationsPageContent() {
         </div>
       )}
       <DetailsForBusinessFormModal
-        open={detailsModalOpen}
-        onClose={() => setDetailsModalOpen(false)}
-        data={selectedBusiness}
-      />
+  open={detailsModalOpen}
+  onClose={() => setDetailsModalOpen(false)}
+  data={selectedBusiness}
+/>
     </div>
   );
 }
