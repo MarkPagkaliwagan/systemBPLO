@@ -18,7 +18,7 @@ type RecordType = {
 
 type InspectorCount = {
   name: string;
-  total: number;
+  total: number; // number of schedules assigned
 };
 
 function parseAssignedInspectors(value: string | null | undefined): string[] {
@@ -59,42 +59,12 @@ function formatDate(dateString: string | null) {
 
 function getBarTheme(index: number) {
   const themes = [
-    {
-      bar: "bg-gradient-to-r from-emerald-500 to-emerald-600",
-      ring: "border-emerald-200 hover:border-emerald-300",
-      selected: "ring-emerald-100 border-emerald-300",
-      text: "text-emerald-700",
-    },
-    {
-      bar: "bg-gradient-to-r from-sky-500 to-blue-600",
-      ring: "border-sky-200 hover:border-sky-300",
-      selected: "ring-sky-100 border-sky-300",
-      text: "text-sky-700",
-    },
-    {
-      bar: "bg-gradient-to-r from-violet-500 to-indigo-600",
-      ring: "border-violet-200 hover:border-violet-300",
-      selected: "ring-violet-100 border-violet-300",
-      text: "text-violet-700",
-    },
-    {
-      bar: "bg-gradient-to-r from-amber-500 to-orange-600",
-      ring: "border-amber-200 hover:border-amber-300",
-      selected: "ring-amber-100 border-amber-300",
-      text: "text-amber-700",
-    },
-    {
-      bar: "bg-gradient-to-r from-rose-500 to-pink-600",
-      ring: "border-rose-200 hover:border-rose-300",
-      selected: "ring-rose-100 border-rose-300",
-      text: "text-rose-700",
-    },
-    {
-      bar: "bg-gradient-to-r from-cyan-500 to-teal-600",
-      ring: "border-cyan-200 hover:border-cyan-300",
-      selected: "ring-cyan-100 border-cyan-300",
-      text: "text-cyan-700",
-    },
+    "from-emerald-500 to-emerald-600",
+    "from-sky-500 to-blue-600",
+    "from-violet-500 to-indigo-600",
+    "from-amber-500 to-orange-600",
+    "from-rose-500 to-pink-600",
+    "from-cyan-500 to-teal-600",
   ];
 
   return themes[index % themes.length];
@@ -138,7 +108,7 @@ export default function InspectorSummary() {
 
     const list = Object.keys(grouped).map((name) => ({
       name,
-      total: grouped[name],
+      total: grouped[name], // schedule count
     }));
 
     list.sort((a, b) => b.total - a.total);
@@ -179,7 +149,6 @@ export default function InspectorSummary() {
   return (
     <>
       <div className="w-full bg-gradient-to-b from-slate-50 to-white p-3 md:p-4">
-        {/* Title Bar */}
         <div className="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3">
             <div className="flex items-center gap-3">
@@ -209,10 +178,10 @@ export default function InspectorSummary() {
                     <button
                       key={inspector.name}
                       onClick={() => setSelectedInspector(inspector.name)}
-                      className={`group w-full rounded-2xl border bg-white p-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm ${
+                      className={`w-full rounded-2xl border bg-white p-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm ${
                         isSelected
-                          ? `${theme.selected} ring-1`
-                          : `${theme.ring}`
+                          ? "border-emerald-300 ring-1 ring-emerald-100"
+                          : "border-slate-200 hover:border-slate-300"
                       }`}
                     >
                       <div className="mb-2 flex items-center justify-between gap-3">
@@ -220,22 +189,24 @@ export default function InspectorSummary() {
                           {inspector.name}
                         </span>
                         <span className="shrink-0 text-[11px] text-slate-500">
-                          {inspector.total} record{inspector.total > 1 ? "s" : ""}
+                          {inspector.total} schedule{inspector.total > 1 ? "s" : ""}
                         </span>
                       </div>
 
-                      <div className="h-10 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className={`relative flex h-10 items-center justify-center rounded-full ${theme.bar} transition-all duration-300`}
-                          style={{
-                            width: `${Math.max(progress, 10)}%`,
-                            minWidth: "4.5rem",
-                          }}
-                        >
-                          <span className="text-sm font-semibold text-white drop-shadow-sm">
-                            {inspector.total}
-                          </span>
+                      <div className="flex items-center gap-3">
+                        <div className="h-5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className={`h-5 rounded-full bg-gradient-to-r ${theme} transition-all duration-300`}
+                            style={{
+                              width: `${Math.max(progress, 8)}%`,
+                              minWidth: "1.5rem",
+                            }}
+                          />
                         </div>
+
+                        <span className="w-8 text-right text-sm font-semibold text-slate-700">
+                          {inspector.total}
+                        </span>
                       </div>
                     </button>
                   );
@@ -254,7 +225,6 @@ export default function InspectorSummary() {
         </div>
       </div>
 
-      {/* Modal */}
       {selectedInspector && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
           <div className="flex max-h-[90vh] w-full max-w-[95%] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
