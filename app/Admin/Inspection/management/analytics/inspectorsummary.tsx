@@ -27,6 +27,31 @@ type InspectorCount = {
   total: number;
 };
 
+function parseAssignedInspectors(value: string | null | undefined): string[] {
+  if (!value) return [];
+
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+
+  try {
+    const parsed = JSON.parse(trimmed);
+
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => String(item).trim())
+        .filter((item) => item.length > 0);
+    }
+
+    if (typeof parsed === "string") {
+      return parsed.trim() ? [parsed.trim()] : [];
+    }
+  } catch {
+    // If not JSON, treat it as a single inspector name
+  }
+
+  return [trimmed];
+}
+
 export default function InspectorSummary() {
   const [records, setRecords] = useState<RecordType[]>([]);
   const [inspectors, setInspectors] = useState<InspectorCount[]>([]);
@@ -56,9 +81,13 @@ export default function InspectorSummary() {
     setRecords(rows);
 
     const grouped: Record<string, number> = {};
+
     rows.forEach((r) => {
-      if (!r.assigned_inspector) return;
-      grouped[r.assigned_inspector] = (grouped[r.assigned_inspector] || 0) + 1;
+      const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
+
+      assignedInspectors.forEach((name) => {
+        grouped[name] = (grouped[name] || 0) + 1;
+      });
     });
 
     const list = Object.keys(grouped).map((name) => ({
@@ -71,8 +100,10 @@ export default function InspectorSummary() {
   }
 
   const filteredRecords = useMemo(() => {
-    let list = records.filter(
-      (r) => r.assigned_inspector === selectedInspector
+    if (!selectedInspector) return [];
+
+    let list = records.filter((r) =>
+      parseAssignedInspectors(r.assigned_inspector).includes(selectedInspector)
     );
 
     if (search) {
@@ -89,8 +120,8 @@ export default function InspectorSummary() {
     }
 
     list.sort((a, b) => {
-      const da = new Date(a.scheduled_date || "").getTime();
-      const db = new Date(b.scheduled_date || "").getTime();
+      const da = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
+      const db = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
       return sortAsc ? da - db : db - da;
     });
 
@@ -98,57 +129,51 @@ export default function InspectorSummary() {
   }, [records, selectedInspector, search, monthFilter, sortAsc]);
 
   const maxTasks =
-    inspectors.length > 0
-      ? Math.max(...inspectors.map((i) => i.total))
-      : 1;
+    inspectors.length > 0 ? Math.max(...inspectors.map((i) => i.total)) : 1;
 
   return (
     <>
-      {/* Outer Card */}
-      <div className="w-full h-full">
+      <div className="w-full h-full bg-gray-50">
         <div className="w-full">
-          {/* Main Card */}
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center gap-3 bg-green-800 text-white px-5 py-3 text-lg font-semibold">
-              <FiClipboard size={22} />
-              <span>Inspector Workload</span>
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200">
+              <FiClipboard size={20} className="text-green-800" />
+              <span className="text-gray-900 font-semibold">
+                Inspector Workload
+              </span>
             </div>
 
-            {/* Inspector Inner Cards */}
-            <div className="p-4 grid gap-4">
+            <div className="p-4 grid gap-3">
               {inspectors.length > 0 ? (
                 inspectors.map((inspector) => {
                   const progress = (inspector.total / maxTasks) * 100;
+
                   return (
-                    <div
+                    <button
                       key={inspector.name}
                       onClick={() => setSelectedInspector(inspector.name)}
-                      className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 cursor-pointer hover:shadow-md transition-all"
+                      className="w-full text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-green-700 hover:shadow-sm transition-all"
                     >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-gray-900 font-medium text-sm md:text-base">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <span className="text-sm md:text-base font-medium text-gray-900 truncate">
                           {inspector.name}
                         </span>
-                        <span className="bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-xs px-2 py-0.5 rounded-md">
+                        <span className="text-xs font-semibold text-green-800 bg-green-100 px-2 py-1 rounded-full">
                           {inspector.total}
                         </span>
                       </div>
-                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+
+                      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-1.5 rounded-full transition-all"
-                          style={{
-                            width: `${progress}%`,
-                            background:
-                              "linear-gradient(to right, #10B981, #047857)",
-                          }}
+                          className="h-2 rounded-full bg-green-800 transition-all"
+                          style={{ width: `${progress}%` }}
                         />
                       </div>
-                    </div>
+                    </button>
                   );
                 })
               ) : (
-                <div className="p-4 text-center text-gray-400 text-sm">
+                <div className="p-6 text-center text-gray-400 text-sm">
                   No inspectors found
                 </div>
               )}
@@ -157,28 +182,30 @@ export default function InspectorSummary() {
         </div>
       </div>
 
-      {/* Modal */}
       {selectedInspector && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center bg-gradient-to-r from-emerald-500 to-emerald-700 text-white px-6 py-3 text-lg font-semibold">
-              <h3>Inspection Assignments — {selectedInspector}</h3>
-              <button onClick={() => setSelectedInspector(null)}>
-                <FiX size={24} />
+          <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-200">
+            <div className="flex justify-between items-center px-5 py-3 border-b border-gray-200">
+              <h3 className="text-gray-900 font-semibold text-base md:text-lg">
+                Inspection Assignments — {selectedInspector}
+              </h3>
+              <button
+                onClick={() => setSelectedInspector(null)}
+                className="p-1 rounded-lg hover:bg-gray-100 text-gray-700"
+              >
+                <FiX size={22} />
               </button>
             </div>
 
-            {/* Filter Bar */}
-            <div className="p-3 flex flex-col md:flex-row gap-2 border-b">
-              <div className="flex items-center border rounded px-2 py-1 w-full md:w-1/2 text-sm">
-                <FiSearch size={18} />
+            <div className="p-3 flex flex-col md:flex-row gap-2 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 w-full md:w-1/2 bg-white">
+                <FiSearch size={18} className="text-gray-500" />
                 <input
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search business name or BIN..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full ml-2 outline-none text-gray-900 text-sm"
+                  className="w-full ml-2 outline-none text-gray-900 text-sm bg-transparent"
                 />
               </div>
 
@@ -186,36 +213,38 @@ export default function InspectorSummary() {
                 type="month"
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(e.target.value)}
-                className="border rounded px-2 py-1 text-gray-900 text-sm w-full md:w-auto"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-gray-900 text-sm w-full md:w-auto bg-white"
               />
 
               <button
                 onClick={() => setSortAsc(!sortAsc)}
-                className="flex items-center gap-1 border px-2 py-1 rounded text-gray-900 text-sm"
+                className="flex items-center justify-center gap-1 border border-gray-300 px-3 py-2 rounded-lg text-gray-900 text-sm bg-white hover:bg-gray-50"
               >
-                {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />} Date
+                {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
+                Date
               </button>
             </div>
 
-            {/* Table */}
             <div className="overflow-auto">
               <table className="w-full text-gray-900 text-sm border-collapse">
                 <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr>
-                    <th className="p-2 text-left">BIN</th>
-                    <th className="p-2 text-left">Business Name</th>
-                    <th className="p-2 text-left">Scheduled Date</th>
+                  <tr className="text-left">
+                    <th className="p-3 font-semibold">BIN</th>
+                    <th className="p-3 font-semibold">Business Name</th>
+                    <th className="p-3 font-semibold">Scheduled Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRecords.map((row, i) => (
                     <tr
                       key={i}
-                      className="border-b hover:bg-emerald-50 transition-colors"
+                      className="border-b border-gray-100 hover:bg-green-50/50 transition-colors"
                     >
-                      <td className="p-2">{row["Business Identification Number"]}</td>
-                      <td className="p-2">{row["Business Name"]}</td>
-                      <td className="p-2">{row.scheduled_date}</td>
+                      <td className="p-3">
+                        {row["Business Identification Number"]}
+                      </td>
+                      <td className="p-3">{row["Business Name"]}</td>
+                      <td className="p-3">{row.scheduled_date}</td>
                     </tr>
                   ))}
 
@@ -223,7 +252,7 @@ export default function InspectorSummary() {
                     <tr>
                       <td
                         colSpan={3}
-                        className="text-center p-4 text-gray-400 text-sm"
+                        className="text-center p-6 text-gray-400 text-sm"
                       >
                         No records found
                       </td>
