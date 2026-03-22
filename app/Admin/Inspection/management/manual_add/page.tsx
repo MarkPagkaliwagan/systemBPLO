@@ -157,24 +157,24 @@ export default function ManualAddBusiness() {
         return null;
     };
 
-    const checkBinDuplicateNow = async (rawValue: any) => {
-        const bin = normalizeDigits(rawValue);
+const checkBinDuplicateNow = async (rawValue: any) => {
+    const bin = normalizeDigits(rawValue);
 
-        if (!bin) return false;
+    if (!bin) return false;
 
-        const { data, error } = await supabase
-            .from("business_records")
-            .select("id")
-            .eq(BIN_FIELD, bin)
-            .limit(1);
+    const { data, error } = await supabase
+        .from("business_records")
+        .select('"Business Identification Number"') // ✅ FIXED
+        .eq(BIN_FIELD, bin)
+        .limit(1);
 
-        if (error) {
-            console.error("BIN duplicate check error:", error.message);
-            return false;
-        }
+    if (error) {
+        console.error("BIN duplicate check error:", error.message);
+        return false;
+    }
 
-        return !!data && data.length > 0;
-    };
+    return !!data && data.length > 0;
+};
 
     const validateAll = async (): Promise<Record<string, string>> => {
         const foundErrors: Record<string, string> = {};
