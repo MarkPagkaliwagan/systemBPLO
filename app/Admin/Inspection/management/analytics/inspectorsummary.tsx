@@ -18,7 +18,7 @@ type RecordType = {
 
 type InspectorCount = {
   name: string;
-  total: number; // number of schedules assigned
+  total: number;
 };
 
 function parseAssignedInspectors(value: string | null | undefined): string[] {
@@ -59,12 +59,12 @@ function formatDate(dateString: string | null) {
 
 function getBarTheme(index: number) {
   const themes = [
-    "from-emerald-500 to-emerald-600",
-    "from-sky-500 to-blue-600",
-    "from-violet-500 to-indigo-600",
-    "from-amber-500 to-orange-600",
-    "from-rose-500 to-pink-600",
-    "from-cyan-500 to-teal-600",
+    "bg-gradient-to-r from-emerald-500 to-emerald-600",
+    "bg-gradient-to-r from-sky-500 to-blue-600",
+    "bg-gradient-to-r from-violet-500 to-indigo-600",
+    "bg-gradient-to-r from-amber-500 to-orange-600",
+    "bg-gradient-to-r from-rose-500 to-pink-600",
+    "bg-gradient-to-r from-cyan-500 to-teal-600",
   ];
 
   return themes[index % themes.length];
@@ -108,7 +108,7 @@ export default function InspectorSummary() {
 
     const list = Object.keys(grouped).map((name) => ({
       name,
-      total: grouped[name], // schedule count
+      total: grouped[name],
     }));
 
     list.sort((a, b) => b.total - a.total);
@@ -149,68 +149,65 @@ export default function InspectorSummary() {
   return (
     <>
       <div className="w-full bg-gradient-to-b from-slate-50 to-white p-3 md:p-4">
-        <div className="mb-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3">
+        {/* Main Panel */}
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          {/* Header */}
+          <div className="border-b border-slate-200 bg-white px-4 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
-                <FiClipboard size={19} className="text-white" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
+                <FiClipboard size={18} className="text-white" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-white md:text-lg">
+                <h2 className="text-base font-semibold text-slate-900 md:text-lg">
                   Inspector Workload
                 </h2>
-                <p className="text-[11px] text-white/80">
-                  Click an inspector to view assigned records
+                <p className="text-[12px] text-slate-500">
+                  Click one inspector to view assigned records
                 </p>
               </div>
             </div>
           </div>
 
+          {/* Flat List */}
           <div className="p-4">
-            <div className="max-h-[68vh] space-y-3 overflow-y-auto pr-1">
+            <div className="max-h-[68vh] overflow-y-auto pr-1">
               {inspectors.length > 0 ? (
-                inspectors.map((inspector, index) => {
-                  const progress = (inspector.total / maxTasks) * 100;
-                  const isSelected = selectedInspector === inspector.name;
-                  const theme = getBarTheme(index);
+                <div className="space-y-2">
+                  {inspectors.map((inspector, index) => {
+                    const progress = (inspector.total / maxTasks) * 100;
+                    const isSelected = selectedInspector === inspector.name;
+                    const barTheme = getBarTheme(index);
 
-                  return (
-                    <button
-                      key={inspector.name}
-                      onClick={() => setSelectedInspector(inspector.name)}
-                      className={`w-full rounded-2xl border bg-white p-3 text-left transition-all duration-200 hover:-translate-y-[1px] hover:shadow-sm ${
-                        isSelected
-                          ? "border-emerald-300 ring-1 ring-emerald-100"
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="truncate text-sm font-medium text-slate-900">
-                          {inspector.name}
-                        </span>
-                        <span className="shrink-0 text-[11px] text-slate-500">
-                          {inspector.total} schedule{inspector.total > 1 ? "s" : ""}
-                        </span>
-                      </div>
+                    return (
+                      <button
+                        key={inspector.name}
+                        onClick={() => setSelectedInspector(inspector.name)}
+                        className={`w-full rounded-2xl px-3 py-3 text-left transition-all duration-200 ${
+                          isSelected
+                            ? "bg-slate-100"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-28 shrink-0 truncate text-sm font-medium text-slate-900 md:w-44">
+                            {inspector.name}
+                          </span>
 
-                      <div className="flex items-center gap-3">
-                        <div className="h-5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className={`h-5 rounded-full bg-gradient-to-r ${theme} transition-all duration-300`}
-                            style={{
-                              width: `${Math.max(progress, 8)}%`,
-                              minWidth: "1.5rem",
-                            }}
-                          />
+                          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className={`h-full rounded-full ${barTheme} transition-all duration-300`}
+                              style={{ width: `${Math.max(progress, 8)}%` }}
+                            />
+                          </div>
+
+                          <span className="w-8 shrink-0 text-right text-sm font-semibold text-slate-700">
+                            {inspector.total}
+                          </span>
                         </div>
-
-                        <span className="w-8 text-right text-sm font-semibold text-slate-700">
-                          {inspector.total}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })
+                      </button>
+                    );
+                  })}
+                </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
                   No inspectors found
@@ -219,12 +216,13 @@ export default function InspectorSummary() {
             </div>
 
             <p className="mt-3 text-[11px] text-slate-500">
-              Click an inspector to view assigned records.
+              The number means how many schedules are assigned to that inspector.
             </p>
           </div>
         </div>
       </div>
 
+      {/* Modal */}
       {selectedInspector && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
           <div className="flex max-h-[90vh] w-full max-w-[95%] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
@@ -285,7 +283,7 @@ export default function InspectorSummary() {
                   {filteredRecords.map((row, i) => (
                     <tr
                       key={i}
-                      className="border-b border-slate-100 transition-colors hover:bg-emerald-50/40"
+                      className="border-b border-slate-100 transition-colors hover:bg-slate-50"
                     >
                       <td className="p-3">
                         {row["Business Identification Number"] || "-"}
