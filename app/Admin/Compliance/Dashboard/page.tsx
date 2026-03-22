@@ -499,7 +499,7 @@ function ViolationsPageContent() {
             {/* Desktop Table */}
             <div className="w-full overflow-x-auto hidden md:block">
               <table className="min-w-full table-fixed">
-                <thead className="bg-gray-50 text-gray-600">
+                <thead className="bg-green-900 text-white">
                   <tr>
                     <th
                       className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
