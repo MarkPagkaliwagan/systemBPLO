@@ -146,24 +146,26 @@ export default function InspectorSummary() {
 
   const maxTasks = inspectors.length > 0 ? Math.max(...inspectors.map((i) => i.total)) : 1;
 
-  return (
-    <>
-      <div className="w-full bg-gradient-to-b from-slate-50 to-white p-3 md:p-4">
-        {/* Main Panel */}
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          {/* Header */}
-          <div className="border-b border-slate-200 bg-white px-4 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
-                <FiClipboard size={18} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-slate-900 md:text-lg">
-                  Inspector Workload
-                </h2>
-                <p className="text-[12px] text-slate-500">
-                  Click one inspector to view assigned records
-                </p>
+return (
+  <>
+    <div
+      className="w-full max-h-115 overflow-hidden rounded-3xl bg-linear-to-b from-slate-50 to-white p-3 md:p-4 shadow-md"
+    >
+      {/* Main Panel */}
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        {/* Header */}
+        <div className="border-b border-slate-200 bg-white px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
+              <FiClipboard size={18} className="text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+                Inspector Workload
+              </h2>
+              <p className="text-[12px] text-slate-500">
+                Click one inspector to view assigned records
+              </p>
               </div>
             </div>
           </div>
@@ -214,10 +216,6 @@ export default function InspectorSummary() {
                 </div>
               )}
             </div>
-
-            <p className="mt-3 text-[11px] text-slate-500">
-              The number means how many schedules are assigned to that inspector.
-            </p>
           </div>
         </div>
       </div>
