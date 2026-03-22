@@ -133,7 +133,7 @@ export default function InspectorSummary() {
 
   return (
     <>
-      <div className="w-full h-full bg-gray-50 p-3 md:p-4">
+      <div className="w-full bg-gray-50 p-3 md:p-4">
         {/* Header */}
         <div className="flex items-center gap-2 mb-4">
           <FiClipboard size={18} className="text-emerald-700" />
