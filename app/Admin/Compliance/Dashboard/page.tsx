@@ -658,18 +658,25 @@ function ViolationsPageContent() {
                                 onChange={(e) => setIntervalValue(Number(e.target.value))}
                                 className="w-16 border text-black rounded px-1 py-0.5 text-xs"
                               />
-                              <button
-                                onClick={() => updateInterval(v.id)}
-                                className="text-green-600 text-xs"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => setEditingInterval(null)}
-                                className="text-gray-500 text-xs"
-                              >
-                                Cancel
-                              </button>
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    updateInterval(v.id);
+  }}
+  className="text-green-600 text-xs"
+>
+  Save
+</button>
+
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    setEditingInterval(null);
+  }}
+  className="text-gray-500 text-xs"
+>
+  Cancel
+</button>
                             </div>
                           ) : (
 <div
@@ -681,7 +688,7 @@ function ViolationsPageContent() {
   }}
   className="cursor-pointer text-sm text-gray-700 hover:text-green-700 flex items-center gap-1 underline"
 >
-  {v.interval_days ?? 7} days ✏️
+  {v.interval_days ?? 7} days 
 </div>
                           )}
                         </td>
@@ -864,18 +871,25 @@ function ViolationsPageContent() {
                             onChange={(e) => setIntervalValue(Number(e.target.value))}
                             className="w-16 border rounded px-1 py-0.5 text-xs"
                           />
-                          <button
-                            onClick={() => updateInterval(v.id)}
-                            className="text-green-600 text-xs"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setEditingInterval(null)}
-                            className="text-gray-500 text-xs"
-                          >
-                            Cancel
-                          </button>
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    updateInterval(v.id);
+  }}
+  className="text-green-600 text-xs hover:underline"
+>
+  Save
+</button>
+
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+    setEditingInterval(null);
+  }}
+  className="text-gray text-xs hover:underline"
+>
+  Cancel
+</button>
                         </span>
                       ) : (
 <span
