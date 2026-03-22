@@ -135,47 +135,47 @@ export default function InspectorSummary() {
 
   return (
     <>
-      <div className="w-full h-full bg-gray-50 p-4">
+      <div className="w-full h-full bg-gray-50 p-3 md:p-4">
         <div className="w-full">
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-white to-green-50/40">
-              <FiClipboard size={20} className="text-green-800" />
-              <span className="text-gray-900 font-semibold">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 bg-white">
+              <FiClipboard size={18} className="text-emerald-700" />
+              <span className="text-gray-900 font-semibold text-sm md:text-base">
                 Inspector Workload
               </span>
             </div>
 
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3.5">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">
                     Inspectors
                   </div>
-                  <div className="mt-1 text-2xl font-bold text-gray-900">
+                  <div className="mt-1 text-xl font-bold text-gray-900">
                     {inspectors.length}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3.5">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">
                     Total Assignments
                   </div>
-                  <div className="mt-1 text-2xl font-bold text-gray-900">
+                  <div className="mt-1 text-xl font-bold text-gray-900">
                     {totalAssignments}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3.5">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500">
                     Highest Load
                   </div>
-                  <div className="mt-1 text-2xl font-bold text-gray-900">
+                  <div className="mt-1 text-xl font-bold text-gray-900">
                     {maxTasks}
                   </div>
                 </div>
               </div>
 
-              <div className="grid gap-3">
+              <div className="max-h-[58vh] overflow-y-auto pr-1 space-y-2">
                 {inspectors.length > 0 ? (
                   inspectors.map((inspector) => {
                     const progress = (inspector.total / maxTasks) * 100;
@@ -184,26 +184,26 @@ export default function InspectorSummary() {
                       <button
                         key={inspector.name}
                         onClick={() => setSelectedInspector(inspector.name)}
-                        className="w-full text-left rounded-2xl border border-gray-200 bg-white p-4 hover:border-green-700 hover:shadow-md transition-all"
+                        className="w-full text-left rounded-xl border border-gray-200 bg-white px-3 py-3 hover:border-emerald-600 hover:shadow-sm transition-all"
                       >
-                        <div className="flex items-center justify-between gap-3 mb-2">
-                          <span className="text-sm md:text-base font-semibold text-gray-900 truncate">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-sm font-semibold text-gray-900 truncate">
                             {inspector.name}
                           </span>
 
-                          <span className="text-xs font-semibold text-green-800 bg-green-100 px-2.5 py-1 rounded-full">
-                            {inspector.total} tasks
+                          <span className="shrink-0 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                            {inspector.total}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
                             <div
-                              className="h-4 rounded-full bg-gradient-to-r from-green-700 to-emerald-500 transition-all"
+                              className="h-2.5 rounded-full bg-emerald-600 transition-all"
                               style={{ width: `${progress}%` }}
                             />
                           </div>
-                          <span className="w-12 text-right text-xs font-medium text-gray-500">
+                          <span className="w-11 text-right text-[11px] font-medium text-gray-500">
                             {Math.round(progress)}%
                           </span>
                         </div>
@@ -211,7 +211,7 @@ export default function InspectorSummary() {
                     );
                   })
                 ) : (
-                  <div className="p-8 text-center text-gray-400 text-sm rounded-2xl border border-dashed border-gray-200">
+                  <div className="p-6 text-center text-gray-400 text-sm rounded-xl border border-dashed border-gray-200">
                     No inspectors found
                   </div>
                 )}
@@ -224,21 +224,21 @@ export default function InspectorSummary() {
       {selectedInspector && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-200">
-            <div className="flex justify-between items-center px-5 py-3 border-b border-gray-200">
-              <h3 className="text-gray-900 font-semibold text-base md:text-lg">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
+              <h3 className="text-gray-900 font-semibold text-sm md:text-base">
                 Inspection Assignments — {selectedInspector}
               </h3>
               <button
                 onClick={() => setSelectedInspector(null)}
-                className="p-1 rounded-lg hover:bg-gray-100 text-gray-700"
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-700"
               >
-                <FiX size={22} />
+                <FiX size={20} />
               </button>
             </div>
 
             <div className="p-3 flex flex-col md:flex-row gap-2 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 w-full md:w-1/2 bg-white">
-                <FiSearch size={18} className="text-gray-500" />
+                <FiSearch size={16} className="text-gray-500" />
                 <input
                   type="text"
                   placeholder="Search business name or BIN..."
@@ -277,7 +277,7 @@ export default function InspectorSummary() {
                   {filteredRecords.map((row, i) => (
                     <tr
                       key={i}
-                      className="border-b border-gray-100 hover:bg-green-50/50 transition-colors"
+                      className="border-b border-gray-100 hover:bg-emerald-50/40 transition-colors"
                     >
                       <td className="p-3">
                         {row["Business Identification Number"]}
