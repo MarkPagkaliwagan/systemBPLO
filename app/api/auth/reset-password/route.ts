@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
 import { hashPassword } from '@/lib/passwordUtils';
-
+import { supabase } from '@/lib/supabaseClient';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -94,6 +93,7 @@ export async function POST(request: NextRequest) {
         password: hashedNewPassword,
         password_reset_token: null,
         password_reset_expires: null
+        // Don't set email_verified: true - let user verify email separately
       })
       .eq('id', user.id);
 

@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
 import { sendEmail } from '@/lib/sendEmail';
 import crypto from 'crypto';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! 
-);
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'SUPABASE UPDATE ERROR', detail: updateError.message }, { status: 500 });
     }
 
-    const resetUrl = `https://system-bplo.vercel.app/reset-password?token=${resetToken}`;
+   const resetUrl = `https://system-bplo.vercel.app/reset-password?token=${resetToken}`;
 
    try {
   await sendEmail(
