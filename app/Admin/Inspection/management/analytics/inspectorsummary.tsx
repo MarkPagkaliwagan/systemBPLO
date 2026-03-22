@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
+  FiClipboard,
   FiX,
   FiSearch,
   FiArrowUp,
@@ -44,7 +45,9 @@ function parseAssignedInspectors(value: string | null | undefined): string[] {
     if (typeof parsed === "string") {
       return parsed.trim() ? [parsed.trim()] : [];
     }
-  } catch {}
+  } catch {
+    // If not JSON, treat it as a single inspector name
+  }
 
   return [trimmed];
 }
@@ -52,7 +55,9 @@ function parseAssignedInspectors(value: string | null | undefined): string[] {
 export default function InspectorSummary() {
   const [records, setRecords] = useState<RecordType[]>([]);
   const [inspectors, setInspectors] = useState<InspectorCount[]>([]);
-  const [selectedInspector, setSelectedInspector] = useState<string | null>(null);
+  const [selectedInspector, setSelectedInspector] = useState<string | null>(
+    null
+  );
 
   const [search, setSearch] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
@@ -126,57 +131,96 @@ export default function InspectorSummary() {
   const maxTasks =
     inspectors.length > 0 ? Math.max(...inspectors.map((i) => i.total)) : 1;
 
+  const totalAssignments = inspectors.reduce((sum, item) => sum + item.total, 0);
+
   return (
     <>
-      {/* ONLY CHART */}
-      <div className="w-full bg-white border border-slate-200 rounded-2xl p-4 md:p-5">
-        <h3 className="text-sm md:text-base font-semibold text-slate-900 mb-4">
-          Workload Distribution
-        </h3>
+      <div className="w-full h-full bg-gray-50 p-4">
+        <div className="w-full">
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-white to-green-50/40">
+              <FiClipboard size={20} className="text-green-800" />
+              <span className="text-gray-900 font-semibold">
+                Inspector Workload
+              </span>
+            </div>
 
-        {inspectors.length > 0 ? (
-          <div className="space-y-4">
-            {inspectors.map((inspector) => {
-              const progress = (inspector.total / maxTasks) * 100;
-
-              return (
-                <button
-                  key={inspector.name}
-                  onClick={() => setSelectedInspector(inspector.name)}
-                  className="w-full text-left group"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-[220px_1fr_60px] gap-3 items-center">
-                    
-                    {/* NAME */}
-                    <span className="text-sm font-medium text-slate-900 truncate">
-                      {inspector.name}
-                    </span>
-
-                    {/* BAR */}
-                    <div className="relative h-5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                      <div
-                        className="h-full bg-green-700 rounded-full transition-all duration-300 group-hover:bg-green-800"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-
-                    {/* VALUE */}
-                    <span className="text-sm font-semibold text-green-800 text-right">
-                      {inspector.total}
-                    </span>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    Inspectors
                   </div>
-                </button>
-              );
-            })}
+                  <div className="mt-1 text-2xl font-bold text-gray-900">
+                    {inspectors.length}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    Total Assignments
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-gray-900">
+                    {totalAssignments}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    Highest Load
+                  </div>
+                  <div className="mt-1 text-2xl font-bold text-gray-900">
+                    {maxTasks}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {inspectors.length > 0 ? (
+                  inspectors.map((inspector) => {
+                    const progress = (inspector.total / maxTasks) * 100;
+
+                    return (
+                      <button
+                        key={inspector.name}
+                        onClick={() => setSelectedInspector(inspector.name)}
+                        className="w-full text-left rounded-2xl border border-gray-200 bg-white p-4 hover:border-green-700 hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <span className="text-sm md:text-base font-semibold text-gray-900 truncate">
+                            {inspector.name}
+                          </span>
+
+                          <span className="text-xs font-semibold text-green-800 bg-green-100 px-2.5 py-1 rounded-full">
+                            {inspector.total} tasks
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="h-4 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-4 rounded-full bg-gradient-to-r from-green-700 to-emerald-500 transition-all"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="w-12 text-right text-xs font-medium text-gray-500">
+                            {Math.round(progress)}%
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="p-8 text-center text-gray-400 text-sm rounded-2xl border border-dashed border-gray-200">
+                    No inspectors found
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className="text-center text-slate-400 text-sm py-6">
-            No inspectors found
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* MODAL (unchanged) */}
       {selectedInspector && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white w-full max-w-[95%] rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-200">
@@ -245,7 +289,10 @@ export default function InspectorSummary() {
 
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="text-center p-6 text-gray-400 text-sm">
+                      <td
+                        colSpan={3}
+                        className="text-center p-6 text-gray-400 text-sm"
+                      >
                         No records found
                       </td>
                     </tr>
