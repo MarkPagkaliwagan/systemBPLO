@@ -99,6 +99,7 @@ interface ReviewModalProps {
     scheduledDate?: string;
     location?: { lat: number; lng: number; accuracy: number };
     photo?: File;
+    photoUrl?: string;
   }) => void;
   onRecordUpdated?: (updated: BusinessRecord) => void;
   onRecordDeleted?: (id: string) => void;
@@ -681,6 +682,7 @@ function ReviewForm({
     scheduledDate?: string;
     location?: { lat: number; lng: number; accuracy: number };
     photo?: File;
+    photoUrl?: string;
   }) => void;
   onCancel: () => void;
   onUploadPhoto: (
@@ -769,7 +771,12 @@ function ReviewForm({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      if (photoFile) await onUploadPhoto(photoFile, location ?? undefined);
+      // Upload photo first and capture the returned URL
+      let photoUrl: string | undefined;
+      if (photoFile) {
+        const url = await onUploadPhoto(photoFile, location ?? undefined);
+        if (url) photoUrl = url;
+      }
       onSave({
         reviewActions,
         violations,
@@ -777,6 +784,7 @@ function ReviewForm({
         scheduledDate: scheduledDate || undefined,
         location: location || undefined,
         photo: photoFile || undefined,
+        photoUrl, // ← pass the uploaded URL back to page.tsx
       });
     } finally { setIsSaving(false); }
   };
