@@ -82,10 +82,10 @@ export default function LoginPage() {
               className="w-36 h-36 object-contain rounded-full"
             />
           </div>
-          <h2 className="text-lg font-bold text-gray-800 text-center mb-2">
+          <h2 className="text-sm font-bold text-gray-800 text-center mb-2">
             Business Permit and Licensing Office
           </h2>
-          <h2 className="text-sm font-bold text-gray-800 text-center mb-2">
+          <h2 className="text-xs font-bold text-gray-800 text-center mb-2">
             Inspection Management System
           </h2>
 
