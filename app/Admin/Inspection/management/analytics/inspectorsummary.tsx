@@ -140,36 +140,34 @@ export default function InspectorSummary() {
   const inspectors = useMemo(() => {
     const grouped: Record<string, InspectorCount> = {};
 
-    records.forEach((r) => {
-      if (monthFilter && !isWithinPeriod(r.scheduled_date, monthFilter)) {
-        return;
-      }
+ records.forEach((r) => {
+  // Use created_at for inspector list filtering
+  if (monthFilter && !isWithinPeriod(r.created_at ?? null, monthFilter)) {
+  return;
+}
 
-      const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
 
-      const scheduleTime = r.scheduled_date
-        ? new Date(r.scheduled_date).getTime()
-        : r.created_at
-          ? new Date(r.created_at).getTime()
-          : 0;
+  const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
 
-      assignedInspectors.forEach((name) => {
-        if (!grouped[name]) {
-          grouped[name] = {
-            name,
-            total: 0,
-            latest: null,
-          };
-        }
+  const createdTime = r.created_at ? new Date(r.created_at).getTime() : 0;
 
-        grouped[name].total += 1;
+  assignedInspectors.forEach((name) => {
+    if (!grouped[name]) {
+      grouped[name] = {
+        name,
+        total: 0,
+        latest: null,
+      };
+    }
 
-        grouped[name].latest =
-          grouped[name].latest === null
-            ? scheduleTime
-            : Math.max(grouped[name].latest, scheduleTime);
-      });
-    });
+    grouped[name].total += 1;
+
+    grouped[name].latest =
+      grouped[name].latest === null
+        ? createdTime
+        : Math.max(grouped[name].latest, createdTime);
+  });
+});
 
     const list = Object.values(grouped);
 
