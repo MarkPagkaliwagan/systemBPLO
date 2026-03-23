@@ -95,7 +95,6 @@ interface BusinessRecord {
   accuracy: string | null;
 }
 
-// ── EventItem is defined OUTSIDE the component so it never remounts ──────────
 function EventItem({
   event,
   loadingBin,
@@ -123,6 +122,64 @@ function EventItem({
         : <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
       }
     </button>
+  );
+}
+
+function ScheduleRow({
+  day,
+  date,
+  events,
+  isToday,
+  isMobileView,
+  todayRef,
+  loadingBin,
+  onOpenReview,
+}: {
+  day: number;
+  date: Date;
+  events: any[];
+  isToday: boolean;
+  isMobileView: boolean;
+  todayRef: React.RefObject<HTMLDivElement | null>;
+  loadingBin: string | null;
+  onOpenReview: (bin: string) => void;
+}) {
+  const now = new Date();
+  const isPast = date < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
+
+  return (
+    <div
+      ref={isToday ? todayRef : undefined}
+      className={`flex ${isMobileView ? 'px-4 py-2.5 gap-3' : 'px-5 py-3 gap-4'} ${isPast && !isToday ? isMobileView ? 'opacity-50' : 'opacity-40' : ''}`}
+    >
+      <div className={`${isMobileView ? 'w-12' : 'w-14'} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
+        <span className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+          {dayLabel}
+        </span>
+        <div className={`${isMobileView ? 'w-7 h-7 mt-0.5' : 'w-8 h-8 mt-1'} rounded-full flex items-center justify-center ${isToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
+          <span className={`${isMobileView ? 'text-xs' : 'text-sm'} font-bold ${isToday ? 'text-white' : 'text-slate-700'}`}>
+            {day}
+          </span>
+        </div>
+      </div>
+      <div className="flex-1 space-y-1.5 min-w-0">
+        {events.length > 0 ? (
+          events.map((event: any, i: number) => (
+            <EventItem
+              key={i}
+              event={event}
+              loadingBin={loadingBin}
+              onOpenReview={onOpenReview}
+            />
+          ))
+        ) : (
+          <div className="flex items-center h-8">
+            <div className="flex-1 border-t border-dashed border-slate-200" />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -155,7 +212,14 @@ function DashboardPageContent() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
   const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
-  const mobileDropdownButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileDropdownButtonRef  = useRef<HTMLButtonElement>(null);
+
+  const desktopScrollRef = useRef<HTMLDivElement>(null);
+  const mobileScrollRef  = useRef<HTMLDivElement>(null);
+  const desktopTodayRef  = useRef<HTMLDivElement>(null);
+  const mobileTodayRef   = useRef<HTMLDivElement>(null);
+
+  const today = new Date();
 
   const rangeOptions: { value: NoticeRange; label: string }[] = [
     { value: '7d', label: 'Last 7 Days' },
@@ -165,6 +229,35 @@ function DashboardPageContent() {
     { value: '1yr', label: 'Last 1 Year' },
   ];
   const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
+
+  // ── Scroll to today using getBoundingClientRect ───────────────────────────
+  useEffect(() => {
+    const isCurrentMonth =
+      scheduleMonth.getMonth() === today.getMonth() &&
+      scheduleMonth.getFullYear() === today.getFullYear();
+
+    if (!isCurrentMonth) return;
+
+    const t = setTimeout(() => {
+      if (desktopTodayRef.current && desktopScrollRef.current) {
+        const container = desktopScrollRef.current;
+        const row = desktopTodayRef.current;
+        const rowTop = row.getBoundingClientRect().top;
+        const containerTop = container.getBoundingClientRect().top;
+        container.scrollTop = container.scrollTop + (rowTop - containerTop) - 4;
+      }
+      if (mobileTodayRef.current && mobileScrollRef.current) {
+        const container = mobileScrollRef.current;
+        const row = mobileTodayRef.current;
+        const rowTop = row.getBoundingClientRect().top;
+        const containerTop = container.getBoundingClientRect().top;
+        container.scrollTop = container.scrollTop + (rowTop - containerTop) - 4;
+      }
+    }, 150);
+
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduleMonth, mockEventsByDate]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -201,52 +294,87 @@ function DashboardPageContent() {
     fetchStatusCounts();
   }, []);
 
-  // ── FIX: fetch ALL violations with no date filter, then filter client-side ─
-  // This avoids any timestamp format mismatch with Supabase
+  // ── Fixed violation counts using correct columns ──────────────────────────
   useEffect(() => {
-    const fetchViolationCounts = async () => {
-      try {
-        const now = new Date();
-        const start = new Date();
-        switch (noticeRange) {
-          case '7d': start.setDate(now.getDate() - 7); break;
-          case '1m': start.setMonth(now.getMonth() - 1); break;
-          case '3m': start.setMonth(now.getMonth() - 3); break;
-          case '6m': start.setMonth(now.getMonth() - 6); break;
-          case '1yr': start.setFullYear(now.getFullYear() - 1); break;
-        }
+  const fetchViolationCounts = async () => {
+    try {
+      const now = new Date();
 
-        const { data, error } = await supabase
-          .from('business_violations')
-          .select('notice_level, resolved, created_at');
+      // 🔥 Convert to UTC-safe ISO (important!)
+      const nowISO = new Date(
+        now.getTime() - now.getTimezoneOffset() * 60000
+      ).toISOString();
 
-        if (error) {
-          console.error('fetchViolationCounts error:', error);
-          return;
-        }
+      const start = new Date(now);
 
-        console.log('Total violations fetched:', data?.length, 'Sample:', data?.[0]);
-
-        // Filter by date range client-side to avoid timestamp format issues
-        const violations = (data ?? []).filter((v) => {
-          const createdAt = new Date(v.created_at);
-          return createdAt >= start && createdAt <= now;
-        });
-
-        console.log(`Violations in range (${noticeRange}):`, violations.length);
-
-        setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
-        setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
-        setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
-        setActiveCasesCount(violations.filter(v => !v.resolved && v.notice_level <= 3).length);
-        setCeaseDesistCount(violations.filter(v => !v.resolved && v.notice_level > 3).length);
-      } catch (err) {
-        console.error('fetchViolationCounts error:', err);
+      switch (noticeRange) {
+        case "7d":
+          start.setDate(start.getDate() - 7);
+          break;
+        case "1m":
+          start.setMonth(start.getMonth() - 1);
+          break;
+        case "3m":
+          start.setMonth(start.getMonth() - 3);
+          break;
+        case "6m":
+          start.setMonth(start.getMonth() - 6);
+          break;
+        case "1yr":
+          start.setFullYear(start.getFullYear() - 1);
+          break;
       }
-    };
-    fetchViolationCounts();
-  }, [noticeRange]);
 
+      const startISO = new Date(
+        start.getTime() - start.getTimezoneOffset() * 60000
+      ).toISOString();
+
+      // 🔥 USE last_sent_time instead of created_at
+      const { data, error } = await supabase
+        .from("business_violations")
+        .select("notice_level, resolved, cease_flag, last_sent_time")
+        .not("last_sent_time", "is", null)
+        .gte("last_sent_time", startISO)
+        .lte("last_sent_time", nowISO);
+
+      if (error) {
+        console.error("fetchViolationCounts error:", error);
+        return;
+      }
+
+      const violations = data ?? [];
+
+      // 🔥 DEBUG (optional — remove later)
+      console.log("Range:", noticeRange);
+      console.log("Start:", startISO);
+      console.log("Now:", nowISO);
+      console.log("Filtered count:", violations.length);
+
+      // ✅ Counts
+      setNotice1Count(
+        violations.filter((v) => v.notice_level === 1).length
+      );
+      setNotice2Count(
+        violations.filter((v) => v.notice_level === 2).length
+      );
+      setNotice3Count(
+        violations.filter((v) => v.notice_level === 3).length
+      );
+
+      setActiveCasesCount(
+        violations.filter((v) => !v.resolved && !v.cease_flag).length
+      );
+
+      setCeaseDesistCount(
+        violations.filter((v) => v.cease_flag === true).length
+      );
+    } catch (err) {
+      console.error("fetchViolationCounts error:", err);
+    }
+  };
+
+  fetchViolationCounts();
+}, [noticeRange]);
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
@@ -289,8 +417,8 @@ function DashboardPageContent() {
       const target = e.target as Node;
       const portalEl = document.getElementById('range-dropdown-portal');
       const clickedDesktop = desktopDropdownButtonRef.current?.contains(target);
-      const clickedMobile = mobileDropdownButtonRef.current?.contains(target);
-      const clickedPortal = portalEl?.contains(target);
+      const clickedMobile  = mobileDropdownButtonRef.current?.contains(target);
+      const clickedPortal  = portalEl?.contains(target);
       if (!clickedDesktop && !clickedMobile && !clickedPortal) setDropdownOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -305,7 +433,6 @@ function DashboardPageContent() {
     setDropdownOpen(prev => !prev);
   };
 
-  // ── useCallback so the reference is stable and EventItem doesn't remount ───
   const handleOpenReview = useCallback(async (bin: string) => {
     setLoadingBin(bin);
     const { data, error } = await supabase
@@ -399,9 +526,7 @@ function DashboardPageContent() {
 
   const prevMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)); setSelectedDay(null); };
   const nextMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)); setSelectedDay(null); };
-
   const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
-  const today = new Date();
 
   const getScheduleDaysForMonth = (month: Date) => {
     const year = month.getFullYear();
@@ -415,64 +540,14 @@ function DashboardPageContent() {
   };
 
   const scheduleMonthLabel = scheduleMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
-  const prevScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() - 1, 1));
-  const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
-  const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
+  const prevScheduleMonth  = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() - 1, 1));
+  const nextScheduleMonth  = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
+  const scheduleDays       = getScheduleDaysForMonth(scheduleMonth);
 
-  const MobileScheduleSection = () => (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
-      <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
-        <span className="text-base font-bold text-slate-800">Schedule</span>
-        <div className="flex items-center space-x-1">
-          <button onClick={prevScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-            <ChevronLeft size={15} className="text-slate-600" />
-          </button>
-          <span className="text-xs font-semibold text-slate-600 min-w-[100px] text-center">{scheduleMonthLabel}</span>
-          <button onClick={nextScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-            <ChevronRight size={15} className="text-slate-600" />
-          </button>
-        </div>
-      </div>
-      <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-        {scheduleDays.map(({ day, date, events }) => {
-          const isDayToday =
-            day === today.getDate() &&
-            scheduleMonth.getMonth() === today.getMonth() &&
-            scheduleMonth.getFullYear() === today.getFullYear();
-          const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
-          const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-          return (
-            <div key={day} className={`flex px-4 py-2.5 gap-3 ${isPast && !isDayToday ? 'opacity-50' : ''}`}>
-              <div className="w-12 shrink-0 flex flex-col items-center justify-start pt-0.5">
-                <span className={`text-xs font-semibold uppercase tracking-wide ${isDayToday ? 'text-blue-600' : 'text-slate-400'}`}>
-                  {dayLabel}
-                </span>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center mt-0.5 ${isDayToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
-                  <span className={`text-xs font-bold ${isDayToday ? 'text-white' : 'text-slate-700'}`}>{day}</span>
-                </div>
-              </div>
-              <div className="flex-1 space-y-1.5 min-w-0">
-                {events.length > 0 ? (
-                  events.map((event: any, i: number) => (
-                    <EventItem
-                      key={i}
-                      event={event}
-                      loadingBin={loadingBin}
-                      onOpenReview={handleOpenReview}
-                    />
-                  ))
-                ) : (
-                  <div className="flex items-center h-8">
-                    <div className="flex-1 border-t border-dashed border-slate-200" />
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  const isTodayRow = (day: number) =>
+    day === today.getDate() &&
+    scheduleMonth.getMonth() === today.getMonth() &&
+    scheduleMonth.getFullYear() === today.getFullYear();
 
   return (
     <>
@@ -550,7 +625,36 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            <MobileScheduleSection />
+            {/* Mobile Schedule */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
+              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
+                <span className="text-base font-bold text-slate-800">Schedule</span>
+                <div className="flex items-center space-x-1">
+                  <button onClick={prevScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                    <ChevronLeft size={15} className="text-slate-600" />
+                  </button>
+                  <span className="text-xs font-semibold text-slate-600 min-w-[100px] text-center">{scheduleMonthLabel}</span>
+                  <button onClick={nextScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
+                    <ChevronRight size={15} className="text-slate-600" />
+                  </button>
+                </div>
+              </div>
+              <div ref={mobileScrollRef} className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                {scheduleDays.map(({ day, date, events }) => (
+                  <ScheduleRow
+                    key={day}
+                    day={day}
+                    date={date}
+                    events={events}
+                    isToday={isTodayRow(day)}
+                    isMobileView={true}
+                    todayRef={mobileTodayRef}
+                    loadingBin={loadingBin}
+                    onOpenReview={handleOpenReview}
+                  />
+                ))}
+              </div>
+            </div>
 
             <div className="mt-4">
               <InspectorSummary />
@@ -638,43 +742,24 @@ function DashboardPageContent() {
                     </div>
                   </div>
 
-                  <div className="overflow-y-auto divide-y divide-slate-100" style={{ maxHeight: '460px' }}>
-                    {scheduleDays.map(({ day, date, events }) => {
-                      const isDayToday =
-                        day === today.getDate() &&
-                        scheduleMonth.getMonth() === today.getMonth() &&
-                        scheduleMonth.getFullYear() === today.getFullYear();
-                      const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
-                      const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                      return (
-                        <div key={day} className={`flex px-5 py-3 gap-4 ${isPast && !isDayToday ? 'opacity-40' : ''}`}>
-                          <div className="w-14 shrink-0 flex flex-col items-center justify-start pt-0.5">
-                            <span className={`text-xs font-semibold uppercase tracking-wide ${isDayToday ? 'text-blue-600' : 'text-slate-400'}`}>
-                              {dayLabel}
-                            </span>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mt-1 ${isDayToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
-                              <span className={`text-sm font-bold ${isDayToday ? 'text-white' : 'text-slate-700'}`}>{day}</span>
-                            </div>
-                          </div>
-                          <div className="flex-1 space-y-1.5 min-w-0">
-                            {events.length > 0 ? (
-                              events.map((event: any, i: number) => (
-                                <EventItem
-                                  key={i}
-                                  event={event}
-                                  loadingBin={loadingBin}
-                                  onOpenReview={handleOpenReview}
-                                />
-                              ))
-                            ) : (
-                              <div className="flex items-center h-8">
-                                <div className="flex-1 border-t border-dashed border-slate-200" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div
+                    ref={desktopScrollRef}
+                    className="overflow-y-auto divide-y divide-slate-100"
+                    style={{ maxHeight: '460px' }}
+                  >
+                    {scheduleDays.map(({ day, date, events }) => (
+                      <ScheduleRow
+                        key={day}
+                        day={day}
+                        date={date}
+                        events={events}
+                        isToday={isTodayRow(day)}
+                        isMobileView={false}
+                        todayRef={desktopTodayRef}
+                        loadingBin={loadingBin}
+                        onOpenReview={handleOpenReview}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
