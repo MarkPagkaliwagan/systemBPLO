@@ -702,8 +702,25 @@ function MapPickerModal({
         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
 
+      // Start with fallback center, then move to device location if no initial coords
       const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 15);
       mapInstance.current = map;
+
+      // If no initial pin, try to fly to the device's current location
+      if (!initialLat && !initialLng && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (!isMounted || !mapInstance.current) return;
+            mapInstance.current.flyTo(
+              [pos.coords.latitude, pos.coords.longitude],
+              16,
+              { animate: true, duration: 1 }
+            );
+          },
+          () => {}, // silently fail — keeps fallback center
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      }
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors",
