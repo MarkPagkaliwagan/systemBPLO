@@ -778,7 +778,7 @@ function DashboardPageContent() {
 
 export default function DashboardPage() {
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="staff">
       <DashboardPageContent />
     </ProtectedRoute>
   );

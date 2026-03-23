@@ -8,7 +8,7 @@ interface User {
   name: string;
   email: string;
   contact_no?: string;
-  role: 'admin' | 'super_admin';
+  role: 'admin' | 'staff';
   createdAt: string;
 }
 
@@ -123,7 +123,7 @@ export function UserTable({
               {/* Role */}
               <td className="px-4 py-3 whitespace-nowrap">
                 <Badge variant={user.role}>
-                  {user.role === 'admin' ? 'Administrator' : 'Super Administrator'}
+                  {user.role === 'admin' ? 'Administrator' : 'Staff'}
                 </Badge>
               </td>
 

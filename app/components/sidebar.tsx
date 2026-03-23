@@ -98,7 +98,7 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
     },
   ];
 
-  return userRole === "super_admin" ? superAdminItems : adminItems;
+  return userRole === "admin" ? superAdminItems : adminItems;
 };
 
 const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => {
