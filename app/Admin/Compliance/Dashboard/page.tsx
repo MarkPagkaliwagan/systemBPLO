@@ -1539,11 +1539,12 @@ function ViolationsPageContent() {
           </div>
         </div>
       )}
-      <DetailsForBusinessFormModal
-        open={detailsModalOpen}
-        onClose={() => setDetailsModalOpen(false)}
-        data={selectedBusiness}
-      />
+<DetailsForBusinessFormModal
+  open={detailsModalOpen}
+  onClose={() => setDetailsModalOpen(false)}
+  data={selectedBusiness}
+  tableName="business_records" // ✅ ADD THIS
+/>
     </div>
   );
 }
