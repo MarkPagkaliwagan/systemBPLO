@@ -167,12 +167,12 @@ export default function ReviewModal({
     setIsSavingEdit(true);
     setEditError(null);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { id, ...rest } = editForm;
+      // Strip id and BIN — use BIN as the match key, not id
+      const { id: _id, "Business Identification Number": _bin, ...rest } = editForm;
       const { error } = await supabase
         .from("business_records")
         .update(rest)
-        .eq("id", selectedRow.id);
+        .eq("Business Identification Number", selectedRow["Business Identification Number"]);
 
       if (error) throw new Error(error.message);
 
