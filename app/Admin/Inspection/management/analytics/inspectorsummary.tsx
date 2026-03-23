@@ -14,7 +14,7 @@ type RecordType = {
   "Business Identification Number": string | null;
   "Business Name": string | null;
   scheduled_date: string | null;
-  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 type InspectorCount = {
@@ -127,7 +127,7 @@ export default function InspectorSummary() {
         "Business Identification Number",
         "Business Name",
         scheduled_date,
-        created_at
+        updated_at
       `);
 
     if (error) {
@@ -141,15 +141,15 @@ export default function InspectorSummary() {
     const grouped: Record<string, InspectorCount> = {};
 
  records.forEach((r) => {
-  // Use created_at for inspector list filtering
-  if (monthFilter && !isWithinPeriod(r.created_at ?? null, monthFilter)) {
+  // Use updated_at for inspector list filtering
+  if (monthFilter && !isWithinPeriod(r.updated_at ?? null, monthFilter)) {
   return;
 }
 
 
   const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
 
-  const createdTime = r.created_at ? new Date(r.created_at).getTime() : 0;
+  const createdTime = r.updated_at ? new Date(r.updated_at).getTime() : 0;
 
   assignedInspectors.forEach((name) => {
     if (!grouped[name]) {
