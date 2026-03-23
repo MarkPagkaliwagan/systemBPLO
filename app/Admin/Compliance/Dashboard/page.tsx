@@ -945,269 +945,195 @@ className={`${getRowClasses(v)} transition-colors cursor-pointer ${
               </table>
             </div>
 
-            {/* Mobile Cards */}
-            <div className="md:hidden space-y-4 p-4">
-              <div className="md:hidden flex justify-end mb-2 px-4">
-                <label className="flex items-center cursor-pointer select-none">
-                  <div className="relative">
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={autoSend}
-                      onChange={async (e) => {
-                        const checked = e.target.checked;
-                        setAutoSend(checked);
+      {/* Mobile Cards */}
+<div className="md:hidden p-4 space-y-4">
+  {/* Auto Send Toggle */}
+  <div className="flex justify-end mb-2">
+    <label className="flex items-center cursor-pointer select-none">
+      <div className="relative">
+        <input
+          type="checkbox"
+          className="sr-only"
+          checked={autoSend}
+          onChange={async (e) => {
+            const checked = e.target.checked;
+            setAutoSend(checked);
 
-                        const { error } = await supabase
-                          .from("settings")
-                          .upsert({
-                            key: "auto_send",
-                            value: checked,
-                          });
+            const { error } = await supabase
+              .from("settings")
+              .upsert({ key: "auto_send", value: checked });
 
-                        if (error) {
-                          console.error(error);
-                          openMessageModal(
-                            "Error",
-                            "Failed to update auto send.",
-                            "error",
-                          );
-                        } else {
-                          openMessageModal(
-                            "Saved",
-                            `Auto send is now ${checked ? "ON" : "OFF"}.`,
-                            "success",
-                          );
-                        }
-                      }}
-                    />
-                    <div
-                      className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${
-                        autoSend ? "bg-green-600" : ""
-                      }`}
-                    />
-                    <div
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
-                        autoSend ? "translate-x-5" : ""
-                      }`}
-                    />
-                  </div>
-                  <span className="ml-2 text-sm font-medium text-gray-700 flex items-center gap-1">
-                    Auto Send <FiSend className="text-green-600" />
+            if (error) {
+              console.error(error);
+              openMessageModal("Error", "Failed to update auto send.", "error");
+            } else {
+              openMessageModal(
+                "Saved",
+                `Auto send is now ${checked ? "ON" : "OFF"}.`,
+                "success"
+              );
+            }
+          }}
+        />
+        <div className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`} />
+        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""}`} />
+      </div>
+      <span className="ml-2 text-sm font-medium text-gray-700 flex items-center gap-1">
+        Auto Send <FiSend className="text-green-600" />
+      </span>
+    </label>
+  </div>
+
+  {/* Select All */}
+  {violations.length > 0 && (
+    <div className="flex items-center mb-2">
+      <input
+        type="checkbox"
+        checked={selectedIds.length === violations.length}
+        onChange={(e) => {
+          if (e.target.checked) {
+            setSelectedIds(violations.map((v) => v.id));
+          } else {
+            setSelectedIds([]);
+          }
+        }}
+        className="mr-2"
+      />
+      <span className="text-sm text-gray-700 font-medium">Select All</span>
+    </div>
+  )}
+
+  {/* Loading Skeleton */}
+  {loading ? (
+    Array.from({ length: 3 }).map((_, i) => (
+      <div key={i} className="animate-pulse border rounded-xl p-4 bg-gray-100 space-y-2">
+        <div className="h-4 bg-gray-200 rounded w-1/2" />
+        <div className="h-4 bg-gray-200 rounded w-full" />
+        <div className="h-4 bg-gray-200 rounded w-1/4" />
+      </div>
+    ))
+  ) : violations.length === 0 ? (
+    <div className="text-center py-10 text-gray-500 space-y-2">
+      <div>NO DATA FOUND</div>
+      <button
+        onClick={() => (window.location.href = "/Admin/Inspection/management/review")}
+        className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+      >
+        + Add Business Violation
+      </button>
+    </div>
+  ) : (
+    violations.map((v) => (
+      <div
+        key={v.id}
+        onClick={() => openBusinessDetails(v.business_id)}
+        className={`border rounded-xl p-4 bg-white shadow-sm space-y-2 cursor-pointer transition-colors ${selectedIds.includes(v.id) ? "bg-green-50" : ""}`}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(v.id)}
+            disabled={v.resolved || v.cease_flag}
+            onClick={(e) => e.stopPropagation()}
+            onChange={() => toggleSelect(v.id)}
+          />
+
+          <div className="flex-1 ml-2" onClick={() => openBusinessDetails(v.business_id)}>
+            <div className="font-semibold text-gray-900 text-sm">{v.business_name || "N/A"}</div>
+            <div className="text-xs text-gray-500">{v.business_id}</div>
+          </div>
+
+          <StatusBadge v={v} />
+        </div>
+
+        {/* Violation Text */}
+        <div className="text-gray-700 text-sm line-clamp-2">{v.violation}</div>
+
+        {/* Notices */}
+        <div className="flex gap-2">
+          <NoticeBadge notice={1} v={v} />
+          <NoticeBadge notice={2} v={v} />
+          <NoticeBadge notice={3} v={v} />
+        </div>
+
+        {/* Interval */}
+        <div className="text-xs text-gray-500">
+          Interval:{" "}
+          {editingInterval === v.id ? (
+            <span className="flex items-center gap-2 mt-1">
+              <input
+                type="number"
+                value={intervalValue}
+                onChange={(e) => setIntervalValue(Number(e.target.value))}
+                className="w-16 border rounded px-1 py-0.5 text-xs"
+              />
+              <button onClick={(e) => { e.stopPropagation(); updateInterval(v.id); }} className="text-green-600 text-xs hover:underline">Save</button>
+              <button onClick={(e) => { e.stopPropagation(); setEditingInterval(null); }} className="text-gray text-xs hover:underline">Cancel</button>
+            </span>
+          ) : (
+            <span onClick={(e) => { e.stopPropagation(); setEditingInterval(v.id); setIntervalValue(v.interval_days ?? 7); }} className="cursor-pointer text-gray-700 hover:text-green-700">
+              {v.interval_days ?? 7} days
+            </span>
+          )}
+        </div>
+
+        {/* Last Sent */}
+        {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
+
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-1">
+          {!v.resolved && getStatusText(v) === "Cease and Desist" && (
+            <button
+              onClick={(e) => { e.stopPropagation(); askMarkResolved(v); }}
+              disabled={v.resolved}
+              className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+            >
+              Mark Resolved
+            </button>
+          )}
+
+          {!v.resolved && getStatusText(v) !== "Cease and Desist" && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); askSendNotice(v); }}
+                disabled={autoSend || !canSendNotice(v)}
+                className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`}
+              >
+                {sendingNoticeId === v.id ? (
+                  <span className="flex items-center gap-1">
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Sending...
                   </span>
-                </label>
-              </div>
+                ) : (
+                  "Send Notice"
+                )}
+              </button>
 
-              {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="animate-pulse border rounded-xl p-4 bg-gray-100 space-y-2"
-                  >
-                    <div className="h-4 bg-gray-200 rounded w-1/2" />
-                    <div className="h-4 bg-gray-200 rounded w-full" />
-                    <div className="h-4 bg-gray-200 rounded w-1/4" />
-                  </div>
-                ))
-              ) : violations.length === 0 ? (
-                <div className="text-center py-10 text-gray-500 space-y-2">
-                  <div>NO DATA FOUND</div>
-                  <button
-                    onClick={() =>
-                      (window.location.href =
-                        "/Admin/Inspection/management/review")
-                    }
-                    className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                  >
-                    + Add Business Violation
-                  </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); askMarkResolved(v); }}
+                disabled={v.resolved}
+                className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+              >
+                Mark Resolved
+              </button>
+
+              {!canSendNotice(v) && v.last_sent_time && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Next send:{" "}
+                  {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
                 </div>
-              ) : (
-violations.map((v) => (
-  <div
-    key={v.id}
-    onClick={() => openBusinessDetails(v.business_id)}
-className={`${getRowClasses(v)} transition-colors cursor-pointer ${
-  selectedIds.includes(v.id) ? "bg-green-50" : ""
-}`}
-    
-  >
-<div className="flex justify-between items-center">
-  <input
-    type="checkbox"
-    checked={selectedIds.includes(v.id)}
-    disabled={v.resolved || v.cease_flag}
-    onClick={(e) => e.stopPropagation()}
-    onChange={() => toggleSelect(v.id)}
-  />
-
-  <div
-    onClick={() => openBusinessDetails(v.business_id)}
-    className="cursor-pointer flex-1 ml-2"
-  >
-                        <div className="font-semibold text-gray-900 text-sm">
-                          {v.business_name || "N/A"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {v.business_id}
-                        </div>
-                      </div>
-                      <StatusBadge v={v} />
-                    </div>
-
-                    <div className="text-gray-700 text-sm line-clamp-2">
-                      {v.violation}
-                    </div>
-
-                    <div className="flex gap-2">
-                      <NoticeBadge notice={1} v={v} />
-                      <NoticeBadge notice={2} v={v} />
-                      <NoticeBadge notice={3} v={v} />
-                    </div>
-
-                    <div className="text-xs text-gray-500">
-                      Interval:{" "}
-                      {editingInterval === v.id ? (
-                        <span className="flex items-center gap-2 mt-1">
-                          <input
-                            type="number"
-                            value={intervalValue}
-                            onChange={(e) =>
-                              setIntervalValue(Number(e.target.value))
-                            }
-                            className="w-16 border rounded px-1 py-0.5 text-xs"
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateInterval(v.id);
-                            }}
-                            className="text-green-600 text-xs hover:underline"
-                          >
-                            Save
-                          </button>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingInterval(null);
-                            }}
-                            className="text-gray text-xs hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      ) : (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation(); // <--- important
-                            setEditingInterval(v.id);
-                            setIntervalValue(v.interval_days ?? 7);
-                          }}
-                          className="cursor-pointer text-gray-700 hover:text-green-700"
-                        >
-                          {v.interval_days ?? 7} days
-                        </span>
-                      )}
-                    </div>
-
-                    {v.last_sent_time && (
-                      <div className="text-xs text-gray-400">
-                        Last sent: {new Date(v.last_sent_time).toLocaleString()}
-                      </div>
-                    )}
-
-                    {!v.resolved && getStatusText(v) === "Cease and Desist" && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          askMarkResolved(v);
-                        }}
-                        disabled={v.resolved}
-                        className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${
-                          v.resolved
-                            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
-                        }`}
-                      >
-                        Mark Resolved
-                      </button>
-                    )}
-
-                    {!v.resolved && getStatusText(v) !== "Cease and Desist" && (
-                      <>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            askSendNotice(v);
-                          }}
-                          disabled={autoSend || !canSendNotice(v)}
-                          className={`px-2 py-1 text-xs rounded font-medium ${
-                            autoSend || !canSendNotice(v)
-                              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                              : "bg-green-600 text-white hover:bg-green-700"
-                          }`}
-                        >
-                          {sendingNoticeId === v.id ? (
-                            <span className="flex items-center gap-1">
-                              <svg
-                                className="animate-spin h-4 w-4 text-white"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                ></circle>
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                ></path>
-                              </svg>
-                              Sending...
-                            </span>
-                          ) : (
-                            "Send Notice"
-                          )}
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            askMarkResolved(v);
-                          }}
-                          disabled={v.resolved}
-                          className={`mt-1 w-full px-2 py-1 text-xs rounded font-medium ${
-                            v.resolved
-                              ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                              : "bg-blue-600 text-white hover:bg-blue-700"
-                          }`}
-                        >
-                          Mark Resolved
-                        </button>
-
-                        {!canSendNotice(v) &&
-                          v.last_sent_time &&
-                          getStatusText(v) !== "Cease and Desist" && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              Next send:{" "}
-                              {new Date(
-                                new Date(v.last_sent_time).getTime() +
-                                  (v.interval_days ?? 7) * 24 * 60 * 60 * 1000,
-                              ).toLocaleString()}
-                            </div>
-                          )}
-                      </>
-                    )}
-                  </div>
-                ))
               )}
-            </div>
+            </>
+          )}
+        </div>
+      </div>
+    ))
+  )}
+</div>
           </div>
         </div>
       </div>
