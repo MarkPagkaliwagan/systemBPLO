@@ -221,6 +221,8 @@ export default function CSVReview() {
     violations: string[];
     assignedInspector?: string;
     scheduledDate?: string;
+    location?: { lat: number; lng: number; accuracy: number };
+    photoUrl?: string;
   }) => {
     if (!selectedRow) return;
 
@@ -246,6 +248,14 @@ export default function CSVReview() {
           status: rowStatus,
           assigned_inspector: reviewData.assignedInspector ?? null,
           scheduled_date: reviewData.scheduledDate ?? null,
+          // ── Save photo URL if uploaded ──
+          ...(reviewData.photoUrl ? { photo: reviewData.photoUrl } : {}),
+          // ── Save location if captured ──
+          ...(reviewData.location ? {
+            latitude: String(reviewData.location.lat),
+            longitude: String(reviewData.location.lng),
+            accuracy: String(reviewData.location.accuracy),
+          } : {}),
         })
         .eq('Business Identification Number', bin);
 
@@ -263,6 +273,12 @@ export default function CSVReview() {
               status: rowStatus,
               assigned_inspector: reviewData.assignedInspector ?? null,
               scheduled_date: reviewData.scheduledDate ?? null,
+              ...(reviewData.photoUrl ? { photo: reviewData.photoUrl } : {}),
+              ...(reviewData.location ? {
+                latitude: String(reviewData.location.lat),
+                longitude: String(reviewData.location.lng),
+                accuracy: String(reviewData.location.accuracy),
+              } : {}),
             }
             : r
         )
@@ -654,23 +670,14 @@ export default function CSVReview() {
         isMobile={isMobile}
         onRecordUpdated={(updated) => {
           setCSVData(prev =>
-            prev.map(r =>
-              r["Business Identification Number"] === updated["Business Identification Number"]
-                ? (updated as BusinessRecord)
-                : r
-            )
+            prev.map(r => {
+              const isSame =
+                r["Business Identification Number"] ===
+                updated["Business Identification Number"];
+              return isSame ? (updated as BusinessRecord) : r;
+            })
           );
           setSelectedRow(updated as BusinessRecord);
-        }}
-        onRecordDeleted={(bin) => {
-          setCSVData(prev =>
-            prev.filter(
-              r => r["Business Identification Number"] !== bin
-            )
-          );
-          setTotalCount(prev => prev - 1);
-          setSelectedRow(null);
-          setShowReviewModal(false);
         }}
       />
 
