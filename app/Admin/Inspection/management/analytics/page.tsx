@@ -95,7 +95,6 @@ interface BusinessRecord {
   accuracy: string | null;
 }
 
-// ── EventItem is defined OUTSIDE the component so it never remounts ──────────
 function EventItem({
   event,
   loadingBin,
@@ -157,6 +156,12 @@ function DashboardPageContent() {
   const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
   const mobileDropdownButtonRef = useRef<HTMLButtonElement>(null);
 
+  // ── Refs for auto-scrolling to today ──────────────────────────────────────
+  const desktopScrollRef = useRef<HTMLDivElement>(null);
+  const mobileScrollRef  = useRef<HTMLDivElement>(null);
+  const todayRowRef      = useRef<HTMLDivElement>(null);
+  const mobileTodayRowRef = useRef<HTMLDivElement>(null);
+
   const rangeOptions: { value: NoticeRange; label: string }[] = [
     { value: '7d', label: 'Last 7 Days' },
     { value: '1m', label: 'Last 1 Month' },
@@ -165,6 +170,29 @@ function DashboardPageContent() {
     { value: '1yr', label: 'Last 1 Year' },
   ];
   const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
+
+  const today = new Date();
+
+  // ── Auto-scroll to today whenever the schedule month changes ──────────────
+  useEffect(() => {
+    const isCurrentMonth =
+      scheduleMonth.getMonth() === today.getMonth() &&
+      scheduleMonth.getFullYear() === today.getFullYear();
+
+    if (!isCurrentMonth) return;
+
+    // Small timeout lets the DOM render before we measure
+    const t = setTimeout(() => {
+      if (todayRowRef.current && desktopScrollRef.current) {
+        desktopScrollRef.current.scrollTop = todayRowRef.current.offsetTop - 8;
+      }
+      if (mobileTodayRowRef.current && mobileScrollRef.current) {
+        mobileScrollRef.current.scrollTop = mobileTodayRowRef.current.offsetTop - 8;
+      }
+    }, 80);
+
+    return () => clearTimeout(t);
+  }, [scheduleMonth, mockEventsByDate]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -201,8 +229,6 @@ function DashboardPageContent() {
     fetchStatusCounts();
   }, []);
 
-  // ── FIX: fetch ALL violations with no date filter, then filter client-side ─
-  // This avoids any timestamp format mismatch with Supabase
   useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
@@ -220,20 +246,12 @@ function DashboardPageContent() {
           .from('business_violations')
           .select('notice_level, resolved, created_at');
 
-        if (error) {
-          console.error('fetchViolationCounts error:', error);
-          return;
-        }
+        if (error) { console.error('fetchViolationCounts error:', error); return; }
 
-        console.log('Total violations fetched:', data?.length, 'Sample:', data?.[0]);
-
-        // Filter by date range client-side to avoid timestamp format issues
         const violations = (data ?? []).filter((v) => {
           const createdAt = new Date(v.created_at);
           return createdAt >= start && createdAt <= now;
         });
-
-        console.log(`Violations in range (${noticeRange}):`, violations.length);
 
         setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
         setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
@@ -305,7 +323,6 @@ function DashboardPageContent() {
     setDropdownOpen(prev => !prev);
   };
 
-  // ── useCallback so the reference is stable and EventItem doesn't remount ───
   const handleOpenReview = useCallback(async (bin: string) => {
     setLoadingBin(bin);
     const { data, error } = await supabase
@@ -401,7 +418,6 @@ function DashboardPageContent() {
   const nextMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)); setSelectedDay(null); };
 
   const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
-  const today = new Date();
 
   const getScheduleDaysForMonth = (month: Date) => {
     const year = month.getFullYear();
@@ -419,6 +435,58 @@ function DashboardPageContent() {
   const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
   const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
 
+  // Helper — is this day "today" in the currently-viewed schedule month?
+  const isDayToday = (day: number) =>
+    day === today.getDate() &&
+    scheduleMonth.getMonth() === today.getMonth() &&
+    scheduleMonth.getFullYear() === today.getFullYear();
+
+  // ── Shared schedule row renderer ──────────────────────────────────────────
+  const ScheduleRow = ({
+    day, date, events, isMobileView,
+  }: {
+    day: number;
+    date: Date;
+    events: any[];
+    isMobileView: boolean;
+  }) => {
+    const isToday = isDayToday(day);
+    const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
+    const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+    return (
+      <div
+        ref={isToday ? (isMobileView ? mobileTodayRowRef : todayRowRef) : undefined}
+        className={`flex gap-${isMobileView ? '3' : '4'} px-${isMobileView ? '4' : '5'} py-${isMobileView ? '2.5' : '3'} ${isPast && !isToday ? (isMobileView ? 'opacity-50' : 'opacity-40') : ''}`}
+      >
+        <div className={`${isMobileView ? 'w-12' : 'w-14'} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
+          <span className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+            {dayLabel}
+          </span>
+          <div className={`${isMobileView ? 'w-7 h-7 mt-0.5' : 'w-8 h-8 mt-1'} rounded-full flex items-center justify-center ${isToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
+            <span className={`${isMobileView ? 'text-xs' : 'text-sm'} font-bold ${isToday ? 'text-white' : 'text-slate-700'}`}>{day}</span>
+          </div>
+        </div>
+        <div className="flex-1 space-y-1.5 min-w-0">
+          {events.length > 0 ? (
+            events.map((event: any, i: number) => (
+              <EventItem
+                key={i}
+                event={event}
+                loadingBin={loadingBin}
+                onOpenReview={handleOpenReview}
+              />
+            ))
+          ) : (
+            <div className="flex items-center h-8">
+              <div className="flex-1 border-t border-dashed border-slate-200" />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const MobileScheduleSection = () => (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
@@ -433,43 +501,10 @@ function DashboardPageContent() {
           </button>
         </div>
       </div>
-      <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-        {scheduleDays.map(({ day, date, events }) => {
-          const isDayToday =
-            day === today.getDate() &&
-            scheduleMonth.getMonth() === today.getMonth() &&
-            scheduleMonth.getFullYear() === today.getFullYear();
-          const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
-          const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-          return (
-            <div key={day} className={`flex px-4 py-2.5 gap-3 ${isPast && !isDayToday ? 'opacity-50' : ''}`}>
-              <div className="w-12 shrink-0 flex flex-col items-center justify-start pt-0.5">
-                <span className={`text-xs font-semibold uppercase tracking-wide ${isDayToday ? 'text-blue-600' : 'text-slate-400'}`}>
-                  {dayLabel}
-                </span>
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center mt-0.5 ${isDayToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
-                  <span className={`text-xs font-bold ${isDayToday ? 'text-white' : 'text-slate-700'}`}>{day}</span>
-                </div>
-              </div>
-              <div className="flex-1 space-y-1.5 min-w-0">
-                {events.length > 0 ? (
-                  events.map((event: any, i: number) => (
-                    <EventItem
-                      key={i}
-                      event={event}
-                      loadingBin={loadingBin}
-                      onOpenReview={handleOpenReview}
-                    />
-                  ))
-                ) : (
-                  <div className="flex items-center h-8">
-                    <div className="flex-1 border-t border-dashed border-slate-200" />
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <div ref={mobileScrollRef} className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+        {scheduleDays.map(({ day, date, events }) => (
+          <ScheduleRow key={day} day={day} date={date} events={events} isMobileView={true} />
+        ))}
       </div>
     </div>
   );
@@ -638,43 +673,15 @@ function DashboardPageContent() {
                     </div>
                   </div>
 
-                  <div className="overflow-y-auto divide-y divide-slate-100" style={{ maxHeight: '460px' }}>
-                    {scheduleDays.map(({ day, date, events }) => {
-                      const isDayToday =
-                        day === today.getDate() &&
-                        scheduleMonth.getMonth() === today.getMonth() &&
-                        scheduleMonth.getFullYear() === today.getFullYear();
-                      const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
-                      const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                      return (
-                        <div key={day} className={`flex px-5 py-3 gap-4 ${isPast && !isDayToday ? 'opacity-40' : ''}`}>
-                          <div className="w-14 shrink-0 flex flex-col items-center justify-start pt-0.5">
-                            <span className={`text-xs font-semibold uppercase tracking-wide ${isDayToday ? 'text-blue-600' : 'text-slate-400'}`}>
-                              {dayLabel}
-                            </span>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center mt-1 ${isDayToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
-                              <span className={`text-sm font-bold ${isDayToday ? 'text-white' : 'text-slate-700'}`}>{day}</span>
-                            </div>
-                          </div>
-                          <div className="flex-1 space-y-1.5 min-w-0">
-                            {events.length > 0 ? (
-                              events.map((event: any, i: number) => (
-                                <EventItem
-                                  key={i}
-                                  event={event}
-                                  loadingBin={loadingBin}
-                                  onOpenReview={handleOpenReview}
-                                />
-                              ))
-                            ) : (
-                              <div className="flex items-center h-8">
-                                <div className="flex-1 border-t border-dashed border-slate-200" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {/* Desktop scroll container with ref */}
+                  <div
+                    ref={desktopScrollRef}
+                    className="overflow-y-auto divide-y divide-slate-100"
+                    style={{ maxHeight: '460px' }}
+                  >
+                    {scheduleDays.map(({ day, date, events }) => (
+                      <ScheduleRow key={day} day={day} date={date} events={events} isMobileView={false} />
+                    ))}
                   </div>
                 </div>
               </div>
