@@ -39,11 +39,11 @@ async function validateUserRole(request: NextRequest): Promise<{ valid: boolean;
 
 export async function GET(request: NextRequest) {
   try {
-    // Validate user role - only super_admin can access user management
+    // Validate user role - only admin can access user management
     const { valid, userRole } = await validateUserRole(request);
-    if (!valid || userRole !== 'super_admin') {
+    if (!valid || userRole !== 'admin') {
       return NextResponse.json(
-        { error: 'Access denied. Super admin privileges required.' },
+        { error: 'Access denied. Admin privileges required.' },
         { status: 403 }
       );
     }
@@ -83,11 +83,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate user role - only super_admin can create users
+    // Validate user role - only admin can create users
     const { valid, userRole } = await validateUserRole(request);
-    if (!valid || userRole !== 'super_admin') {
+    if (!valid || userRole !== 'admin') {
       return NextResponse.json(
-        { error: 'Access denied. Super admin privileges required.' },
+        { error: 'Access denied. Admin privileges required.' },
         { status: 403 }
       );
     }
@@ -218,11 +218,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    // Validate user role - only super_admin can update users
+    // Validate user role - only admin can update users
     const { valid, userRole } = await validateUserRole(request);
-    if (!valid || userRole !== 'super_admin') {
+    if (!valid || userRole !== 'admin') {
       return NextResponse.json(
-        { error: 'Access denied. Super admin privileges required.' },
+        { error: 'Access denied. Admin privileges required.' },
         { status: 403 }
       );
     }
@@ -312,11 +312,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    // Validate user role - only super_admin can delete users
+    // Validate user role - only admin can delete users
     const { valid, userRole } = await validateUserRole(request);
-    if (!valid || userRole !== 'super_admin') {
+    if (!valid || userRole !== 'admin') {
       return NextResponse.json(
-        { error: 'Access denied. Super admin privileges required.' },
+        { error: 'Access denied. Admin privileges required.' },
         { status: 403 }
       );
     }

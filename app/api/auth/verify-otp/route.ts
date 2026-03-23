@@ -62,25 +62,24 @@ export async function POST(request: NextRequest) {
     // Create session token
     const sessionToken = await createSessionToken(user.id, user.role);
 
-    // Clean up any old login 2FA OTP codes for this user
+    // Clean up all OTP codes for this user
     await supabase
       .from('login_2fa_otp')
       .delete()
       .eq('user_id', user.id);
 
-    // Create response with session
     const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role, // Database now has 'admin' and 'staff' directly
       },
       sessionToken,
-      expiresIn: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+      expiresIn: 24 * 60 * 60 * 1000, // 24 hours in ms
     });
 
-    // Set HTTP-only cookie
+    // Set HTTP-only cookie with the user's role baked into the token
     response.cookies.set('session-token', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

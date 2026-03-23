@@ -6,12 +6,12 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   console.log('[MIDDLEWARE] Checking path:', pathname);
-  
+
   // Skip middleware for static files
   if (pathname.includes('.')) {
     return NextResponse.next();
   }
-  
+
   const sessionToken =
     request.cookies.get('session-token')?.value ||
     request.headers.get('authorization')?.replace('Bearer ', '');
@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
 
   const isPublicRoute =
     publicExactRoutes.includes(pathname) ||
-    publicPrefixRoutes.some(route => pathname.startsWith(route));
+    publicPrefixRoutes.some((route) => pathname.startsWith(route));
 
   console.log('[MIDDLEWARE] Is public route:', isPublicRoute);
 
@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For all other routes, require authentication
+  // All non-public routes require a valid session
   if (!sessionToken) {
     console.log('[MIDDLEWARE] No token found, redirecting to home');
     const response = NextResponse.redirect(new URL('/', request.url));
@@ -45,7 +45,7 @@ export async function middleware(request: NextRequest) {
   }
 
   console.log('[MIDDLEWARE] Verifying token...');
-  const sessionData = await verifySessionToken(sessionToken) as {
+  const sessionData = (await verifySessionToken(sessionToken)) as {
     userId: string;
     email: string;
     role: string;
@@ -59,25 +59,21 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  console.log('[MIDDLEWARE] Valid session for role:', sessionData.role);
+  const { role } = sessionData;
+  console.log('[MIDDLEWARE] Valid session for role:', role);
 
-  // Super Admin only
+  // ── /SuperAdmin  →  admin only ─────────────────────────────────────────
   if (pathname.startsWith('/SuperAdmin')) {
-    if (sessionData.role !== 'super_admin') {
-      console.log('[MIDDLEWARE] Access denied: not super_admin');
-      return NextResponse.redirect(
-        new URL('/Admin/Inspection/management/analytics', request.url)
-      );
+    if (role !== 'admin') {
+      console.log('[MIDDLEWARE] Access denied to /SuperAdmin: redirecting to login');
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
-  // Admin + Super Admin
+  // ── /Admin  →  staff only ──────────────────────────────────────────────
   if (pathname.startsWith('/Admin')) {
-    if (
-      sessionData.role !== 'admin' &&
-      sessionData.role !== 'super_admin'
-    ) {
-      console.log('[MIDDLEWARE] Access denied: not admin or super_admin');
+    if (role !== 'staff') {
+      console.log('[MIDDLEWARE] Access denied to /Admin: redirecting to login');
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
