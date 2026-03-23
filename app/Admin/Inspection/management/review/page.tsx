@@ -534,29 +534,16 @@ export default function CSVReview() {
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[50px] border-r border-gray-300">#</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">BIN</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[180px] border-r border-gray-300">Business Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Trade Name</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Transmittal No.</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Nature</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Line</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Type</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[200px] border-r border-gray-300">Office Street</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[80px] border-r border-gray-300">Region</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Province</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Municipality</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Barangay</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[90px] border-r border-gray-300">Zipcode</th>
+
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[70px] border-r border-gray-300">Year</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Capital</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Gross Amount</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[150px] border-r border-gray-300">Gross Essential</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">Gross Non-Essential</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Reject Remarks</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Module Type</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Transaction Type</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Reference No.</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">Brgy. Clearance Status</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">SITE Transaction Status</th>
-                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">CORE Status</th>
+
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[100px] border-r border-gray-300">Permit No.</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[200px] border-r border-gray-300">Violations</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Assigned Inspector</th>
@@ -576,29 +563,15 @@ export default function CSVReview() {
                             <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium border-r border-gray-200">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Identification Number"]}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Name"]}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Trade Name"] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transmittal No."] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Nature"] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Line"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Type"] ?? '-'}</td>
                             <td className="px-3 py-3 text-sm text-gray-600 max-w-[250px] truncate border-r border-gray-200">{row["Office Street"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Region"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Province"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Municipality"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Barangay"] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Zipcode"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Year"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Capital"] != null ? `₱${row["Capital"].toLocaleString()}` : '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount"] != null ? `₱${row["Gross Amount"].toLocaleString()}` : '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount Essential"] != null ? `₱${row["Gross Amount Essential"].toLocaleString()}` : '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount Non-Essential"] != null ? `₱${row["Gross Amount Non-Essential"].toLocaleString()}` : '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Reject Remarks"] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Module Type"] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transaction Type"] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Reference No."] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Brgy. Clearance Status"] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["SITE Transaction Status"] ?? '-'}</td>
-                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["CORE Transaction Status"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Permit No."] ?? '-'}</td>
                             <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] border-r border-gray-200">
                               {row.violation

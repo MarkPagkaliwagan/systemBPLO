@@ -100,6 +100,7 @@ interface ReviewModalProps {
     location?: { lat: number; lng: number; accuracy: number };
     photo?: File;
     photoUrl?: string;
+    reviewedBy?: string;
   }) => void;
   onRecordUpdated?: (updated: BusinessRecord) => void;
   onRecordDeleted?: (id: string) => void;
@@ -119,14 +120,38 @@ export default function ReviewModal({
   selectedRow, showReviewModal, onClose, onSave,
   onRecordUpdated, onRecordDeleted, isMobile,
 }: ReviewModalProps) {
-  const [showSavedToast, setShowSavedToast]     = useState(false);
-  const [previewPhoto, setPreviewPhoto]         = useState<string | null>(null);
-  const [showDelete, setShowDelete]             = useState(false);
-  const [isEditing, setIsEditing]               = useState(false);
-  const [editForm, setEditForm]                 = useState<BusinessRecord | null>(null);
-  const [isSavingEdit, setIsSavingEdit]         = useState(false);
-  const [editError, setEditError]               = useState<string | null>(null);
-  const [showEditToast, setShowEditToast]       = useState(false);
+  const [showSavedToast, setShowSavedToast]   = useState(false);
+  const [previewPhoto, setPreviewPhoto]       = useState<string | null>(null);
+  const [showDelete, setShowDelete]           = useState(false);
+  const [isEditing, setIsEditing]             = useState(false);
+  const [editForm, setEditForm]               = useState<BusinessRecord | null>(null);
+  const [isSavingEdit, setIsSavingEdit]       = useState(false);
+  const [editError, setEditError]             = useState<string | null>(null);
+  const [showEditToast, setShowEditToast]     = useState(false);
+  const [reviewedByName, setReviewedByName]   = useState<string>("");
+
+  // ── Fetch current user's full_name from localStorage → users table ────────
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const userData = localStorage.getItem("user");
+        if (!userData) return;
+        const user = JSON.parse(userData);
+        if (!user?.id) return;
+
+        const { data } = await supabase
+          .from("users")
+          .select("full_name")
+          .eq("id", user.id)
+          .single();
+
+        if (data?.full_name) setReviewedByName(data.full_name);
+      } catch (err) {
+        console.error("Failed to fetch reviewer name:", err);
+      }
+    };
+    fetchUser();
+  }, []);
 
   if (!showReviewModal || !selectedRow) return null;
 
@@ -166,7 +191,8 @@ export default function ReviewModal({
   const display = isEditing && editForm ? editForm : selectedRow;
 
   const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
-    onSave(reviewData);
+    // Inject the reviewer's name before passing up to page.tsx
+    onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
     setShowSavedToast(true);
     if (isMobile) {
       setTimeout(() => { setShowSavedToast(false); onClose(); }, 1800);
@@ -175,7 +201,10 @@ export default function ReviewModal({
     }
   };
 
-  const onUploadPhoto = async (file: File, location?: { lat: number; lng: number; accuracy: number }) => {
+  const onUploadPhoto = async (
+    file: File,
+    location?: { lat: number; lng: number; accuracy: number }
+  ) => {
     const photoUrl = await handlePhotoAndLocationUpload(
       file,
       selectedRow["Business Identification Number"],
@@ -233,16 +262,31 @@ export default function ReviewModal({
 
         <div className={`${isMobile ? "w-full max-w-full max-h-full" : "max-w-5xl w-full mx-4"} bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto`}>
 
-          {/* Modal header */}
+          {/* ── Modal header ── */}
           <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-xl">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className={`${isMobile ? "text-lg" : "text-2xl"} font-bold`}>Review Business</h2>
                 <p className="text-green-100 text-sm mt-1">{selectedRow["Business Name"]}</p>
               </div>
-              <button onClick={onClose} className="text-white hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-white/20">
-                <FiX className={`${isMobile ? "w-5 h-5" : "w-6 h-6"}`} />
-              </button>
+
+              {/* Right side: reviewer pill + close button */}
+              <div className="flex items-center gap-2 shrink-0 ml-3">
+                {reviewedByName && (
+                  <div className="flex items-center gap-1.5 bg-white/15 rounded-lg px-3 py-1.5">
+                    <FiUser className="w-3.5 h-3.5 text-green-100 shrink-0" />
+                    <span className="text-xs font-medium text-green-50 whitespace-nowrap">
+                      {reviewedByName}
+                    </span>
+                  </div>
+                )}
+                <button
+                  onClick={onClose}
+                  className="text-white hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-white/20"
+                >
+                  <FiX className={`${isMobile ? "w-5 h-5" : "w-6 h-6"}`} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -261,7 +305,11 @@ export default function ReviewModal({
                     <div>
                       <h3 className="text-base font-semibold text-gray-900">
                         Business Information
-                        {isEditing && <span className="ml-2 text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Editing</span>}
+                        {isEditing && (
+                          <span className="ml-2 text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                            Editing
+                          </span>
+                        )}
                       </h3>
                       <p className="text-xs text-gray-500">Permit #{selectedRow["Permit No."]}</p>
                     </div>
@@ -414,7 +462,6 @@ export default function ReviewModal({
                     {/* Map preview — shown when coordinates exist */}
                     {selectedRow["latitude"] && selectedRow["longitude"] && (
                       <div className="mt-1 rounded-xl border border-blue-200 bg-blue-50 overflow-hidden">
-                        {/* Embedded map */}
                         <div className="w-full" style={{ height: "160px" }}>
                           <iframe
                             title="saved-location-preview"
@@ -422,7 +469,6 @@ export default function ReviewModal({
                             src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(selectedRow["longitude"]) - 0.003},${Number(selectedRow["latitude"]) - 0.003},${Number(selectedRow["longitude"]) + 0.003},${Number(selectedRow["latitude"]) + 0.003}&layer=mapnik&marker=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
                           />
                         </div>
-                        {/* Footer below map */}
                         <div className="px-3 py-2 flex items-center justify-between gap-2">
                           <div>
                             <p className="text-xs font-semibold text-blue-800 font-mono">
@@ -447,7 +493,6 @@ export default function ReviewModal({
                       </div>
                     )}
 
-                    {/* No location yet */}
                     {!selectedRow["latitude"] && !selectedRow["longitude"] && (
                       <p className="text-xs text-gray-400 italic mt-1">
                         No location saved yet — use Inspection Location in the review form.
@@ -564,10 +609,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
 
 // ── Map Picker Modal ──────────────────────────────────────────────────────────
 function MapPickerModal({
-  initialLat,
-  initialLng,
-  onConfirm,
-  onClose,
+  initialLat, initialLng, onConfirm, onClose,
 }: {
   initialLat?: number;
   initialLng?: number;
@@ -575,29 +617,22 @@ function MapPickerModal({
   onClose: () => void;
 }) {
   const mapRef      = useRef<HTMLDivElement>(null);
-  const leafletRef  = useRef<any>(null);
   const mapInstance = useRef<any>(null);
   const markerRef   = useRef<any>(null);
   const [pinned, setPinned] = useState<{ lat: number; lng: number } | null>(
     initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null
   );
 
-  // Default center: Philippines
   const defaultLat = initialLat ?? 14.0996;
   const defaultLng = initialLng ?? 122.8185;
 
   useEffect(() => {
     let isMounted = true;
-
     const initMap = async () => {
-      // Dynamically import Leaflet (avoids SSR issues)
       const L = (await import("leaflet")).default;
       await import("leaflet/dist/leaflet.css" as any);
-      leafletRef.current = L;
-
       if (!mapRef.current || !isMounted) return;
 
-      // Fix default icon paths broken by webpack
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -613,7 +648,6 @@ function MapPickerModal({
         maxZoom: 19,
       }).addTo(map);
 
-      // If initial coords exist, place marker
       if (initialLat && initialLng) {
         markerRef.current = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
         markerRef.current.on("dragend", (e: any) => {
@@ -622,7 +656,6 @@ function MapPickerModal({
         });
       }
 
-      // Click to place / move marker
       map.on("click", (e: any) => {
         const { lat, lng } = e.latlng;
         setPinned({ lat, lng });
@@ -637,23 +670,16 @@ function MapPickerModal({
         }
       });
     };
-
     initMap();
-
     return () => {
       isMounted = false;
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-      }
+      if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; }
     };
   }, []);
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/70 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-2xl flex flex-col" style={{ height: "80vh" }}>
-
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2">
             <FiMap className="w-5 h-5 text-blue-600" />
@@ -666,34 +692,21 @@ function MapPickerModal({
             <FiX className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-
-        {/* Map */}
         <div ref={mapRef} className="flex-1 w-full" />
-
-        {/* Footer */}
         <div className="px-5 py-4 border-t border-gray-200 shrink-0 flex items-center justify-between gap-3">
           <div className="text-xs text-gray-500 min-w-0">
-            {pinned ? (
-              <span className="font-mono">
-                {pinned.lat.toFixed(6)}, {pinned.lng.toFixed(6)}
-              </span>
-            ) : (
-              <span className="text-gray-400 italic">No pin placed yet — click the map</span>
-            )}
+            {pinned
+              ? <span className="font-mono">{pinned.lat.toFixed(6)}, {pinned.lng.toFixed(6)}</span>
+              : <span className="text-gray-400 italic">No pin placed yet — click the map</span>}
           </div>
           <div className="flex gap-2 shrink-0">
-            <button onClick={onClose}
-              className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">
               Cancel
             </button>
             <button
               onClick={() => { if (pinned) { onConfirm(pinned.lat, pinned.lng); onClose(); } }}
               disabled={!pinned}
-              className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-colors ${
-                pinned
-                  ? "bg-blue-600 hover:bg-blue-700"
-                  : "bg-blue-300 cursor-not-allowed"
-              }`}>
+              className={`px-4 py-2 text-sm font-semibold text-white rounded-xl transition-colors ${pinned ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-300 cursor-not-allowed"}`}>
               Confirm Pin
             </button>
           </div>
@@ -735,12 +748,10 @@ function ReviewForm({
   const [scheduledDate, setScheduledDate]         = useState(initialScheduledDate || "");
   const [isSaving, setIsSaving]                   = useState(false);
 
-  // ── Location state ────────────────────────────────────────────────────────
   const [location, setLocation]             = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [showMapPicker, setShowMapPicker]   = useState(false);
 
-  // ── Photo state ───────────────────────────────────────────────────────────
   const [photoFile, setPhotoFile]               = useState<File | null>(null);
   const [photoPreview, setPhotoPreview]         = useState<string | null>(null);
   const [isDragging, setIsDragging]             = useState(false);
@@ -767,10 +778,7 @@ function ReviewForm({
     setLocationStatus("success");
   };
 
-  const clearLocation = () => {
-    setLocation(null);
-    setLocationStatus("idle");
-  };
+  const clearLocation = () => { setLocation(null); setLocationStatus("idle"); };
 
   const handlePhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) return;
@@ -808,7 +816,6 @@ function ReviewForm({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Upload photo first and capture the returned URL
       let photoUrl: string | undefined;
       if (photoFile) {
         const url = await onUploadPhoto(photoFile, location ?? undefined);
@@ -821,7 +828,7 @@ function ReviewForm({
         scheduledDate: scheduledDate || undefined,
         location: location || undefined,
         photo: photoFile || undefined,
-        photoUrl, // ← pass the uploaded URL back to page.tsx
+        photoUrl,
       });
     } finally { setIsSaving(false); }
   };
@@ -830,7 +837,6 @@ function ReviewForm({
 
   return (
     <>
-      {/* Map picker modal — renders outside the form stack */}
       {showMapPicker && (
         <MapPickerModal
           initialLat={location?.lat}
@@ -961,15 +967,12 @@ function ReviewForm({
           )}
         </div>
 
-        {/* ── Inspection Location ── */}
+        {/* Inspection Location */}
         <div className="bg-white rounded-xl p-4 border border-gray-200">
           <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
             <FiMapPin className="w-4 h-4 mr-2 text-blue-600" /> Inspection Location
           </h3>
-
-          {/* Two buttons side by side */}
           <div className="grid grid-cols-2 gap-2 mb-3">
-            {/* Auto-capture GPS */}
             <button type="button" onClick={captureLocation} disabled={locationStatus === "loading"}
               className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg font-medium text-xs transition-all duration-200 ${
                 locationStatus === "loading"
@@ -979,8 +982,6 @@ function ReviewForm({
               <FiMapPin className="w-3.5 h-3.5 flex-shrink-0" />
               {locationStatus === "loading" ? "Getting GPS..." : "Auto GPS"}
             </button>
-
-            {/* Manual map picker */}
             <button type="button" onClick={() => setShowMapPicker(true)}
               className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg font-medium text-xs bg-indigo-50 text-indigo-700 border border-indigo-300 hover:bg-indigo-100 transition-colors">
               <FiMap className="w-3.5 h-3.5 flex-shrink-0" />
@@ -988,10 +989,8 @@ function ReviewForm({
             </button>
           </div>
 
-          {/* Location result display */}
           {locationStatus === "success" && location ? (
             <div className="rounded-xl border border-green-200 bg-green-50 overflow-hidden">
-              {/* Mini map preview */}
               <div className="w-full bg-gray-100 relative" style={{ height: "140px" }}>
                 <iframe
                   title="location-preview"
@@ -1009,26 +1008,16 @@ function ReviewForm({
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <a
-                    href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-blue-600 underline px-2 py-1 rounded hover:bg-blue-50 transition-colors"
-                  >
+                  <a href={`https://www.google.com/maps?q=${location.lat},${location.lng}`} target="_blank" rel="noreferrer"
+                    className="text-xs text-blue-600 underline px-2 py-1 rounded hover:bg-blue-50 transition-colors">
                     Maps ↗
                   </a>
-                  <button
-                    type="button"
-                    onClick={() => setShowMapPicker(true)}
-                    className="text-xs text-indigo-600 px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-50 transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowMapPicker(true)}
+                    className="text-xs text-indigo-600 px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-50 transition-colors">
                     Adjust
                   </button>
-                  <button
-                    type="button"
-                    onClick={clearLocation}
-                    className="text-xs text-red-500 px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors"
-                  >
+                  <button type="button" onClick={clearLocation}
+                    className="text-xs text-red-500 px-2 py-1 rounded border border-red-200 hover:bg-red-50 transition-colors">
                     Clear
                   </button>
                 </div>
