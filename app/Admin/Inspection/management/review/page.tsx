@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FiClock, FiEdit, FiSearch, FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi";
@@ -7,9 +7,9 @@ import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Sidebar from "../../../../components/sidebar";
 import ReviewModal from "../Modal/reviewModal";
-
+ 
 const PAGE_SIZE = 50;
-
+ 
 interface BusinessRecord {
   id: string;
   "Business Identification Number": string;
@@ -81,33 +81,34 @@ interface BusinessRecord {
   status: string | null;
   assigned_inspector: string | null;
   scheduled_date: string | null;
+  schedule_time: string | null;
   file_id: string | null;
   photo: string | null;
   latitude: string | null;
   longitude: string | null;
   accuracy: string | null;
 }
-
+ 
 export default function CSVReview() {
   const router = useRouter();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  const [isCollapsed, setIsCollapsed]           = useState(false);
+  const [isMobile, setIsMobile]                 = useState<boolean | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const [csvData, setCSVData] = useState<BusinessRecord[]>([]);
+ 
+  const [csvData, setCSVData]       = useState<BusinessRecord[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-
-  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading]       = useState(true);
+ 
+  const [searchTerm, setSearchTerm]           = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage]         = useState(1);
   const [showScheduledOnly, setShowScheduledOnly] = useState(false);
-
-  const [selectedRow, setSelectedRow] = useState<BusinessRecord | null>(null);
+ 
+  const [selectedRow, setSelectedRow]         = useState<BusinessRecord | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
-
+ 
   const [pendingCount, setPendingCount] = useState<number | null>(null);
-
+ 
   // ── Responsive ────────────────────────────────────────────────────────────
   useEffect(() => {
     const checkMobile = () => {
@@ -118,7 +119,7 @@ export default function CSVReview() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
+ 
   // ── Debounce search ───────────────────────────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => {
@@ -127,22 +128,22 @@ export default function CSVReview() {
     }, 400);
     return () => clearTimeout(t);
   }, [searchTerm]);
-
+ 
   useEffect(() => { setCurrentPage(1); }, [showScheduledOnly]);
-
+ 
   // ── Fetch records ─────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchRecords = async () => {
       setLoading(true);
       try {
         const from = (currentPage - 1) * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-
+        const to   = from + PAGE_SIZE - 1;
+ 
         let query = supabase
           .from('business_records')
           .select('*', { count: 'exact' })
           .range(from, to);
-
+ 
         if (debouncedSearch.trim()) {
           query = query.or(
             [
@@ -153,19 +154,19 @@ export default function CSVReview() {
             ].join(',')
           );
         }
-
+ 
         if (showScheduledOnly) {
           query = query.not('scheduled_date', 'is', null);
         }
-
+ 
         const { data, error, count } = await query;
-
+ 
         if (error) {
           console.error('❌ fetchRecords error:', error.message, error.details);
           setLoading(false);
           return;
         }
-
+ 
         setCSVData((data ?? []) as BusinessRecord[]);
         setTotalCount(count ?? 0);
       } catch (err) {
@@ -174,10 +175,10 @@ export default function CSVReview() {
         setLoading(false);
       }
     };
-
+ 
     fetchRecords();
   }, [currentPage, debouncedSearch, showScheduledOnly]);
-
+ 
   // ── Fetch pending count ───────────────────────────────────────────────────
   useEffect(() => {
     const fetchPending = async () => {
@@ -189,112 +190,116 @@ export default function CSVReview() {
     };
     fetchPending();
   }, [csvData]);
-
+ 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-
+ 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getRowStatusBadge = (status: string | null) => {
     switch (status) {
-      case 'compliant': return 'bg-green-100 text-green-800';
-      case 'active': return 'bg-blue-100 text-blue-800';
-      case 'non_compliant': return 'bg-red-100 text-red-800';
+      case 'compliant':      return 'bg-green-100 text-green-800';
+      case 'active':         return 'bg-blue-100 text-blue-800';
+      case 'non_compliant':  return 'bg-red-100 text-red-800';
       case 'for_inspection': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-yellow-100 text-yellow-800';
+      default:               return 'bg-yellow-100 text-yellow-800';
     }
   };
-
+ 
   const getRowStatusLabel = (status: string | null) => {
     if (!status || status === 'not reviewed') return 'PENDING';
     return status.replace(/_/g, ' ').toUpperCase();
   };
-
+ 
   const isRowReviewed = (status: string | null) =>
     !!status && status !== 'not reviewed' && status !== 'not_reviewed';
-
+ 
   const handleRowClick = (row: BusinessRecord) => {
     setSelectedRow(row);
     setShowReviewModal(true);
   };
-
+ 
   const handleSaveReview = async (reviewData: {
     reviewActions: string[];
     violations: string[];
     assignedInspector?: string;
     scheduledDate?: string;
+    scheduledTime?: string;
     location?: { lat: number; lng: number; accuracy: number };
     photoUrl?: string;
+    reviewedBy?: string;
   }) => {
     if (!selectedRow) return;
-
-    const violationStr = reviewData.violations.join(', ') || null;
+ 
+    const violationStr    = reviewData.violations.join(', ')    || null;
     const reviewActionStr = reviewData.reviewActions.join(', ') || null;
-
+ 
     let rowStatus = 'reviewed';
-    if (reviewData.reviewActions.includes('For Inspection')) rowStatus = 'for_inspection';
+    if (reviewData.reviewActions.includes('For Inspection'))     rowStatus = 'for_inspection';
     else if (reviewData.reviewActions.includes('Non-Compliant')) rowStatus = 'non_compliant';
-    else if (reviewData.reviewActions.includes('Compliant')) rowStatus = 'compliant';
-    else if (reviewData.reviewActions.includes('Active')) rowStatus = 'active';
-
+    else if (reviewData.reviewActions.includes('Compliant'))     rowStatus = 'compliant';
+    else if (reviewData.reviewActions.includes('Active'))        rowStatus = 'active';
+ 
     const bin = selectedRow["Business Identification Number"];
-
+ 
     try {
       const { error } = await supabase
         .from('business_records')
         .update({
-          violation: violationStr,
-          review_action: reviewActionStr,
-          review_date: new Date().toISOString().split('T')[0],
-          reviewed_by: null,
-          status: rowStatus,
+          violation:          violationStr,
+          review_action:      reviewActionStr,
+          review_date:        new Date().toISOString().split('T')[0],
+          reviewed_by:        reviewData.reviewedBy ?? null,
+          status:             rowStatus,
           assigned_inspector: reviewData.assignedInspector ?? null,
-          scheduled_date: reviewData.scheduledDate ?? null,
+          scheduled_date:     reviewData.scheduledDate     ?? null,
+          schedule_time:      reviewData.scheduledTime     ?? null,
           // ── Save photo URL if uploaded ──
           ...(reviewData.photoUrl ? { photo: reviewData.photoUrl } : {}),
           // ── Save location if captured ──
           ...(reviewData.location ? {
-            latitude: String(reviewData.location.lat),
+            latitude:  String(reviewData.location.lat),
             longitude: String(reviewData.location.lng),
-            accuracy: String(reviewData.location.accuracy),
+            accuracy:  String(reviewData.location.accuracy),
           } : {}),
         })
         .eq('Business Identification Number', bin);
-
+ 
       if (error) { console.error('❌ handleSaveReview error:', error); return; }
-
+ 
       setCSVData(prev =>
         prev.map(r =>
           r["Business Identification Number"] === bin
             ? {
-              ...r,
-              violation: violationStr,
-              review_action: reviewActionStr,
-              review_date: new Date().toISOString().split('T')[0],
-              reviewed_by: null,
-              status: rowStatus,
-              assigned_inspector: reviewData.assignedInspector ?? null,
-              scheduled_date: reviewData.scheduledDate ?? null,
-              ...(reviewData.photoUrl ? { photo: reviewData.photoUrl } : {}),
-              ...(reviewData.location ? {
-                latitude: String(reviewData.location.lat),
-                longitude: String(reviewData.location.lng),
-                accuracy: String(reviewData.location.accuracy),
-              } : {}),
-            }
+                ...r,
+                violation:          violationStr,
+                review_action:      reviewActionStr,
+                review_date:        new Date().toISOString().split('T')[0],
+                reviewed_by:        reviewData.reviewedBy ?? null,
+                status:             rowStatus,
+                assigned_inspector: reviewData.assignedInspector ?? null,
+                scheduled_date:     reviewData.scheduledDate     ?? null,
+                schedule_time:      reviewData.scheduledTime     ?? null,
+                ...(reviewData.photoUrl ? { photo: reviewData.photoUrl } : {}),
+                ...(reviewData.location ? {
+                  latitude:  String(reviewData.location.lat),
+                  longitude: String(reviewData.location.lng),
+                  accuracy:  String(reviewData.location.accuracy),
+                } : {}),
+              }
             : r
         )
       );
-
+ 
       setShowReviewModal(false);
       setSelectedRow(null);
     } catch (err) {
       console.error('❌ Exception handleSaveReview:', err);
     }
   };
-
+ 
   // ── Pagination ────────────────────────────────────────────────────────────
   const Pagination = () => {
     if (totalPages <= 1) return null;
-
+ 
     const pageNumbers: number[] = [];
     if (totalPages <= 5) {
       for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
@@ -305,7 +310,7 @@ export default function CSVReview() {
     } else {
       for (let i = currentPage - 2; i <= currentPage + 2; i++) pageNumbers.push(i);
     }
-
+ 
     return (
       <div className="px-[1.5vw] py-[1vh] border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-gray-600 text-center" style={{ fontSize: 'clamp(10px, 1vw, 14px)' }}>
@@ -349,7 +354,7 @@ export default function CSVReview() {
       </div>
     );
   };
-
+ 
   if (isMobile === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -357,7 +362,7 @@ export default function CSVReview() {
       </div>
     );
   }
-
+ 
   return (
     <>
       <Sidebar
@@ -367,10 +372,10 @@ export default function CSVReview() {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-
+ 
       <div className="min-h-screen bg-gray-50 pt-1" style={{ paddingBottom: isMobile ? 80 : 0 }}>
         <div className={isMobile ? 'px-3 py-5' : 'px-6 py-10'}>
-
+ 
           {/* ── Header ── */}
           <div className="mb-5">
             <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-gray-900 mb-1`}>
@@ -385,11 +390,11 @@ export default function CSVReview() {
               )}
             </div>
           </div>
-
+ 
           {/* ── Table ── */}
           <div className="w-full">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-
+ 
               {/* Search / filter bar */}
               <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 space-y-2">
                 <div className="flex items-center justify-between">
@@ -401,10 +406,11 @@ export default function CSVReview() {
                   </div>
                   <button
                     onClick={() => setShowScheduledOnly(!showScheduledOnly)}
-                    className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${showScheduledOnly
+                    className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
+                      showScheduledOnly
                         ? 'bg-green-600 text-white border-green-600'
                         : 'bg-white text-gray-700 border-gray-300'
-                      }`}
+                    }`}
                   >
                     {showScheduledOnly ? '📅 Scheduled' : 'Scheduled'}
                   </button>
@@ -420,15 +426,15 @@ export default function CSVReview() {
                   />
                 </div>
               </div>
-
+ 
               <div className="relative" style={{ minHeight: isMobile ? '400px' : '600px' }}>
-
+ 
                 {loading && (
                   <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
                     <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
-
+ 
                 {!loading && csvData.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-16 px-4 text-gray-400">
                     <p className="text-base font-medium">No records found</p>
@@ -442,7 +448,7 @@ export default function CSVReview() {
                       </div>
                     )}
                   </div>
-
+ 
                 ) : isMobile ? (
                   /* ── Mobile Cards ── */
                   <div className="divide-y divide-gray-100">
@@ -465,13 +471,13 @@ export default function CSVReview() {
                             {getRowStatusLabel(row.status)}
                           </span>
                         </div>
-
+ 
                         {(row["Office Barangay"] || row["Office Municipality"]) && (
                           <p className="text-xs text-gray-500 mb-2 truncate">
                             📍 {[row["Office Barangay"], row["Office Municipality"]].filter(Boolean).join(', ')}
                           </p>
                         )}
-
+ 
                         <div className="flex flex-wrap gap-1.5 mb-2">
                           {row["Business Nature"] && (
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full truncate max-w-[120px]">
@@ -489,14 +495,14 @@ export default function CSVReview() {
                             </span>
                           )}
                         </div>
-
+ 
                         {row.violation && (
                           <p className="text-xs text-red-600 mb-1 line-clamp-1">⚠ {row.violation}</p>
                         )}
                         {row.review_action && (
                           <p className="text-xs text-green-600 mb-1 line-clamp-1">✓ {row.review_action}</p>
                         )}
-
+ 
                         <div className="flex items-center justify-between mt-2">
                           <p className="text-xs text-gray-400 flex items-center gap-1">
                             <FiClock className="w-3 h-3" />
@@ -512,19 +518,19 @@ export default function CSVReview() {
                         </div>
                       </div>
                     ))}
-
+ 
                     {searchTerm && !csvData.some(row =>
                       row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
                     ) && (
-                        <div
-                          className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
-                          onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
-                        >
-                          + Add "{searchTerm}"
-                        </div>
-                      )}
+                      <div
+                        className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
+                        onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                      >
+                        + Add "{searchTerm}"
+                      </div>
+                    )}
                   </div>
-
+ 
                 ) : (
                   /* ── Desktop Table ── */
                   <div className="h-[600px] overflow-auto">
@@ -534,16 +540,29 @@ export default function CSVReview() {
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[50px] border-r border-gray-300">#</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">BIN</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[180px] border-r border-gray-300">Business Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Trade Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Transmittal No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Nature</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Line</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Type</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[200px] border-r border-gray-300">Office Street</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[80px] border-r border-gray-300">Region</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Province</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Municipality</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Barangay</th>
-
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[90px] border-r border-gray-300">Zipcode</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[70px] border-r border-gray-300">Year</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Capital</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Gross Amount</th>
-
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[150px] border-r border-gray-300">Gross Essential</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">Gross Non-Essential</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Reject Remarks</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Module Type</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[130px] border-r border-gray-300">Transaction Type</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Reference No.</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">Brgy. Clearance Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[160px] border-r border-gray-300">SITE Transaction Status</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">CORE Status</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[100px] border-r border-gray-300">Permit No.</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[200px] border-r border-gray-300">Violations</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">Assigned Inspector</th>
@@ -563,15 +582,29 @@ export default function CSVReview() {
                             <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium border-r border-gray-200">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Identification Number"]}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Name"]}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Trade Name"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transmittal No."] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Nature"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Line"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Type"] ?? '-'}</td>
                             <td className="px-3 py-3 text-sm text-gray-600 max-w-[250px] truncate border-r border-gray-200">{row["Office Street"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Region"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Province"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Municipality"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Barangay"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Office Zipcode"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Year"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Capital"] != null ? `₱${row["Capital"].toLocaleString()}` : '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount"] != null ? `₱${row["Gross Amount"].toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount Essential"] != null ? `₱${row["Gross Amount Essential"].toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Gross Amount Non-Essential"] != null ? `₱${row["Gross Amount Non-Essential"].toLocaleString()}` : '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Reject Remarks"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Module Type"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transaction Type"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Reference No."] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Brgy. Clearance Status"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["SITE Transaction Status"] ?? '-'}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["CORE Transaction Status"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Permit No."] ?? '-'}</td>
                             <td className="px-3 py-3 text-sm text-gray-600 min-w-[200px] border-r border-gray-200">
                               {row.violation
@@ -605,21 +638,21 @@ export default function CSVReview() {
                         {searchTerm && !csvData.some(row =>
                           row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
                         ) && (
-                            <tr
-                              className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
-                              onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
-                            >
-                              <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
-                                + Add "{searchTerm}"
-                              </td>
-                            </tr>
-                          )}
+                          <tr
+                            className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
+                            onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                          >
+                            <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
+                              + Add "{searchTerm}"
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
                 )}
               </div>
-
+ 
               {/* Table Footer */}
               <div className="px-4 py-2 border-t-2 border-gray-300 bg-gray-50">
                 <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500">
@@ -627,13 +660,12 @@ export default function CSVReview() {
                   <span>Tap any row to review</span>
                 </div>
               </div>
-
+ 
               <Pagination />
             </div>
           </div>
         </div>
       </div>
-
       {/* ── ReviewModal — with live update callbacks ── */}
       <ReviewModal
         selectedRow={selectedRow}

@@ -5,11 +5,12 @@ import { useState, useRef, useEffect } from "react";
 import {
   FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser,
   FiMapPin, FiBriefcase, FiCamera, FiUpload, FiTrash2, FiEdit2,
-  FiLoader, FiMap,
+  FiLoader, FiMap, FiActivity, FiClock,
 } from "react-icons/fi";
 import { handlePhotoAndLocationUpload } from "@/lib/photoUpload";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
+import ActivityLogModal from "./Activitylogmodal";
 
 interface BusinessRecord {
   id: string;
@@ -82,6 +83,7 @@ interface BusinessRecord {
   status: string | null;
   assigned_inspector: string | null;
   scheduled_date: string | null;
+  schedule_time: string | null;
   photo: string | null;
   latitude: string | null;
   longitude: string | null;
@@ -97,6 +99,7 @@ interface ReviewModalProps {
     violations: string[];
     assignedInspector?: string;
     scheduledDate?: string;
+    scheduledTime?: string;
     location?: { lat: number; lng: number; accuracy: number };
     photo?: File;
     photoUrl?: string;
@@ -129,6 +132,7 @@ export default function ReviewModal({
   const [editError, setEditError]             = useState<string | null>(null);
   const [showEditToast, setShowEditToast]     = useState(false);
   const [reviewedByName, setReviewedByName]   = useState<string>("");
+  const [showLog, setShowLog]                 = useState(false);
 
   // ── Fetch current user's full_name from localStorage → users table ────────
   useEffect(() => {
@@ -181,6 +185,21 @@ export default function ReviewModal({
       setTimeout(() => setShowEditToast(false), 2000);
       setIsEditing(false);
       onRecordUpdated?.(editForm);
+
+      // ── Log the edit action ───────────────────────────────────────────────
+      const changedFields = (Object.keys(rest) as (keyof typeof rest)[])
+        .filter((k) => (rest as any)[k] !== (selectedRow as any)[k])
+        .map((k) => String(k));
+      supabase.from("activity_log").insert({
+        bin: selectedRow["Business Identification Number"],
+        action: "edit",
+        performed_by: reviewedByName || "Unknown",
+        details: changedFields.length
+          ? `Fields edited: ${changedFields.slice(0, 5).join(", ")}${changedFields.length > 5 ? ` (+${changedFields.length - 5} more)` : ""}`
+          : "Record edited",
+      }).then(({ error }) => {
+        if (error) console.error("❌ activity log error:", error);
+      });
     } catch (err: any) {
       setEditError(err.message ?? "Save failed.");
     } finally {
@@ -193,6 +212,31 @@ export default function ReviewModal({
   const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
     // Inject the reviewer's name before passing up to page.tsx
     onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
+
+    // ── Log the review action ─────────────────────────────────────────────
+    const actionDetails: string[] = [];
+    if (reviewData.reviewActions?.length)
+      actionDetails.push(`Status: ${reviewData.reviewActions.join(", ")}`);
+    if (reviewData.violations?.length)
+      actionDetails.push(`Violations: ${reviewData.violations.join(", ")}`);
+    if (reviewData.assignedInspector)
+      actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
+    if (reviewData.scheduledDate)
+      actionDetails.push(`Scheduled: ${reviewData.scheduledDate}${reviewData.scheduledTime ? " " + reviewData.scheduledTime : ""}`);
+    if (reviewData.photoUrl)
+      actionDetails.push("Photo uploaded");
+    if (reviewData.location)
+      actionDetails.push("Location captured");
+
+    supabase.from("activity_log").insert({
+      bin: selectedRow["Business Identification Number"],
+      action: "review",
+      performed_by: reviewedByName || "Unknown",
+      details: actionDetails.join(" · ") || "Review saved",
+    }).then(({ error }) => {
+      if (error) console.error("❌ activity log error:", error);
+    });
+
     setShowSavedToast(true);
     if (isMobile) {
       setTimeout(() => { setShowSavedToast(false); onClose(); }, 1800);
@@ -217,7 +261,7 @@ export default function ReviewModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-gray-900/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
 
         {/* Mobile toast */}
         {isMobile && (
@@ -260,17 +304,26 @@ export default function ReviewModal({
           </div>
         </div>
 
-        <div className={`${isMobile ? "w-full max-w-full max-h-full" : "max-w-5xl w-full mx-4"} bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto`}>
+        <div
+          className={`${isMobile ? "w-full rounded-t-2xl max-h-[92vh]" : "max-w-5xl w-full mx-4 rounded-xl"} bg-white shadow-2xl overflow-y-auto`}
+          onClick={(e) => e.stopPropagation()}
+        >
 
           {/* ── Modal header ── */}
-          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-xl">
+          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-2xl">
+            {/* Drag handle — mobile only */}
+            {isMobile && (
+              <div className="flex justify-center mb-2">
+                <div className="w-10 h-1 bg-white/40 rounded-full" />
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className={`${isMobile ? "text-lg" : "text-2xl"} font-bold`}>Review Business</h2>
                 <p className="text-green-100 text-sm mt-1">{selectedRow["Business Name"]}</p>
               </div>
 
-              {/* Right side: reviewer pill + close button */}
+              {/* Right side: reviewer pill + activity log + close button */}
               <div className="flex items-center gap-2 shrink-0 ml-3">
                 {reviewedByName && (
                   <div className="flex items-center gap-1.5 bg-white/15 rounded-lg px-3 py-1.5">
@@ -280,6 +333,14 @@ export default function ReviewModal({
                     </span>
                   </div>
                 )}
+                <button
+                  onClick={() => setShowLog(true)}
+                  title="Activity Log"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-semibold transition-colors"
+                >
+                  <FiActivity className="w-3.5 h-3.5" />
+                  {!isMobile && <span>Log</span>}
+                </button>
                 <button
                   onClick={onClose}
                   className="text-white hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-white/20"
@@ -509,6 +570,7 @@ export default function ReviewModal({
                   initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
                   initialInspector={selectedRow.assigned_inspector ?? undefined}
                   initialScheduledDate={selectedRow.scheduled_date ?? undefined}
+                  initialScheduledTime={selectedRow.schedule_time ?? undefined}
                   onSave={handleSaveWithToast}
                   onCancel={onClose}
                   onUploadPhoto={onUploadPhoto}
@@ -531,6 +593,15 @@ export default function ReviewModal({
           </div>
         )}
       </div>
+
+      {/* Activity Log Modal */}
+      {showLog && (
+        <ActivityLogModal
+          bin={selectedRow["Business Identification Number"]}
+          businessName={selectedRow["Business Name"]}
+          onClose={() => setShowLog(false)}
+        />
+      )}
 
       {/* Delete Confirm Modal */}
       {showDelete && (
@@ -633,15 +704,55 @@ function MapPickerModal({
       await import("leaflet/dist/leaflet.css" as any);
       if (!mapRef.current || !isMounted) return;
 
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      // Fix broken Leaflet icons in webpack/Next.js by using a custom icon
+      const customIcon = L.divIcon({
+        className: "",
+        html: `
+          <div style="
+            width: 28px;
+            height: 28px;
+            background: #2563eb;
+            border: 3px solid white;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+          "></div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28],
       });
 
+      // Start with fallback center, then move to device location if no initial coords
       const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 15);
       mapInstance.current = map;
+
+      // If no initial pin, get device location, place pin + fly there
+      if (!initialLat && !initialLng && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (!isMounted || !mapInstance.current) return;
+            const { latitude: lat, longitude: lng } = pos.coords;
+
+            // Fly to device location
+            mapInstance.current.flyTo([lat, lng], 16, { animate: true, duration: 1 });
+
+            // Place pin automatically at current location
+            setPinned({ lat, lng });
+            if (markerRef.current) {
+              markerRef.current.setLatLng([lat, lng]);
+            } else {
+              markerRef.current = L.marker([lat, lng], { icon: customIcon, draggable: true }).addTo(mapInstance.current);
+              markerRef.current.on("dragend", (ev: any) => {
+                const p = ev.target.getLatLng();
+                setPinned({ lat: p.lat, lng: p.lng });
+              });
+            }
+          },
+          () => {}, // silently fail — keeps fallback center, no auto pin
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      }
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: "© OpenStreetMap contributors",
@@ -649,7 +760,7 @@ function MapPickerModal({
       }).addTo(map);
 
       if (initialLat && initialLng) {
-        markerRef.current = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+        markerRef.current = L.marker([initialLat, initialLng], { icon: customIcon, draggable: true }).addTo(map);
         markerRef.current.on("dragend", (e: any) => {
           const pos = e.target.getLatLng();
           setPinned({ lat: pos.lat, lng: pos.lng });
@@ -662,7 +773,7 @@ function MapPickerModal({
         if (markerRef.current) {
           markerRef.current.setLatLng([lat, lng]);
         } else {
-          markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(map);
+          markerRef.current = L.marker([lat, lng], { icon: customIcon, draggable: true }).addTo(map);
           markerRef.current.on("dragend", (ev: any) => {
             const pos = ev.target.getLatLng();
             setPinned({ lat: pos.lat, lng: pos.lng });
@@ -716,20 +827,24 @@ function MapPickerModal({
   );
 }
 
+
 // ── Review Form ───────────────────────────────────────────────────────────────
 function ReviewForm({
   initialActions, initialViolations, initialInspector, initialScheduledDate,
+  initialScheduledTime,
   onSave, onCancel, onUploadPhoto, isMobile = false,
 }: {
   initialActions: string[];
   initialViolations: string[];
   initialInspector?: string;
   initialScheduledDate?: string;
+  initialScheduledTime?: string;
   onSave: (data: {
     reviewActions: string[];
     violations: string[];
     assignedInspector?: string;
     scheduledDate?: string;
+    scheduledTime?: string;
     location?: { lat: number; lng: number; accuracy: number };
     photo?: File;
     photoUrl?: string;
@@ -746,6 +861,7 @@ function ReviewForm({
   const [violationText, setViolationText]         = useState(initialViolations.join(", "));
   const [assignedInspector, setAssignedInspector] = useState(initialInspector || "");
   const [scheduledDate, setScheduledDate]         = useState(initialScheduledDate || "");
+  const [scheduledTime, setScheduledTime]         = useState(initialScheduledTime || "");
   const [isSaving, setIsSaving]                   = useState(false);
 
   const [location, setLocation]             = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
@@ -826,6 +942,7 @@ function ReviewForm({
         violations,
         assignedInspector: assignedInspector || undefined,
         scheduledDate: scheduledDate || undefined,
+        scheduledTime: scheduledTime || undefined,
         location: location || undefined,
         photo: photoFile || undefined,
         photoUrl,
@@ -1064,6 +1181,14 @@ function ReviewForm({
                   <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)}
                     className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors" />
                   <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled Time</label>
+                <div className="relative">
+                  <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
+                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors" />
+                  <FiClock className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
                 </div>
               </div>
             </div>

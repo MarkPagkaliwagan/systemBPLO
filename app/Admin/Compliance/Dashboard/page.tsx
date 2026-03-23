@@ -55,6 +55,8 @@ function ViolationsPageContent() {
   const [sendingNoticeId, setSendingNoticeId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
+  const [editingEmail, setEditingEmail] = useState<number | null>(null);
+  const [emailValue, setEmailValue] = useState("");
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const openBusinessDetails = async (businessId: string) => {
@@ -82,16 +84,58 @@ function ViolationsPageContent() {
     }
   };
 
-const toggleSelect = (id: number) => {
-  const v = violations.find((x) => x.id === id);
-  if (!v || v.resolved || v.cease_flag) return;
+  const updateEmail = async (id: number) => {
+    // basic validation
+    if (!emailValue || !emailValue.includes("@")) {
+      openMessageModal(
+        "Invalid Email",
+        "Please enter a valid email address.",
+        "error",
+      );
+      return;
+    }
 
-  setSelectedIds((prev) =>
-    prev.includes(id)
-      ? prev.filter((i) => i !== id)
-      : [...prev, id]
-  );
-};
+    openConfirmModal(
+      "Save Email",
+      `Are you sure you want to save this email?\n\n${emailValue}`,
+      async () => {
+        closeConfirmModal();
+        setLoading(true);
+
+        try {
+          const { error } = await supabase
+            .from("business_violations")
+            .update({ requestor_email: emailValue })
+            .eq("id", id);
+
+          if (error) {
+            console.error(error);
+            openMessageModal("Error", "Failed to update email.", "error");
+          } else {
+            setEditingEmail(null);
+            openMessageModal("Success", "Email updated.", "success");
+            await fetchViolations();
+          }
+        } catch (err) {
+          console.error(err);
+          openMessageModal("Error", "Something went wrong.", "error");
+        } finally {
+          setLoading(false);
+        }
+      },
+      "Save",
+      "Cancel",
+    );
+  };
+
+  const toggleSelect = (id: number) => {
+    const v = violations.find((x) => x.id === id);
+    if (!v || v.resolved || v.cease_flag) return;
+
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
 
   // Custom modal state
   const [messageModal, setMessageModal] = useState<{
@@ -300,16 +344,18 @@ const toggleSelect = (id: number) => {
     if ((v.notice_level || 0) >= 3) return "Cease and Desist";
     return "Pending";
   };
-
   const getRowClasses = (v: Violation) => {
     const status = getStatusText(v);
-    if (status === "Resolved") {
-      return "bg-blue-50 hover:bg-blue-100";
-    }
-    if (status === "Cease and Desist") {
-      return "bg-red-50 hover:bg-red-100";
-    }
-    return "hover:bg-gray-50";
+    let base = "hover:bg-gray-50"; // default
+
+    if (status === "Resolved") base = "bg-blue-50 hover:bg-blue-100";
+    else if (status === "Cease and Desist") base = "bg-red-50 hover:bg-red-100";
+
+    // Highlight missing email
+    if (!v.requestor_email || v.requestor_email.trim() === "")
+      base += " border-2 border-red-400"; // red border
+
+    return base;
   };
 
   const renderSortIcon = (key: keyof Violation) => {
@@ -375,6 +421,25 @@ const toggleSelect = (id: number) => {
     return new Date() >= nextSend;
   };
   const sendNoticeNow = async (id: number) => {
+    // Hanapin yung violation object
+    const violation = violations.find((v) => v.id === id);
+    if (!violation) return;
+
+    // EMAIL CHECK
+    if (!violation.requestor_email || violation.requestor_email.trim() === "") {
+      openMessageModal(
+        "Missing Email",
+        `Cannot send notice. Business ID ${violation.business_id} has no email.`,
+        "error",
+      );
+
+      // Optional: highlight row
+      const row = document.querySelector(`[data-id="${id}"]`);
+      if (row) row.classList.add("border-2", "border-red-400");
+
+      return; // stop sending
+    }
+
     setSendingNoticeId(id); // <-- show loading for this notice
     try {
       const res = await fetch("/api/manual-send-notice", {
@@ -403,6 +468,7 @@ const toggleSelect = (id: number) => {
       setSendingNoticeId(null); // <-- hide loading
     }
   };
+
   const askSendNotice = (v: Violation) => {
     openConfirmModal(
       "Send Notice",
@@ -439,48 +505,46 @@ const toggleSelect = (id: number) => {
     return <FiInfo className="text-3xl text-blue-600" />;
   };
 
-const handleBulkSend = async () => {
-  openConfirmModal(
-    "Bulk Send Notice",
-    `Send notice to ${selectedIds.length} businesses?`,
-    async () => {
-      closeConfirmModal();
+  const handleBulkSend = async () => {
+    openConfirmModal(
+      "Bulk Send Notice",
+      `Send notice to ${selectedIds.length} businesses?`,
+      async () => {
+        closeConfirmModal();
 
-      try {
-        await Promise.all(selectedIds.map((id) => sendNoticeNow(id)));
+        try {
+          await Promise.all(selectedIds.map((id) => sendNoticeNow(id)));
 
-        openMessageModal("Success", "All notices sent.", "success");
-      } catch (err) {
-        openMessageModal("Error", "Some notices failed.", "error");
-      }
+          openMessageModal("Success", "All notices sent.", "success");
+        } catch (err) {
+          openMessageModal("Error", "Some notices failed.", "error");
+        }
 
-      setSelectedIds([]);
-    },
-    "Send All"
-  );
-};
-const handleBulkResolve = async () => {
-  openConfirmModal(
-    "Bulk Resolve",
-    `Mark ${selectedIds.length} as resolved?`,
-    async () => {
-      closeConfirmModal();
+        setSelectedIds([]);
+      },
+      "Send All",
+    );
+  };
+  const handleBulkResolve = async () => {
+    openConfirmModal(
+      "Bulk Resolve",
+      `Mark ${selectedIds.length} as resolved?`,
+      async () => {
+        closeConfirmModal();
 
-      try {
-        await Promise.all(
-          selectedIds.map((id) => handleMarkResolved(id))
-        );
+        try {
+          await Promise.all(selectedIds.map((id) => handleMarkResolved(id)));
 
-        openMessageModal("Success", "All marked resolved.", "success");
-      } catch (err) {
-        openMessageModal("Error", "Some failed.", "error");
-      }
+          openMessageModal("Success", "All marked resolved.", "success");
+        } catch (err) {
+          openMessageModal("Error", "Some failed.", "error");
+        }
 
-      setSelectedIds([]);
-    },
-    "Resolve All"
-  );
-};
+        setSelectedIds([]);
+      },
+      "Resolve All",
+    );
+  };
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="flex-1 flex flex-col md:flex-row pt-10 md:pt-16 px-4 md:px-6">
@@ -508,7 +572,6 @@ const handleBulkResolve = async () => {
                 Track business violations and notices
               </p>
             </div>
-            
 
             <div className="self-start md:self-auto bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-sm">
               <div className="text-sm md:text-base font-semibold text-gray-800 flex items-center gap-1">
@@ -548,38 +611,38 @@ const handleBulkResolve = async () => {
               <span className="text-gray-600">Cease &amp; Desist</span>
             </div>
           </div>
-          
-{selectedIds.length > 0 && (
-  <div className="flex gap-2 mb-3">
-    <button
-      onClick={handleBulkSend}
-      className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
-    >
-      Send Notice ({selectedIds.length})
-    </button>
 
-    <button
-      onClick={handleBulkResolve}
-      className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"
-    >
-      Mark Resolved ({selectedIds.length})
-    </button>
-  </div>
-)}
-{selectedIds.length > 0 && (
-  <div className="flex items-center justify-between mb-3">
-    <span className="text-sm text-gray-600">
-      {selectedIds.length} selected
-    </span>
+          {selectedIds.length > 0 && (
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={handleBulkSend}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
+              >
+                Send Notice ({selectedIds.length})
+              </button>
 
-    <button
-      onClick={() => setSelectedIds([])}
-      className="text-xs text-red-600 underline"
-    >
-      Clear selection
-    </button>
-  </div>
-)}
+              <button
+                onClick={handleBulkResolve}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"
+              >
+                Mark Resolved ({selectedIds.length})
+              </button>
+            </div>
+          )}
+          {selectedIds.length > 0 && (
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-gray-600">
+                {selectedIds.length} selected
+              </span>
+
+              <button
+                onClick={() => setSelectedIds([])}
+                className="text-xs text-red-600 underline"
+              >
+                Clear selection
+              </button>
+            </div>
+          )}
           {/* Table / Cards */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
             {/* Desktop Table */}
@@ -588,26 +651,29 @@ const handleBulkResolve = async () => {
                 <thead className="bg-green-900 text-white">
                   <tr>
                     <th className="px-4 py-3">
-  <input
-  type="checkbox"
-  onChange={(e) => {
-    if (e.target.checked) {
-      const selectable = violations
-        .filter((v) => !v.resolved && !v.cease_flag)
-        .map((v) => v.id);
+                      <input
+                        type="checkbox"
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const selectable = violations
+                              .filter((v) => !v.resolved && !v.cease_flag)
+                              .map((v) => v.id);
 
-      setSelectedIds(selectable);
-    } else {
-      setSelectedIds([]);
-    }
-  }}
-  checked={
-    violations.filter((v) => !v.resolved && !v.cease_flag).length > 0 &&
-    selectedIds.length ===
-      violations.filter((v) => !v.resolved && !v.cease_flag).length
-  }
-/>
-</th>
+                            setSelectedIds(selectable);
+                          } else {
+                            setSelectedIds([]);
+                          }
+                        }}
+                        checked={
+                          violations.filter((v) => !v.resolved && !v.cease_flag)
+                            .length > 0 &&
+                          selectedIds.length ===
+                            violations.filter(
+                              (v) => !v.resolved && !v.cease_flag,
+                            ).length
+                        }
+                      />
+                    </th>
                     <th
                       className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider cursor-pointer select-none"
                       onClick={() => toggleSort("business_name")}
@@ -619,6 +685,7 @@ const handleBulkResolve = async () => {
                     <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">
                       Violation
                     </th>
+
                     <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">
                       Notice 1
                     </th>
@@ -645,14 +712,40 @@ const handleBulkResolve = async () => {
                               checked={autoSend}
                               onChange={async (e) => {
                                 const checked = e.target.checked;
+
+                                if (checked) {
+                                  const missingEmails = violations.filter(
+                                    (v) =>
+                                      !v.requestor_email ||
+                                      v.requestor_email.trim() === "",
+                                  );
+
+                                  if (missingEmails.length > 0) {
+                                    openMessageModal(
+                                      "Missing Emails",
+                                      `Cannot enable Auto Send. There are ${missingEmails.length} violation(s) without emails.`,
+                                      "error",
+                                    );
+
+                                    // Scroll to first missing email row (optional)
+                                    const firstMissingRow =
+                                      document.querySelector(
+                                        `[data-id="${missingEmails[0].id}"]`,
+                                      );
+                                    if (firstMissingRow)
+                                      firstMissingRow.scrollIntoView({
+                                        behavior: "smooth",
+                                      });
+
+                                    return; // stop toggling
+                                  }
+                                }
+
                                 setAutoSend(checked);
 
                                 const { error } = await supabase
                                   .from("settings")
-                                  .upsert({
-                                    key: "auto_send",
-                                    value: checked,
-                                  });
+                                  .upsert({ key: "auto_send", value: checked });
 
                                 if (error) {
                                   console.error(error);
@@ -723,7 +816,7 @@ const handleBulkResolve = async () => {
                   ) : violations.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={9}
+                        colSpan={10}
                         className="text-center py-10 text-gray-500 space-y-2"
                       >
                         <div>NO DATA FOUND</div>
@@ -737,28 +830,28 @@ const handleBulkResolve = async () => {
                           + Add Business Violation
                         </button>
                       </td>
-                      
                     </tr>
                   ) : (
                     violations.map((v) => (
-                  <tr
-  key={v.id}
-  onClick={() => openBusinessDetails(v.business_id)}
-className={`${getRowClasses(v)} transition-colors cursor-pointer ${
-  selectedIds.includes(v.id) ? "bg-blue-100" : ""
-}`}
->
-<td
-  className="px-4 py-4"
-  onClick={(e) => e.stopPropagation()}
->
-  <input
-    type="checkbox"
-    checked={selectedIds.includes(v.id)}
-    disabled={v.resolved || v.cease_flag}
-    onChange={() => toggleSelect(v.id)}
-  />
-</td>
+                      <tr
+                        key={v.id}
+                        data-id={v.id} // ADD THIS LINE
+                        onClick={() => openBusinessDetails(v.business_id)}
+                        className={`${getRowClasses(v)} transition-colors cursor-pointer ${
+                          selectedIds.includes(v.id) ? "bg-blue-100" : ""
+                        }`}
+                      >
+                        <td
+                          className="px-4 py-4"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(v.id)}
+                            disabled={v.resolved || v.cease_flag}
+                            onChange={() => toggleSelect(v.id)}
+                          />
+                        </td>
                         <td className="px-6 py-4 align-top">
                           <div className="text-sm font-medium text-gray-900">
                             {v.business_name || "N/A"}
@@ -777,6 +870,61 @@ className={`${getRowClasses(v)} transition-colors cursor-pointer ${
                         <td className="px-6 py-4 align-top">
                           <div className="text-sm text-gray-700 line-clamp-2">
                             {v.violation}
+                          </div>
+
+                          <div
+                            className="text-xs text-gray-500 mt-1 break-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingEmail(v.id);
+                              setEmailValue(v.requestor_email || "");
+                            }}
+                          >
+                            {editingEmail === v.id ? (
+                              <div className="mt-1 space-y-2">
+                                <input
+                                  type="email"
+                                  value={emailValue}
+                                  onChange={(e) =>
+                                    setEmailValue(e.target.value)
+                                  }
+                                  className="border rounded px-2 py-1 text-xs w-full text-black"
+                                  placeholder="Enter email"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateEmail(v.id);
+                                    }}
+                                    disabled={!emailValue}
+                                    className={`text-xs font-medium ${
+                                      !emailValue
+                                        ? "text-gray-400 cursor-not-allowed"
+                                        : "text-green-600"
+                                    }`}
+                                  >
+                                    Save
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingEmail(null);
+                                    }}
+                                    className="text-gray-500 text-xs"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="cursor-pointer hover:text-green-700 underline">
+                                {v.requestor_email || "Add email (click here)"}
+                              </span>
+                            )}
                           </div>
                         </td>
 
@@ -945,195 +1093,359 @@ className={`${getRowClasses(v)} transition-colors cursor-pointer ${
               </table>
             </div>
 
-      {/* Mobile Cards */}
-<div className="md:hidden p-4 space-y-4">
-  {/* Auto Send Toggle */}
-  <div className="flex justify-end mb-2">
-    <label className="flex items-center cursor-pointer select-none">
-      <div className="relative">
-        <input
-          type="checkbox"
-          className="sr-only"
-          checked={autoSend}
-          onChange={async (e) => {
-            const checked = e.target.checked;
-            setAutoSend(checked);
+            {/* Mobile Cards */}
+            <div className="md:hidden p-4 space-y-4">
+              {/* Auto Send Toggle */}
+              <div className="flex justify-end mb-2">
+                <label className="flex items-center cursor-pointer select-none">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={autoSend}
+                      onChange={async (e) => {
+                        const checked = e.target.checked;
 
-            const { error } = await supabase
-              .from("settings")
-              .upsert({ key: "auto_send", value: checked });
+                        if (checked) {
+                          const missingEmails = violations.filter(
+                            (v) =>
+                              !v.requestor_email ||
+                              v.requestor_email.trim() === "",
+                          );
 
-            if (error) {
-              console.error(error);
-              openMessageModal("Error", "Failed to update auto send.", "error");
-            } else {
-              openMessageModal(
-                "Saved",
-                `Auto send is now ${checked ? "ON" : "OFF"}.`,
-                "success"
-              );
-            }
-          }}
-        />
-        <div className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`} />
-        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""}`} />
-      </div>
-      <span className="ml-2 text-sm font-medium text-gray-700 flex items-center gap-1">
-        Auto Send <FiSend className="text-green-600" />
-      </span>
-    </label>
-  </div>
+                          if (missingEmails.length > 0) {
+                            openMessageModal(
+                              "Missing Emails",
+                              `Cannot enable Auto Send. There are ${missingEmails.length} violation(s) without emails.`,
+                              "error",
+                            );
 
-  {/* Select All */}
-  {violations.length > 0 && (
-    <div className="flex items-center mb-2">
-      <input
-        type="checkbox"
-        checked={selectedIds.length === violations.length}
-        onChange={(e) => {
-          if (e.target.checked) {
-            setSelectedIds(violations.map((v) => v.id));
-          } else {
-            setSelectedIds([]);
-          }
-        }}
-        className="mr-2"
-      />
-      <span className="text-sm text-gray-700 font-medium">Select All</span>
-    </div>
-  )}
+                            // Scroll to first missing email row (optional)
+                            const firstMissingRow = document.querySelector(
+                              `[data-id="${missingEmails[0].id}"]`,
+                            );
+                            if (firstMissingRow)
+                              firstMissingRow.scrollIntoView({
+                                behavior: "smooth",
+                              });
 
-  {/* Loading Skeleton */}
-  {loading ? (
-    Array.from({ length: 3 }).map((_, i) => (
-      <div key={i} className="animate-pulse border rounded-xl p-4 bg-gray-100 space-y-2">
-        <div className="h-4 bg-gray-200 rounded w-1/2" />
-        <div className="h-4 bg-gray-200 rounded w-full" />
-        <div className="h-4 bg-gray-200 rounded w-1/4" />
-      </div>
-    ))
-  ) : violations.length === 0 ? (
-    <div className="text-center py-10 text-gray-500 space-y-2">
-      <div>NO DATA FOUND</div>
-      <button
-        onClick={() => (window.location.href = "/Admin/Inspection/management/review")}
-        className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-      >
-        + Add Business Violation
-      </button>
-    </div>
-  ) : (
-    violations.map((v) => (
-      <div
-        key={v.id}
-        onClick={() => openBusinessDetails(v.business_id)}
-        className={`border rounded-xl p-4 bg-white shadow-sm space-y-2 cursor-pointer transition-colors ${selectedIds.includes(v.id) ? "bg-green-50" : ""}`}
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <input
-            type="checkbox"
-            checked={selectedIds.includes(v.id)}
-            disabled={v.resolved || v.cease_flag}
-            onClick={(e) => e.stopPropagation()}
-            onChange={() => toggleSelect(v.id)}
-          />
+                            return; // stop toggling
+                          }
+                        }
 
-          <div className="flex-1 ml-2" onClick={() => openBusinessDetails(v.business_id)}>
-            <div className="font-semibold text-gray-900 text-sm">{v.business_name || "N/A"}</div>
-            <div className="text-xs text-gray-500">{v.business_id}</div>
-          </div>
+                        setAutoSend(checked);
 
-          <StatusBadge v={v} />
-        </div>
+                        const { error } = await supabase
+                          .from("settings")
+                          .upsert({ key: "auto_send", value: checked });
 
-        {/* Violation Text */}
-        <div className="text-gray-700 text-sm line-clamp-2">{v.violation}</div>
-
-        {/* Notices */}
-        <div className="flex gap-2">
-          <NoticeBadge notice={1} v={v} />
-          <NoticeBadge notice={2} v={v} />
-          <NoticeBadge notice={3} v={v} />
-        </div>
-
-        {/* Interval */}
-        <div className="text-xs text-gray-500">
-          Interval:{" "}
-          {editingInterval === v.id ? (
-            <span className="flex items-center gap-2 mt-1">
-              <input
-                type="number"
-                value={intervalValue}
-                onChange={(e) => setIntervalValue(Number(e.target.value))}
-                className="w-16 border rounded px-1 py-0.5 text-xs"
-              />
-              <button onClick={(e) => { e.stopPropagation(); updateInterval(v.id); }} className="text-green-600 text-xs hover:underline">Save</button>
-              <button onClick={(e) => { e.stopPropagation(); setEditingInterval(null); }} className="text-gray text-xs hover:underline">Cancel</button>
-            </span>
-          ) : (
-            <span onClick={(e) => { e.stopPropagation(); setEditingInterval(v.id); setIntervalValue(v.interval_days ?? 7); }} className="cursor-pointer text-gray-700 hover:text-green-700">
-              {v.interval_days ?? 7} days
-            </span>
-          )}
-        </div>
-
-        {/* Last Sent */}
-        {v.last_sent_time && <div className="text-xs text-gray-400">Last sent: {new Date(v.last_sent_time).toLocaleString()}</div>}
-
-        {/* Action Buttons */}
-        <div className="flex flex-col gap-1">
-          {!v.resolved && getStatusText(v) === "Cease and Desist" && (
-            <button
-              onClick={(e) => { e.stopPropagation(); askMarkResolved(v); }}
-              disabled={v.resolved}
-              className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-            >
-              Mark Resolved
-            </button>
-          )}
-
-          {!v.resolved && getStatusText(v) !== "Cease and Desist" && (
-            <>
-              <button
-                onClick={(e) => { e.stopPropagation(); askSendNotice(v); }}
-                disabled={autoSend || !canSendNotice(v)}
-                className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`}
-              >
-                {sendingNoticeId === v.id ? (
-                  <span className="flex items-center gap-1">
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                    </svg>
-                    Sending...
+                        if (error) {
+                          console.error(error);
+                          openMessageModal(
+                            "Error",
+                            "Failed to update auto send.",
+                            "error",
+                          );
+                        } else {
+                          openMessageModal(
+                            "Saved",
+                            `Auto send is now ${checked ? "ON" : "OFF"}.`,
+                            "success",
+                          );
+                        }
+                      }}
+                    />
+                    <div
+                      className={`w-11 h-6 bg-gray-300 rounded-full shadow-inner transition-colors ${autoSend ? "bg-green-600" : ""}`}
+                    />
+                    <div
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transform transition-transform ${autoSend ? "translate-x-5" : ""}`}
+                    />
+                  </div>
+                  <span className="ml-2 text-sm font-medium text-gray-700 flex items-center gap-1">
+                    Auto Send <FiSend className="text-green-600" />
                   </span>
-                ) : (
-                  "Send Notice"
-                )}
-              </button>
+                </label>
+              </div>
 
-              <button
-                onClick={(e) => { e.stopPropagation(); askMarkResolved(v); }}
-                disabled={v.resolved}
-                className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-              >
-                Mark Resolved
-              </button>
-
-              {!canSendNotice(v) && v.last_sent_time && (
-                <div className="text-xs text-gray-500 mt-1">
-                  Next send:{" "}
-                  {new Date(new Date(v.last_sent_time).getTime() + (v.interval_days ?? 7) * 24 * 60 * 60 * 1000).toLocaleString()}
+              {/* Select All */}
+              {violations.length > 0 && (
+                <div className="flex items-center mb-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === violations.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedIds(violations.map((v) => v.id));
+                      } else {
+                        setSelectedIds([]);
+                      }
+                    }}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700 font-medium">
+                    Select All
+                  </span>
                 </div>
               )}
-            </>
-          )}
-        </div>
-      </div>
-    ))
-  )}
-</div>
+
+              {/* Loading Skeleton */}
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse border rounded-xl p-4 bg-gray-100 space-y-2"
+                  >
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                    <div className="h-4 bg-gray-200 rounded w-full" />
+                    <div className="h-4 bg-gray-200 rounded w-1/4" />
+                  </div>
+                ))
+              ) : violations.length === 0 ? (
+                <div className="text-center py-10 text-gray-500 space-y-2">
+                  <div>NO DATA FOUND</div>
+                  <button
+                    onClick={() =>
+                      (window.location.href =
+                        "/Admin/Inspection/management/review")
+                    }
+                    className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                  >
+                    + Add Business Violation
+                  </button>
+                </div>
+              ) : (
+                violations.map((v) => (
+                  <div
+                    key={v.id}
+                    onClick={() => openBusinessDetails(v.business_id)}
+                    className={`border rounded-xl p-4 bg-white shadow-sm space-y-2 cursor-pointer transition-colors ${selectedIds.includes(v.id) ? "bg-green-50" : ""}`}
+                  >
+                    {/* Header */}
+                    <div className="flex justify-between items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(v.id)}
+                        disabled={v.resolved || v.cease_flag}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => toggleSelect(v.id)}
+                      />
+
+                      <div
+                        className="flex-1 ml-2"
+                        onClick={() => openBusinessDetails(v.business_id)}
+                      >
+                        <div className="font-semibold text-gray-900 text-sm">
+                          {v.business_name || "N/A"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {v.business_id}
+                        </div>
+                      </div>
+
+                      <StatusBadge v={v} />
+                    </div>
+
+                    {/* Violation Text */}
+                    <div
+                      className="text-xs text-gray-500 break-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingEmail(v.id);
+                        setEmailValue(v.requestor_email || "");
+                      }}
+                    >
+                      {editingEmail === v.id ? (
+                        <div className="mt-1 space-y-2">
+                          <input
+                            type="email"
+                            value={emailValue}
+                            onChange={(e) => setEmailValue(e.target.value)}
+                            className="border rounded px-2 py-1 text-xs w-full"
+                            placeholder="Enter email"
+                          />
+
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateEmail(v.id);
+                              }}
+                              disabled={!emailValue}
+                              className={`text-xs font-medium ${
+                                !emailValue
+                                  ? "text-gray-400 cursor-not-allowed"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              Save
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingEmail(null);
+                              }}
+                              className="text-gray-500 text-xs"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="cursor-pointer hover:text-green-700 underline">
+                          {v.requestor_email || "Add email (click here)"}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Notices */}
+                    <div className="flex gap-2">
+                      <NoticeBadge notice={1} v={v} />
+                      <NoticeBadge notice={2} v={v} />
+                      <NoticeBadge notice={3} v={v} />
+                    </div>
+
+                    {/* Interval */}
+                    <div className="text-xs text-gray-500">
+                      Interval:{" "}
+                      {editingInterval === v.id ? (
+                        <span className="flex items-center gap-2 mt-1">
+                          <input
+                            type="number"
+                            value={intervalValue}
+                            onChange={(e) =>
+                              setIntervalValue(Number(e.target.value))
+                            }
+                            className="w-16 border rounded px-1 py-0.5 text-xs"
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateInterval(v.id);
+                            }}
+                            className="text-green-600 text-xs hover:underline"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingInterval(null);
+                            }}
+                            className="text-gray text-xs hover:underline"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingInterval(v.id);
+                            setIntervalValue(v.interval_days ?? 7);
+                          }}
+                          className="cursor-pointer text-gray-700 hover:text-green-700"
+                        >
+                          {v.interval_days ?? 7} days
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Last Sent */}
+                    {v.last_sent_time && (
+                      <div className="text-xs text-gray-400">
+                        Last sent: {new Date(v.last_sent_time).toLocaleString()}
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-1">
+                      {!v.resolved &&
+                        getStatusText(v) === "Cease and Desist" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              askMarkResolved(v);
+                            }}
+                            disabled={v.resolved}
+                            className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+                          >
+                            Mark Resolved
+                          </button>
+                        )}
+
+                      {!v.resolved &&
+                        getStatusText(v) !== "Cease and Desist" && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                askSendNotice(v);
+                              }}
+                              disabled={autoSend || !canSendNotice(v)}
+                              className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`}
+                            >
+                              {sendingNoticeId === v.id ? (
+                                <span className="flex items-center gap-1">
+                                  <svg
+                                    className="animate-spin h-4 w-4 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    />
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                    />
+                                  </svg>
+                                  Sending...
+                                </span>
+                              ) : (
+                                "Send Notice"
+                              )}
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                askMarkResolved(v);
+                              }}
+                              disabled={v.resolved}
+                              className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+                            >
+                              Mark Resolved
+                            </button>
+
+                            {!canSendNotice(v) && v.last_sent_time && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Next send:{" "}
+                                {new Date(
+                                  new Date(v.last_sent_time).getTime() +
+                                    (v.interval_days ?? 7) *
+                                      24 *
+                                      60 *
+                                      60 *
+                                      1000,
+                                ).toLocaleString()}
+                              </div>
+                            )}
+                          </>
+                        )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1227,11 +1539,12 @@ className={`${getRowClasses(v)} transition-colors cursor-pointer ${
           </div>
         </div>
       )}
-      <DetailsForBusinessFormModal
-        open={detailsModalOpen}
-        onClose={() => setDetailsModalOpen(false)}
-        data={selectedBusiness}
-      />
+<DetailsForBusinessFormModal
+  open={detailsModalOpen}
+  onClose={() => setDetailsModalOpen(false)}
+  data={selectedBusiness}
+  tableName="business_records" // ✅ ADD THIS
+/>
     </div>
   );
 }
