@@ -310,18 +310,18 @@ function DashboardPageContent() {
 
         const { data, error } = await supabase
           .from('business_violations')
-          .select('notice_level, resolved, cease_flag, created_at');
+          .select('notice_level, resolved, cease_flag, created_at')
+          .gte('created_at', start.toISOString())
+          .lte('created_at', now.toISOString());
 
         if (error) { console.error('fetchViolationCounts error:', error); return; }
 
-        const violations = (data ?? []).filter((v) => {
-          const createdAt = new Date(v.created_at);
-          return createdAt >= start && createdAt <= now;
-        });
+        const violations = data ?? [];
 
-        setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
-        setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
-        setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
+        // Exact level counts — each violation counted once per level
+        setNotice1Count(violations.filter(v => v.notice_level === 1).length);
+        setNotice2Count(violations.filter(v => v.notice_level === 2).length);
+        setNotice3Count(violations.filter(v => v.notice_level === 3).length);
         setActiveCasesCount(violations.filter(v => !v.resolved && !v.cease_flag).length);
         setCeaseDesistCount(violations.filter(v => v.cease_flag === true).length);
       } catch (err) {
