@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import {
   CheckCircle, AlertTriangle, ClipboardList, Building2,
   Mail, Gavel, Ban, Activity, ChevronLeft, ChevronRight,
-  ListChecks, ChevronDown, CalendarDays, Eye
+  ListChecks, ChevronDown, CalendarDays
 } from "lucide-react";
 
 import Sidebar from "../../../../components/sidebar";
@@ -192,11 +192,10 @@ function DashboardPageContent() {
   const [scheduleMonth, setScheduleMonth] = useState(new Date());
   const [noticeRange, setNoticeRange] = useState<NoticeRange>('7d');
 
-  // KPI counts — mapped to actual status values in DB
-  const [reviewedCount, setReviewedCount] = useState(0);
+  const [compliantCount, setCompliantCount] = useState(0);
   const [nonCompliantCount, setNonCompliantCount] = useState(0);
   const [forInspectionCount, setForInspectionCount] = useState(0);
-  const [notReviewedCount, setNotReviewedCount] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
 
   const [notice1Count, setNotice1Count] = useState(0);
   const [notice2Count, setNotice2Count] = useState(0);
@@ -231,7 +230,7 @@ function DashboardPageContent() {
   ];
   const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
 
-  // ── Scroll to today ───────────────────────────────────────────────────────
+  // ── Scroll to today using getBoundingClientRect ───────────────────────────
   useEffect(() => {
     const isCurrentMonth =
       scheduleMonth.getMonth() === today.getMonth() &&
@@ -270,25 +269,24 @@ function DashboardPageContent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // ── Fixed: fetch counts using actual DB status values ─────────────────────
   useEffect(() => {
     const fetchStatusCounts = async () => {
       try {
         const [
-          { count: forInspection },
+          { count: compliant },
           { count: nonCompliant },
-          { count: notReviewed },
-          { count: reviewed },
+          { count: forInspection },
+          { count: active },
         ] = await Promise.all([
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'for_inspection'),
+          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'compliant'),
           supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'non_compliant'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'not reviewed'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'reviewed'),
+          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'for_inspection'),
+          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'active'),
         ]);
-        setForInspectionCount(forInspection ?? 0);
+        setCompliantCount(compliant ?? 0);
         setNonCompliantCount(nonCompliant ?? 0);
-        setNotReviewedCount(notReviewed ?? 0);
-        setReviewedCount(reviewed ?? 0);
+        setForInspectionCount(forInspection ?? 0);
+        setActiveCount(active ?? 0);
       } catch (err) {
         console.error('fetchStatusCounts error:', err);
       }
@@ -296,44 +294,87 @@ function DashboardPageContent() {
     fetchStatusCounts();
   }, []);
 
-  // ── Fixed: correct date clone + exact notice_level matching ──────────────
+  // ── Fixed violation counts using correct columns ──────────────────────────
   useEffect(() => {
-    const fetchViolationCounts = async () => {
-      try {
-        const now = new Date();
-        const start = new Date(now); // ← cloned correctly
+  const fetchViolationCounts = async () => {
+    try {
+      const now = new Date();
 
-        switch (noticeRange) {
-          case '7d': start.setDate(start.getDate() - 7); break;
-          case '1m': start.setMonth(start.getMonth() - 1); break;
-          case '3m': start.setMonth(start.getMonth() - 3); break;
-          case '6m': start.setMonth(start.getMonth() - 6); break;
-          case '1yr': start.setFullYear(start.getFullYear() - 1); break;
-        }
+      // 🔥 Convert to UTC-safe ISO (important!)
+      const nowISO = new Date(
+        now.getTime() - now.getTimezoneOffset() * 60000
+      ).toISOString();
 
-        const { data, error } = await supabase
-          .from('business_violations')
-          .select('notice_level, resolved, cease_flag, created_at')
-          .gte('created_at', start.toISOString())
-          .lte('created_at', now.toISOString());
+      const start = new Date(now);
 
-        if (error) { console.error('fetchViolationCounts error:', error); return; }
-
-        const violations = data ?? [];
-
-        // Exact level counts — each violation counted once
-        setNotice1Count(violations.filter(v => v.notice_level === 1).length);
-        setNotice2Count(violations.filter(v => v.notice_level === 2).length);
-        setNotice3Count(violations.filter(v => v.notice_level === 3).length);
-        setActiveCasesCount(violations.filter(v => !v.resolved && !v.cease_flag).length);
-        setCeaseDesistCount(violations.filter(v => v.cease_flag === true).length);
-      } catch (err) {
-        console.error('fetchViolationCounts error:', err);
+      switch (noticeRange) {
+        case "7d":
+          start.setDate(start.getDate() - 7);
+          break;
+        case "1m":
+          start.setMonth(start.getMonth() - 1);
+          break;
+        case "3m":
+          start.setMonth(start.getMonth() - 3);
+          break;
+        case "6m":
+          start.setMonth(start.getMonth() - 6);
+          break;
+        case "1yr":
+          start.setFullYear(start.getFullYear() - 1);
+          break;
       }
-    };
-    fetchViolationCounts();
-  }, [noticeRange]);
 
+      const startISO = new Date(
+        start.getTime() - start.getTimezoneOffset() * 60000
+      ).toISOString();
+
+      // 🔥 USE last_sent_time instead of created_at
+      const { data, error } = await supabase
+        .from("business_violations")
+        .select("notice_level, resolved, cease_flag, last_sent_time")
+        .not("last_sent_time", "is", null)
+        .gte("last_sent_time", startISO)
+        .lte("last_sent_time", nowISO);
+
+      if (error) {
+        console.error("fetchViolationCounts error:", error);
+        return;
+      }
+
+      const violations = data ?? [];
+
+      // 🔥 DEBUG (optional — remove later)
+      console.log("Range:", noticeRange);
+      console.log("Start:", startISO);
+      console.log("Now:", nowISO);
+      console.log("Filtered count:", violations.length);
+
+      // ✅ Counts
+      setNotice1Count(
+        violations.filter((v) => v.notice_level === 1).length
+      );
+      setNotice2Count(
+        violations.filter((v) => v.notice_level === 2).length
+      );
+      setNotice3Count(
+        violations.filter((v) => v.notice_level === 3).length
+      );
+
+      setActiveCasesCount(
+        violations.filter((v) => !v.resolved && !v.cease_flag).length
+      );
+
+      setCeaseDesistCount(
+        violations.filter((v) => v.cease_flag === true).length
+      );
+    } catch (err) {
+      console.error("fetchViolationCounts error:", err);
+    }
+  };
+
+  fetchViolationCounts();
+}, [noticeRange]);
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
@@ -460,12 +501,11 @@ function DashboardPageContent() {
     );
   };
 
-  // ── Fixed: KPI labels now match actual DB status values ──────────────────
   const kpiData = [
-    { title: "Not Reviewed",   value: String(notReviewedCount),  icon: Eye,           iconColor: "text-blue-400" },
-    { title: "Reviewed",       value: String(reviewedCount),     icon: CheckCircle,   iconColor: "text-green-400" },
-    { title: "For Inspection", value: String(forInspectionCount),icon: ClipboardList, iconColor: "text-yellow-400" },
-    { title: "Non-Compliant",  value: String(nonCompliantCount), icon: AlertTriangle, iconColor: "text-red-400" },
+    { title: "Active Businesses", value: String(activeCount),        icon: Building2,     iconColor: "text-blue-400" },
+    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   iconColor: "text-green-400" },
+    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList, iconColor: "text-yellow-400" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle, iconColor: "text-red-400" },
   ];
 
   const noticeStats = [
