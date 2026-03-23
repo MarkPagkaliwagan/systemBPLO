@@ -387,6 +387,7 @@ export default function ReviewModal({
 
                   {/* Geo-Tagging — always read-only */}
                   <Section title="Geo-Tagging">
+                    {/* Photo */}
                     <div className="flex items-start text-sm gap-2">
                       <span className="font-bold text-gray-700 shrink-0 min-w-[90px]">Photo:</span>
                       {selectedRow["photo"] ? (
@@ -404,17 +405,53 @@ export default function ReviewModal({
                         </div>
                       ) : <span className="text-gray-600">-</span>}
                     </div>
-                    <InfoRow label="Latitude" value={selectedRow["latitude"]} />
+
+                    {/* Location coordinates */}
+                    <InfoRow label="Latitude"  value={selectedRow["latitude"]} />
                     <InfoRow label="Longitude" value={selectedRow["longitude"]} />
-                    <InfoRow label="Accuracy" value={selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : null} />
+                    <InfoRow label="Accuracy"  value={selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : null} />
+
+                    {/* Map preview — shown when coordinates exist */}
                     {selectedRow["latitude"] && selectedRow["longitude"] && (
-                      <div className="flex items-start text-sm gap-2">
-                        <span className="font-bold text-gray-700 shrink-0 min-w-[90px]">Map:</span>
-                        <a href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
-                          target="_blank" rel="noreferrer" className="text-blue-600 underline text-xs">
-                          View on Google Maps
-                        </a>
+                      <div className="mt-1 rounded-xl border border-blue-200 bg-blue-50 overflow-hidden">
+                        {/* Embedded map */}
+                        <div className="w-full" style={{ height: "160px" }}>
+                          <iframe
+                            title="saved-location-preview"
+                            className="w-full h-full border-0"
+                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(selectedRow["longitude"]) - 0.003},${Number(selectedRow["latitude"]) - 0.003},${Number(selectedRow["longitude"]) + 0.003},${Number(selectedRow["latitude"]) + 0.003}&layer=mapnik&marker=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
+                          />
+                        </div>
+                        {/* Footer below map */}
+                        <div className="px-3 py-2 flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold text-blue-800 font-mono">
+                              {Number(selectedRow["latitude"]).toFixed(6)},{" "}
+                              {Number(selectedRow["longitude"]).toFixed(6)}
+                            </p>
+                            <p className="text-xs text-blue-500 mt-0.5">
+                              {selectedRow["accuracy"]
+                                ? `GPS ±${selectedRow["accuracy"]}m`
+                                : "Manually pinned"}
+                            </p>
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-blue-600 underline px-2 py-1 rounded hover:bg-blue-100 transition-colors shrink-0"
+                          >
+                            Open in Maps ↗
+                          </a>
+                        </div>
                       </div>
+                    )}
+
+                    {/* No location yet */}
+                    {!selectedRow["latitude"] && !selectedRow["longitude"] && (
+                      <p className="text-xs text-gray-400 italic mt-1">
+                        No location saved yet — use Inspection Location in the review form.
+                      </p>
                     )}
                   </Section>
                 </div>
