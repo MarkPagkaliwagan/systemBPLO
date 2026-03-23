@@ -5,11 +5,12 @@ import { useState, useRef, useEffect } from "react";
 import {
   FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser,
   FiMapPin, FiBriefcase, FiCamera, FiUpload, FiTrash2, FiEdit2,
-  FiLoader, FiMap,
+  FiLoader, FiMap, FiActivity,
 } from "react-icons/fi";
 import { handlePhotoAndLocationUpload } from "@/lib/photoUpload";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
+import ActivityLogModal from "./Activitylogmodal";
 
 interface BusinessRecord {
   id: string;
@@ -129,6 +130,7 @@ export default function ReviewModal({
   const [editError, setEditError]             = useState<string | null>(null);
   const [showEditToast, setShowEditToast]     = useState(false);
   const [reviewedByName, setReviewedByName]   = useState<string>("");
+  const [showLog, setShowLog]                 = useState(false);
 
   // ── Fetch current user's full_name from localStorage → users table ────────
   useEffect(() => {
@@ -181,6 +183,21 @@ export default function ReviewModal({
       setTimeout(() => setShowEditToast(false), 2000);
       setIsEditing(false);
       onRecordUpdated?.(editForm);
+
+      // ── Log the edit action ───────────────────────────────────────────────
+      const changedFields = (Object.keys(rest) as (keyof typeof rest)[])
+        .filter((k) => (rest as any)[k] !== (selectedRow as any)[k])
+        .map((k) => String(k));
+      supabase.from("activity_log").insert({
+        bin: selectedRow["Business Identification Number"],
+        action: "edit",
+        performed_by: reviewedByName || "Unknown",
+        details: changedFields.length
+          ? `Fields edited: ${changedFields.slice(0, 5).join(", ")}${changedFields.length > 5 ? ` (+${changedFields.length - 5} more)` : ""}`
+          : "Record edited",
+      }).then(({ error }) => {
+        if (error) console.error("❌ activity log error:", error);
+      });
     } catch (err: any) {
       setEditError(err.message ?? "Save failed.");
     } finally {
@@ -193,6 +210,31 @@ export default function ReviewModal({
   const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
     // Inject the reviewer's name before passing up to page.tsx
     onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
+
+    // ── Log the review action ─────────────────────────────────────────────
+    const actionDetails: string[] = [];
+    if (reviewData.reviewActions?.length)
+      actionDetails.push(`Status: ${reviewData.reviewActions.join(", ")}`);
+    if (reviewData.violations?.length)
+      actionDetails.push(`Violations: ${reviewData.violations.join(", ")}`);
+    if (reviewData.assignedInspector)
+      actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
+    if (reviewData.scheduledDate)
+      actionDetails.push(`Scheduled: ${reviewData.scheduledDate}`);
+    if (reviewData.photoUrl)
+      actionDetails.push("Photo uploaded");
+    if (reviewData.location)
+      actionDetails.push("Location captured");
+
+    supabase.from("activity_log").insert({
+      bin: selectedRow["Business Identification Number"],
+      action: "review",
+      performed_by: reviewedByName || "Unknown",
+      details: actionDetails.join(" · ") || "Review saved",
+    }).then(({ error }) => {
+      if (error) console.error("❌ activity log error:", error);
+    });
+
     setShowSavedToast(true);
     if (isMobile) {
       setTimeout(() => { setShowSavedToast(false); onClose(); }, 1800);
@@ -270,7 +312,7 @@ export default function ReviewModal({
                 <p className="text-green-100 text-sm mt-1">{selectedRow["Business Name"]}</p>
               </div>
 
-              {/* Right side: reviewer pill + close button */}
+              {/* Right side: reviewer pill + activity log + close button */}
               <div className="flex items-center gap-2 shrink-0 ml-3">
                 {reviewedByName && (
                   <div className="flex items-center gap-1.5 bg-white/15 rounded-lg px-3 py-1.5">
@@ -280,6 +322,14 @@ export default function ReviewModal({
                     </span>
                   </div>
                 )}
+                <button
+                  onClick={() => setShowLog(true)}
+                  title="Activity Log"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-semibold transition-colors"
+                >
+                  <FiActivity className="w-3.5 h-3.5" />
+                  {!isMobile && <span>Log</span>}
+                </button>
                 <button
                   onClick={onClose}
                   className="text-white hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-white/20"
@@ -532,6 +582,15 @@ export default function ReviewModal({
         )}
       </div>
 
+      {/* Activity Log Modal */}
+      {showLog && (
+        <ActivityLogModal
+          bin={selectedRow["Business Identification Number"]}
+          businessName={selectedRow["Business Name"]}
+          onClose={() => setShowLog(false)}
+        />
+      )}
+
       {/* Delete Confirm Modal */}
       {showDelete && (
         <DeleteConfirmModal
@@ -715,6 +774,7 @@ function MapPickerModal({
     </div>
   );
 }
+
 
 // ── Review Form ───────────────────────────────────────────────────────────────
 function ReviewForm({
