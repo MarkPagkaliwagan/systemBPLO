@@ -261,7 +261,7 @@ export default function ReviewModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-gray-900/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
 
         {/* Mobile toast */}
         {isMobile && (
@@ -304,10 +304,19 @@ export default function ReviewModal({
           </div>
         </div>
 
-        <div className={`${isMobile ? "w-full max-w-full max-h-full" : "max-w-5xl w-full mx-4"} bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto`}>
+        <div
+          className={`${isMobile ? "w-full rounded-t-2xl max-h-[92vh]" : "max-w-5xl w-full mx-4 rounded-xl"} bg-white shadow-2xl overflow-y-auto`}
+          onClick={(e) => e.stopPropagation()}
+        >
 
           {/* ── Modal header ── */}
-          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-xl">
+          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-2xl">
+            {/* Drag handle — mobile only */}
+            {isMobile && (
+              <div className="flex justify-center mb-2">
+                <div className="w-10 h-1 bg-white/40 rounded-full" />
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className={`${isMobile ? "text-lg" : "text-2xl"} font-bold`}>Review Business</h2>
