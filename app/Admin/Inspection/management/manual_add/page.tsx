@@ -99,9 +99,9 @@ export default function ManualAddBusiness() {
         let v = value;
 
         // BIN must be digits only
-        if (label === BIN_FIELD) {
-            v = normalizeDigits(value);
-        }
+if (label === BIN_FIELD) {
+    v = normalizeDigits(value).slice(0, 12); // LIMIT to 12 digits
+}
 
         if (v === "") v = null;
 
@@ -153,11 +153,17 @@ export default function ManualAddBusiness() {
 
         const emailLabels = ["Requestor Email"];
 
-        if (label === BIN_FIELD) {
-            if (!/^\d+$/.test(v)) return "BIN must contain only numbers.";
-            if (binDuplicate) return "BIN already exists.";
-            return null;
-        }
+if (label === BIN_FIELD) {
+    if (!/^\d+$/.test(v)) return "BIN must contain only numbers.";
+
+    if (v.length < 9 || v.length > 12) {
+        return "BIN must be 9 to 12 digits only.";
+    }
+
+    if (binDuplicate) return "BIN already exists.";
+
+    return null;
+}
 
         if (integerOnlyLabels.includes(label)) {
             if (!/^\d+$/.test(v)) return `${label} must contain only numbers (no letters or symbols).`;
@@ -213,8 +219,10 @@ export default function ManualAddBusiness() {
         } else {
             const binVal = String(form[BIN_FIELD]).trim();
             if (!/^\d+$/.test(binVal)) {
-                foundErrors[BIN_FIELD] = "BIN must contain only numbers.";
-            } else {
+    foundErrors[BIN_FIELD] = "BIN must contain only numbers.";
+} else if (binVal.length < 9 || binVal.length > 12) {
+    foundErrors[BIN_FIELD] = "BIN must be 9 to 12 digits only.";
+} else {
                 const isDup = await checkBinDuplicateNow(binVal);
                 if (isDup) foundErrors[BIN_FIELD] = "BIN already exists.";
             }
@@ -423,22 +431,24 @@ export default function ManualAddBusiness() {
                     collapsible={false}
                     note="Main fields only"
                 >
-                    <Input
-                        label={BIN_FIELD}
-                        value={form[BIN_FIELD] ?? ""}
-                        onChange={handleChange}
-                        error={errors[BIN_FIELD]}
-                        inputMode="numeric"
-                        placeholder="Digits only"
-                        helperText={
-                            binChecking
-                                ? "Checking BIN..."
-                                : binDuplicate
-                                ? "This BIN already exists."
-                                : "Digits only."
-                        }
-                        required
-                    />
+<Input
+    label={BIN_FIELD}
+    value={form[BIN_FIELD] ?? ""}
+    onChange={handleChange}
+    error={errors[BIN_FIELD]}
+    inputMode="numeric"
+    placeholder="9 to 12 digits"
+helperText={
+    binChecking
+        ? "Checking BIN..."
+        : binDuplicate
+        ? "This BIN already exists."
+        : (form[BIN_FIELD]?.length || 0) < 9
+        ? `Minimum 9 digits (${(form[BIN_FIELD] ?? "").length}/12)`
+        : `${(form[BIN_FIELD] ?? "").length}/12 digits`
+}
+    required
+/>
                     <Input
                         label={BUSINESS_NAME_FIELD}
                         value={form[BUSINESS_NAME_FIELD] ?? ""}
