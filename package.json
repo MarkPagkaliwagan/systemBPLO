@@ -29,10 +29,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-<<<<<<< HEAD
-=======
     "@types/bcrypt": "^6.0.0",
->>>>>>> 3945e0102c215ebecb2b9d55aaf7550e787ffb43
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20.19.35",
     "@types/nodemailer": "^7.0.11",
