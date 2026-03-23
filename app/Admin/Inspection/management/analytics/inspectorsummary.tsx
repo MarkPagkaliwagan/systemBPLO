@@ -201,9 +201,10 @@ return (
   {/* Main Panel */}
   <div className="flex flex-col h-130 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     {/* Header */}
- <div className="border-b border-slate-200 bg-white px-4 py-4 shrink-0">
-  <div className="flex items-center justify-between gap-3">
-    {/* Left side: icon + title */}
+<div className="border-b border-slate-200 bg-white px-4 py-4 shrink-0">
+  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    
+    {/* Left side */}
     <div className="flex items-center gap-3">
       <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
         <FiClipboard size={18} className="text-white" />
@@ -218,12 +219,12 @@ return (
       </div>
     </div>
 
-    {/* Right side: Filter & Sort */}
-    <div className="flex items-center gap-2">
+    {/* Right side */}
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end md:w-auto">
       <select
         value={monthFilter}
         onChange={(e) => setMonthFilter(e.target.value)}
-        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
+        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none sm:w-auto"
       >
         <option value="">All Dates</option>
         <option value="last_7_days">Last 7 Days</option>
@@ -233,12 +234,13 @@ return (
 
       <button
         onClick={() => setSortAsc(!sortAsc)}
-        className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50"
+        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50 sm:w-auto"
       >
         {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
         Date
       </button>
     </div>
+
   </div>
 </div>
 
