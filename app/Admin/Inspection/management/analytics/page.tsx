@@ -214,10 +214,10 @@ function DashboardPageContent() {
   const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
   const mobileDropdownButtonRef  = useRef<HTMLButtonElement>(null);
 
-  const desktopScrollRef  = useRef<HTMLDivElement>(null);
-  const mobileScrollRef   = useRef<HTMLDivElement>(null);
-  const desktopTodayRef   = useRef<HTMLDivElement>(null);
-  const mobileTodayRef    = useRef<HTMLDivElement>(null);
+  const desktopScrollRef = useRef<HTMLDivElement>(null);
+  const mobileScrollRef  = useRef<HTMLDivElement>(null);
+  const desktopTodayRef  = useRef<HTMLDivElement>(null);
+  const mobileTodayRef   = useRef<HTMLDivElement>(null);
 
   const today = new Date();
 
@@ -230,7 +230,7 @@ function DashboardPageContent() {
   ];
   const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
 
-  // ── Auto-scroll to today ───────────────────────────────────────────────────
+  // ── FIX: use scrollIntoView — works regardless of offset parent ───────────
   useEffect(() => {
     const isCurrentMonth =
       scheduleMonth.getMonth() === today.getMonth() &&
@@ -239,13 +239,9 @@ function DashboardPageContent() {
     if (!isCurrentMonth) return;
 
     const t = setTimeout(() => {
-      if (desktopTodayRef.current && desktopScrollRef.current) {
-        desktopScrollRef.current.scrollTop = Math.max(0, desktopTodayRef.current.offsetTop - 12);
-      }
-      if (mobileTodayRef.current && mobileScrollRef.current) {
-        mobileScrollRef.current.scrollTop = Math.max(0, mobileTodayRef.current.offsetTop - 12);
-      }
-    }, 120);
+      desktopTodayRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+      mobileTodayRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    }, 150);
 
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -286,9 +282,65 @@ function DashboardPageContent() {
     fetchStatusCounts();
   }, []);
 
+  // ── FIX: log the raw data so we can see exactly what columns exist ─────────
   useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
+        // Step 1 — fetch everything with no filter so we can inspect the shape
+        const { data: allData, error: allError } = await supabase
+          .from('business_violations')
+          .select('*')
+          .limit(3);
+
+        if (allError) {
+          console.error('❌ business_violations table error:', allError);
+          return;
+        }
+
+        console.log('📋 business_violations sample rows:', allData);
+        console.log('📋 Column names:', allData?.[0] ? Object.keys(allData[0]) : 'no rows');
+
+        // Step 2 — fetch all rows for counting
+        const { data, error } = await supabase
+          .from('business_violations')
+          .select('*');
+
+        if (error) { console.error('fetchViolationCounts error:', error); return; }
+
+        const allRows = data ?? [];
+        console.log('📊 Total rows in business_violations:', allRows.length);
+
+        if (allRows.length === 0) {
+          setNotice1Count(0);
+          setNotice2Count(0);
+          setNotice3Count(0);
+          setActiveCasesCount(0);
+          setCeaseDesistCount(0);
+          return;
+        }
+
+        // Step 3 — detect which date column exists
+        const sampleRow = allRows[0];
+        const dateCol =
+          'created_at' in sampleRow ? 'created_at' :
+          'date_created' in sampleRow ? 'date_created' :
+          'violation_date' in sampleRow ? 'violation_date' :
+          'date' in sampleRow ? 'date' :
+          null;
+
+        console.log('📅 Using date column:', dateCol ?? 'NONE FOUND — showing all records');
+
+        // Step 4 — detect notice level column
+        const noticeLevelCol =
+          'notice_level' in sampleRow ? 'notice_level' :
+          'noticeLevel' in sampleRow ? 'noticeLevel' :
+          'level' in sampleRow ? 'level' :
+          'notice' in sampleRow ? 'notice' :
+          null;
+
+        console.log('📝 Using notice level column:', noticeLevelCol ?? 'NONE FOUND');
+
+        // Step 5 — compute date range
         const now = new Date();
         const start = new Date();
         switch (noticeRange) {
@@ -298,19 +350,30 @@ function DashboardPageContent() {
           case '6m': start.setMonth(now.getMonth() - 6); break;
           case '1yr': start.setFullYear(now.getFullYear() - 1); break;
         }
-        const { data, error } = await supabase
-          .from('business_violations')
-          .select('notice_level, resolved, created_at');
-        if (error) { console.error('fetchViolationCounts error:', error); return; }
-        const violations = (data ?? []).filter((v) => {
-          const createdAt = new Date(v.created_at);
-          return createdAt >= start && createdAt <= now;
-        });
-        setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
-        setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
-        setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
-        setActiveCasesCount(violations.filter(v => !v.resolved && v.notice_level <= 3).length);
-        setCeaseDesistCount(violations.filter(v => !v.resolved && v.notice_level > 3).length);
+
+        // Step 6 — filter by date if we found the column
+        const filtered = dateCol
+          ? allRows.filter((v) => {
+              const d = new Date(v[dateCol]);
+              return d >= start && d <= now;
+            })
+          : allRows; // no date column — show all
+
+        console.log(`📊 Filtered rows for range (${noticeRange}):`, filtered.length);
+
+        // Step 7 — count using detected column
+        const getLevel = (v: any) =>
+          noticeLevelCol ? (Number(v[noticeLevelCol]) || 0) : 0;
+
+        const isResolved = (v: any) =>
+          'resolved' in v ? Boolean(v.resolved) : false;
+
+        setNotice1Count(filtered.filter(v => getLevel(v) >= 1).length);
+        setNotice2Count(filtered.filter(v => getLevel(v) >= 2).length);
+        setNotice3Count(filtered.filter(v => getLevel(v) >= 3).length);
+        setActiveCasesCount(filtered.filter(v => !isResolved(v) && getLevel(v) >= 1 && getLevel(v) <= 3).length);
+        setCeaseDesistCount(filtered.filter(v => !isResolved(v) && getLevel(v) > 3).length);
+
       } catch (err) {
         console.error('fetchViolationCounts error:', err);
       }
