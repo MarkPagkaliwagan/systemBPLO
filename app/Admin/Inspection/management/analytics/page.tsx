@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   CheckCircle, AlertTriangle, ClipboardList, Building2,
-  Mail, Gavel, Ban, TrendingUp, Activity, ChevronLeft, ChevronRight,
+  Mail, Gavel, Ban, Activity, ChevronLeft, ChevronRight,
   ListChecks, ChevronDown, CalendarDays
 } from "lucide-react";
 
@@ -35,10 +35,7 @@ function DashboardPageContent() {
   const [activeCasesCount, setActiveCasesCount] = useState(0);
   const [ceaseDesistCount, setCeaseDesistCount] = useState(0);
 
-  const [dbSchedules, setDbSchedules] = useState<any[]>([]);
-
   const [mockEventsByDate, setMockEventsByDate] = useState<Record<string, any[]>>({});
-
   const [desktopMockEvents, setDesktopMockEvents] = useState<Record<number, any[]>>({});
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -199,21 +196,20 @@ function DashboardPageContent() {
   };
 
   const kpiData = [
-    { title: "Active Businesses", value: String(activeCount), icon: Building2, trend: "+15%", iconBg: "from-green-400 to-green-600", trendColor: "text-green-600" },
-    { title: "Compliant", value: String(compliantCount), icon: CheckCircle, trend: "+12%", iconBg: "from-green-400 to-green-600", trendColor: "text-green-600" },
-    { title: "For Inspection", value: String(forInspectionCount), icon: ClipboardList, trend: "+8%", iconBg: "from-yellow-400 to-yellow-600", trendColor: "text-yellow-500" },
-    { title: "Non-Compliant", value: String(nonCompliantCount), icon: AlertTriangle, trend: "-5%", iconBg: "from-red-400 to-red-600", trendColor: "text-red-500" },
+    { title: "Active Businesses", value: String(activeCount),      icon: Building2,    iconColor: "text-blue-400" },
+    { title: "Compliant",         value: String(compliantCount),   icon: CheckCircle,  iconColor: "text-green-400" },
+    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList, iconColor: "text-yellow-400" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount), icon: AlertTriangle, iconColor: "text-red-400" },
   ];
 
   const noticeStats = [
-    { title: "Notice 1 Sent", value: String(notice1Count), icon: Mail, color: "from-indigo-400 to-indigo-600" },
-    { title: "Notice 2 Sent", value: String(notice2Count), icon: Mail, color: "from-purple-400 to-purple-600" },
-    { title: "Notice 3 Sent", value: String(notice3Count), icon: Mail, color: "from-pink-400 to-pink-600" },
-    { title: "Active Cases", value: String(activeCasesCount), icon: Gavel, color: "from-orange-400 to-orange-600" },
-    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban, color: "from-red-500 to-red-700" },
+    { title: "Notice 1 Sent",  value: String(notice1Count),     icon: Mail,  iconColor: "text-indigo-400" },
+    { title: "Notice 2 Sent",  value: String(notice2Count),     icon: Mail,  iconColor: "text-purple-400" },
+    { title: "Notice 3 Sent",  value: String(notice3Count),     icon: Mail,  iconColor: "text-pink-400" },
+    { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, iconColor: "text-orange-400" },
+    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   iconColor: "text-red-400" },
   ];
 
-  // ── All existing calendar/schedule helpers — untouched ────────────────────
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -252,7 +248,6 @@ function DashboardPageContent() {
   const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
   const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
 
-  // ── Mobile Schedule Section — untouched ───────────────────────────────────
   const MobileScheduleSection = () => (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
@@ -336,24 +331,20 @@ function DashboardPageContent() {
               </div>
             </div>
 
+            {/* Mobile KPI cards */}
             <div className="grid grid-cols-4 gap-2">
               {kpiData.map((kpi, index) => (
-                <div key={index} className="group relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-3">
-                  <div className="relative z-10">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
-                        <kpi.icon size={16} className="text-white" />
-                      </div>
-                    </div>
-                    <div className="text-center mt-1">
-                      <p className="text-slate-500 text-xs font-medium mb-1 leading-tight">{kpi.title}</p>
-                      <h3 className="text-lg font-bold text-slate-800">{kpi.value}</h3>
-                    </div>
+                <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <kpi.icon size={12} className={`${kpi.iconColor} shrink-0`} />
                   </div>
+                  <p className="text-slate-500 text-xs font-medium mb-1 leading-tight">{kpi.title}</p>
+                  <h3 className="text-xl font-bold text-slate-800 leading-none">{kpi.value}</h3>
                 </div>
               ))}
             </div>
 
+            {/* Mobile Notice Stats */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
@@ -368,12 +359,12 @@ function DashboardPageContent() {
               </div>
               <div className="grid grid-cols-5 gap-1">
                 {noticeStats.map((stat, index) => (
-                  <div key={index} className="flex flex-col items-center p-2 rounded-xl bg-gradient-to-b from-slate-50 to-white border border-slate-100">
-                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md mb-1`}>
-                      <stat.icon size={13} className="text-white" />
+                  <div key={index} className="flex flex-col p-2 rounded-xl bg-white border border-slate-100">
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <stat.icon size={11} className={`${stat.iconColor} shrink-0`} />
                     </div>
-                    <p className="text-sm font-bold text-slate-800 leading-none">{stat.value}</p>
-                    <p className="text-center text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
+                    <p className="text-lg font-bold text-slate-800 leading-none">{stat.value}</p>
+                    <p className="text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
                   </div>
                 ))}
               </div>
@@ -407,24 +398,20 @@ function DashboardPageContent() {
               </div>
             </div>
 
+            {/* Desktop KPI cards */}
             <div className="grid grid-cols-4 gap-5 mb-5 shrink-0">
               {kpiData.map((kpi, index) => (
-                <div key={index} className="relative overflow-hidden bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${kpi.iconBg} flex items-center justify-center shadow-lg`}>
-                      <kpi.icon size={22} className="text-white" />
-                    </div>
-                    <div className={`flex items-center space-x-1 ${kpi.trendColor} text-sm font-semibold`}>
-                      <TrendingUp size={13} />
-                      <span>{kpi.trend}</span>
-                    </div>
+                <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <kpi.icon size={14} className={`${kpi.iconColor} shrink-0`} />
+                    <p className="text-sm text-slate-500 font-medium">{kpi.title}</p>
                   </div>
-                  <p className="text-slate-500 text-sm font-medium mb-1">{kpi.title}</p>
-                  <h3 className="text-3xl font-bold text-slate-800">{kpi.value}</h3>
+                  <h3 className="text-4xl font-bold text-slate-800 leading-none">{kpi.value}</h3>
                 </div>
               ))}
             </div>
 
+            {/* Desktop Notice Stats */}
             <div className="mb-5 shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
@@ -442,26 +429,23 @@ function DashboardPageContent() {
               </div>
               <div className="grid grid-cols-5 gap-5">
                 {noticeStats.map((stat, index) => (
-                  <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-4 flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg shrink-0`}>
-                      <stat.icon size={22} className="text-white" />
+                  <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <stat.icon size={13} className={`${stat.iconColor} shrink-0`} />
+                      <p className="text-xs text-slate-500 font-medium truncate">{stat.title}</p>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-slate-500 leading-tight truncate">{stat.title}</p>
-                      <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
-                    </div>
+                    <p className="text-3xl font-bold text-slate-800 leading-none">{stat.value}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── Schedule + Inspector Summary ── */}
+            {/* Schedule + Inspector Summary */}
             <div className="flex gap-5 flex-1 min-h-0 overflow-hidden">
 
-              {/* LEFT — Desktop Schedule (replaces calendar UI) */}
+              {/* LEFT — Desktop Schedule */}
               <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
-                  {/* Header */}
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
                     <div className="flex items-center gap-2">
                       <CalendarDays size={18} className="text-slate-500" />
@@ -478,8 +462,7 @@ function DashboardPageContent() {
                     </div>
                   </div>
 
-                  {/* Schedule list */}
-                 <div className="overflow-y-auto divide-y divide-slate-100" style={{ maxHeight: '460px' }}>
+                  <div className="overflow-y-auto divide-y divide-slate-100" style={{ maxHeight: '460px' }}>
                     {scheduleDays.map(({ day, date, events }) => {
                       const isDayToday =
                         day === today.getDate() &&
@@ -518,7 +501,6 @@ function DashboardPageContent() {
                       );
                     })}
                   </div>
-
                 </div>
               </div>
 
