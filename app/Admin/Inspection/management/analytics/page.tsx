@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   CheckCircle, AlertTriangle, ClipboardList, Building2,
@@ -13,7 +13,118 @@ import MobileBottomNav from "../../../../components/MobileBottomNav";
 import ProtectedRoute from "../../../../../components/ProtectedRoute";
 import { supabase } from "@/lib/supabaseClient";
 import InspectorSummary from "./inspectorsummary";
+import ReviewModal from "../Modal/reviewModal";
+
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
+
+interface BusinessRecord {
+  id: string;
+  "Business Identification Number": string;
+  "Business Name": string;
+  "Trade Name": string | null;
+  "Business Nature": string | null;
+  "Business Line": string | null;
+  "Business Type": string | null;
+  "Transmittal No.": string | null;
+  "Incharge First Name": string | null;
+  "Incharge Middle Name": string | null;
+  "Incharge Last Name": string | null;
+  "Incharge Extension Name": string | null;
+  "Incharge Sex": string | null;
+  "Citizenship": string | null;
+  "Office Street": string | null;
+  "Office Region": string | null;
+  "Office Province": string | null;
+  "Office Municipality": string | null;
+  "Office Barangay": string | null;
+  "Office Zipcode": string | null;
+  "Year": number | null;
+  "Capital": number | null;
+  "Gross Amount": number | null;
+  "Gross Amount Essential": number | null;
+  "Gross Amount Non-Essential": number | null;
+  "Reject Remarks": string | null;
+  "Module Type": string | null;
+  "Transaction Type": string | null;
+  "Requestor First Name": string | null;
+  "Requestor Middle Name": string | null;
+  "Requestor Last Name": string | null;
+  "Requestor Extension Name": string | null;
+  "Requestor Email": string | null;
+  "Requestor Mobile No.": string | null;
+  "Birth Date": string | null;
+  "Requestor Sex": string | null;
+  "Civil Status": string | null;
+  "Requestor Street": string | null;
+  "Requestor Province": string | null;
+  "Requestor Municipality": string | null;
+  "Requestor Barangay": string | null;
+  "Requestor Zipcode": string | null;
+  "Transaction ID": string | null;
+  "Reference No.": string | null;
+  "Brgy. Clearance Status": string | null;
+  "SITE Transaction Status": string | null;
+  "CORE Transaction Status": string | null;
+  "Transaction Date": string | null;
+  "SOA No.": string | null;
+  "Annual Amount": number | null;
+  "Term": string | null;
+  "Amount Paid": number | null;
+  "Balance": number | null;
+  "Payment Type": string | null;
+  "Payment Date": string | null;
+  "O.R. No.": string | null;
+  "Brgy. Clearance No.": string | null;
+  "O.R. Date": string | null;
+  "Permit No.": string | null;
+  "Business Plate No.": string | null;
+  "Actual Closure Date": string | null;
+  "Retirement Reason": string | null;
+  "Source Type": string | null;
+  violation: string | null;
+  review_action: string | null;
+  review_date: string | null;
+  reviewed_by: string | null;
+  status: string | null;
+  assigned_inspector: string | null;
+  scheduled_date: string | null;
+  schedule_time: string | null;
+  photo: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  accuracy: string | null;
+}
+
+// ── EventItem is defined OUTSIDE the component so it never remounts ──────────
+function EventItem({
+  event,
+  loadingBin,
+  onOpenReview,
+}: {
+  event: any;
+  loadingBin: string | null;
+  onOpenReview: (bin: string) => void;
+}) {
+  const isLoading = loadingBin === event.bin;
+  return (
+    <button
+      onClick={() => onOpenReview(event.bin)}
+      disabled={!!loadingBin}
+      className={`w-full text-left ${event.color} rounded-xl px-3 py-2 flex items-center justify-between shadow-sm
+        hover:opacity-90 active:scale-95 transition-all duration-150
+        ${loadingBin && !isLoading ? 'opacity-50' : ''}`}
+    >
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-white truncate">{event.title}</p>
+        {event.time && <p className="text-xs text-white/80 mt-0.5">{event.time}</p>}
+      </div>
+      {isLoading
+        ? <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-white rounded-full animate-spin shrink-0 ml-2" />
+        : <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
+      }
+    </button>
+  );
+}
 
 function DashboardPageContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -38,6 +149,9 @@ function DashboardPageContent() {
   const [mockEventsByDate, setMockEventsByDate] = useState<Record<string, any[]>>({});
   const [desktopMockEvents, setDesktopMockEvents] = useState<Record<number, any[]>>({});
 
+  const [reviewRecord, setReviewRecord] = useState<BusinessRecord | null>(null);
+  const [loadingBin, setLoadingBin] = useState<string | null>(null);
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
   const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
@@ -50,7 +164,6 @@ function DashboardPageContent() {
     { value: '6m', label: 'Last 6 Months' },
     { value: '1yr', label: 'Last 1 Year' },
   ];
-
   const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
 
   useEffect(() => {
@@ -88,6 +201,8 @@ function DashboardPageContent() {
     fetchStatusCounts();
   }, []);
 
+  // ── FIX: fetch ALL violations with no date filter, then filter client-side ─
+  // This avoids any timestamp format mismatch with Supabase
   useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
@@ -100,14 +215,26 @@ function DashboardPageContent() {
           case '6m': start.setMonth(now.getMonth() - 6); break;
           case '1yr': start.setFullYear(now.getFullYear() - 1); break;
         }
-        const fmt = (d: Date) => d.toISOString().replace('T', ' ').replace('Z', '').slice(0, 19);
+
         const { data, error } = await supabase
           .from('business_violations')
-          .select('notice_level, resolved, created_at')
-          .gte('created_at', fmt(start))
-          .lte('created_at', fmt(now));
-        if (error) { console.error('fetchViolationCounts error:', error); return; }
-        const violations = data ?? [];
+          .select('notice_level, resolved, created_at');
+
+        if (error) {
+          console.error('fetchViolationCounts error:', error);
+          return;
+        }
+
+        console.log('Total violations fetched:', data?.length, 'Sample:', data?.[0]);
+
+        // Filter by date range client-side to avoid timestamp format issues
+        const violations = (data ?? []).filter((v) => {
+          const createdAt = new Date(v.created_at);
+          return createdAt >= start && createdAt <= now;
+        });
+
+        console.log(`Violations in range (${noticeRange}):`, violations.length);
+
         setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
         setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
         setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
@@ -137,12 +264,18 @@ function DashboardPageContent() {
           `${r["Business Name"] ?? ""}` +
           (r["Business Name"] ? " — " : "") +
           `${r["Business Identification Number"]}`;
-        const event = { title, time: "", color: "bg-blue-500", colorDot: "bg-blue-500" };
+        const event = {
+          title,
+          time: "",
+          color: "bg-blue-500",
+          colorDot: "bg-blue-500",
+          bin: r["Business Identification Number"],
+        };
         if (!byDate[dateOnly]) byDate[dateOnly] = [];
         byDate[dateOnly].push(event);
         if (y === currentMonth.getFullYear() && m - 1 === currentMonth.getMonth()) {
           if (!byDay[d]) byDay[d] = [];
-          byDay[d].push({ title, time: "", color: "bg-blue-500" });
+          byDay[d].push({ title, time: "", color: "bg-blue-500", bin: r["Business Identification Number"] });
         }
       });
       setMockEventsByDate(byDate);
@@ -172,6 +305,52 @@ function DashboardPageContent() {
     setDropdownOpen(prev => !prev);
   };
 
+  // ── useCallback so the reference is stable and EventItem doesn't remount ───
+  const handleOpenReview = useCallback(async (bin: string) => {
+    setLoadingBin(bin);
+    const { data, error } = await supabase
+      .from("business_records")
+      .select("*")
+      .eq("Business Identification Number", bin)
+      .single();
+    setLoadingBin(null);
+    if (error || !data) { console.error("Failed to fetch record:", error); return; }
+    setReviewRecord(data as BusinessRecord);
+  }, []);
+
+  const handleReviewSave = async (reviewData: {
+    reviewActions: string[];
+    violations: string[];
+    assignedInspector?: string;
+    scheduledDate?: string;
+    scheduledTime?: string;
+    location?: { lat: number; lng: number; accuracy: number };
+    photo?: File;
+    photoUrl?: string;
+    reviewedBy?: string;
+  }) => {
+    if (!reviewRecord) return;
+    const updates: Record<string, any> = {
+      review_action: reviewData.reviewActions.join(", ") || null,
+      violation: reviewData.violations.join(", ") || null,
+      status: reviewData.reviewActions[reviewData.reviewActions.length - 1]?.toLowerCase().replace(/ /g, "_") ?? null,
+      review_date: new Date().toISOString(),
+      reviewed_by: reviewData.reviewedBy ?? null,
+      assigned_inspector: reviewData.assignedInspector ?? null,
+      scheduled_date: reviewData.scheduledDate ?? null,
+      schedule_time: reviewData.scheduledTime ?? null,
+      latitude: reviewData.location?.lat?.toString() ?? null,
+      longitude: reviewData.location?.lng?.toString() ?? null,
+      accuracy: reviewData.location?.accuracy?.toString() ?? null,
+      photo: reviewData.photoUrl ?? null,
+    };
+    await supabase
+      .from("business_records")
+      .update(updates)
+      .eq("Business Identification Number", reviewRecord["Business Identification Number"]);
+    setReviewRecord(null);
+  };
+
   const PortalDropdown = () => {
     if (!dropdownOpen || !dropdownPos) return null;
     return createPortal(
@@ -196,10 +375,10 @@ function DashboardPageContent() {
   };
 
   const kpiData = [
-    { title: "Active Businesses", value: String(activeCount),      icon: Building2,    iconColor: "text-blue-400" },
-    { title: "Compliant",         value: String(compliantCount),   icon: CheckCircle,  iconColor: "text-green-400" },
+    { title: "Active Businesses", value: String(activeCount),        icon: Building2,     iconColor: "text-blue-400" },
+    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   iconColor: "text-green-400" },
     { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList, iconColor: "text-yellow-400" },
-    { title: "Non-Compliant",     value: String(nonCompliantCount), icon: AlertTriangle, iconColor: "text-red-400" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle, iconColor: "text-red-400" },
   ];
 
   const noticeStats = [
@@ -221,16 +400,8 @@ function DashboardPageContent() {
   const prevMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)); setSelectedDay(null); };
   const nextMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)); setSelectedDay(null); };
 
-  const monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
   const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
   const today = new Date();
-
-  const isToday = (day: number) =>
-    day === today.getDate() &&
-    currentMonth.getMonth() === today.getMonth() &&
-    currentMonth.getFullYear() === today.getFullYear();
-
-  const isSelected = (day: number) => day === selectedDay;
 
   const getScheduleDaysForMonth = (month: Date) => {
     const year = month.getFullYear();
@@ -282,14 +453,13 @@ function DashboardPageContent() {
               </div>
               <div className="flex-1 space-y-1.5 min-w-0">
                 {events.length > 0 ? (
-                  events.map((event, i) => (
-                    <div key={i} className={`${event.color} rounded-xl px-3 py-2 flex items-center justify-between shadow-sm`}>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-white truncate">{event.title}</p>
-                        <p className="text-xs text-white/80 mt-0.5">{event.time}</p>
-                      </div>
-                      <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
-                    </div>
+                  events.map((event: any, i: number) => (
+                    <EventItem
+                      key={i}
+                      event={event}
+                      loadingBin={loadingBin}
+                      onOpenReview={handleOpenReview}
+                    />
                   ))
                 ) : (
                   <div className="flex items-center h-8">
@@ -316,6 +486,18 @@ function DashboardPageContent() {
 
       <PortalDropdown />
 
+      {reviewRecord && (
+        <ReviewModal
+          selectedRow={reviewRecord}
+          showReviewModal={true}
+          isMobile={isMobile}
+          onClose={() => setReviewRecord(null)}
+          onSave={handleReviewSave}
+          onRecordUpdated={(updated) => setReviewRecord(updated)}
+          onRecordDeleted={() => setReviewRecord(null)}
+        />
+      )}
+
       {/* ── MOBILE ── */}
       {isMobile && (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -331,7 +513,6 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* Mobile KPI cards */}
             <div className="grid grid-cols-4 gap-2">
               {kpiData.map((kpi, index) => (
                 <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-3">
@@ -344,7 +525,6 @@ function DashboardPageContent() {
               ))}
             </div>
 
-            {/* Mobile Notice Stats */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
@@ -398,7 +578,6 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* Desktop KPI cards */}
             <div className="grid grid-cols-4 gap-5 mb-5 shrink-0">
               {kpiData.map((kpi, index) => (
                 <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-5">
@@ -411,7 +590,6 @@ function DashboardPageContent() {
               ))}
             </div>
 
-            {/* Desktop Notice Stats */}
             <div className="mb-5 shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
@@ -440,10 +618,8 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* Schedule + Inspector Summary */}
             <div className="flex gap-5 flex-1 min-h-0 overflow-hidden">
 
-              {/* LEFT — Desktop Schedule */}
               <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
@@ -482,14 +658,13 @@ function DashboardPageContent() {
                           </div>
                           <div className="flex-1 space-y-1.5 min-w-0">
                             {events.length > 0 ? (
-                              events.map((event, i) => (
-                                <div key={i} className="bg-blue-500 rounded-xl px-3 py-2 flex items-center justify-between shadow-sm">
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-white truncate">{event.title}</p>
-                                    {event.time && <p className="text-xs text-white/80 mt-0.5">{event.time}</p>}
-                                  </div>
-                                  <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
-                                </div>
+                              events.map((event: any, i: number) => (
+                                <EventItem
+                                  key={i}
+                                  event={event}
+                                  loadingBin={loadingBin}
+                                  onOpenReview={handleOpenReview}
+                                />
                               ))
                             ) : (
                               <div className="flex items-center h-8">
@@ -504,7 +679,6 @@ function DashboardPageContent() {
                 </div>
               </div>
 
-              {/* RIGHT — Inspector Summary */}
               <div className="w-1/2 min-h-0 overflow-y-auto rounded-2xl">
                 <InspectorSummary />
               </div>
