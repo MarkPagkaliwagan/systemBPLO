@@ -7,32 +7,45 @@ import Spinner from "./components/Spinner";
 import EmailVerificationModal from "./components/EmailVerificationModal";
 import LoginOtpModal from "./components/LoginOtpModal";
 import PageLoader from "./components/Pageloader";
+import InvalidCredentialsModal from "./components/Invalidcredentialsmodal";
 
 export default function LoginPage() {
+  // ── Form state ─────────────────────────────────────────────────────────
   const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
-  const [otpUser, setOtpUser] = useState<any>(null);
-  const [verificationUser, setVerificationUser] = useState<any>(null);
-  const [otpError, setOtpError] = useState("");
-  const [verificationError, setVerificationError] = useState("");
-  const [verificationSuccess, setVerificationSuccess] = useState("");
-  const [otpSuccess, setOtpSuccess] = useState("");
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [verificationLoading, setVerificationLoading] = useState(false);
+
+  // ── Loaders ────────────────────────────────────────────────────────────
   const [pageLoading, setPageLoading] = useState(true);
+  // redirecting: true shows the PageLoader overlay while we navigate away
   const [redirecting, setRedirecting] = useState(false);
 
-  // ── Sidebar-style page loader: show for at least 2 seconds ──
+  // ── Invalid-credentials modal ──────────────────────────────────────────
+  const [showInvalidModal, setShowInvalidModal] = useState(false);
+  const [invalidMessage, setInvalidMessage] = useState("");
+
+  // ── OTP modal ──────────────────────────────────────────────────────────
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpUser, setOtpUser] = useState<any>(null);
+  const [otpError, setOtpError] = useState("");
+  const [otpSuccess, setOtpSuccess] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // ── Email-verification modal ───────────────────────────────────────────
+  const [showEmailVerificationModal, setShowEmailVerificationModal] =
+    useState(false);
+  const [verificationUser, setVerificationUser] = useState<any>(null);
+  const [verificationError, setVerificationError] = useState("");
+  const [verificationSuccess, setVerificationSuccess] = useState("");
+  const [verificationLoading, setVerificationLoading] = useState(false);
+
+  // ── Page loader: show for at least 2 s on initial load ────────────────
   useEffect(() => {
     const start = Date.now();
-    const minDuration = 2000;
+    const MIN = 2000;
 
     const finish = () => {
-      const elapsed = Date.now() - start;
-      const remaining = Math.max(0, minDuration - elapsed);
+      const remaining = Math.max(0, MIN - (Date.now() - start));
       setTimeout(() => setPageLoading(false), remaining);
     };
 
@@ -40,41 +53,49 @@ export default function LoginPage() {
       finish();
     } else {
       window.addEventListener("load", finish, { once: true });
-      // Fallback in case load already fired
-      const fallback = setTimeout(finish, minDuration + 500);
+      const fallback = setTimeout(finish, MIN + 500);
       return () => clearTimeout(fallback);
     }
   }, []);
 
-  // Single-session check: if already logged in, redirect to dashboard
+  // ── Single-session guard ───────────────────────────────────────────────
   useEffect(() => {
     const userData = localStorage.getItem("user");
     const sessionExpiry = localStorage.getItem("sessionExpiry");
 
     if (userData && sessionExpiry) {
-      const isExpired = Date.now() > Number(sessionExpiry);
-      if (!isExpired) {
-        try {
-          const user = JSON.parse(userData);
-          window.location.href =
-            user.role === "super_admin"
-              ? "/SuperAdmin/Inspection/management/analytics"
-              : "/Admin/Inspection/management/analytics";
-        } catch {
-          localStorage.removeItem("user");
-          localStorage.removeItem("sessionExpiry");
-        }
-      } else {
+      if (Date.now() > Number(sessionExpiry)) {
+        localStorage.removeItem("user");
+        localStorage.removeItem("sessionExpiry");
+        return;
+      }
+      try {
+        const user = JSON.parse(userData);
+        // admin → /SuperAdmin/...
+        // staff → /Admin/...
+        const destination = 
+          user.role === "admin"
+            ? "/SuperAdmin/Inspection/management/analytics"
+            : "/Admin/Inspection/management/analytics";
+        window.location.replace(destination);
+      } catch {
         localStorage.removeItem("user");
         localStorage.removeItem("sessionExpiry");
       }
     }
   }, []);
 
+  // ── Helpers ────────────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const showError = (message: string) => {
+    setInvalidMessage(message);
+    setShowInvalidModal(true);
+  };
+
+  // ── Submit ─────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -107,27 +128,20 @@ export default function LoginPage() {
           handleSuccessfulLogin(data);
         }
       } else {
-        alert(data.error || "Login failed");
+        showError(data.error || "Invalid credentials. Please try again.");
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Network error. Please try again.");
+    } catch (err) {
+      console.error("Login error:", err);
+      showError("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOtpModalClose = () => {
-    if (!otpLoading) {
-      setShowOtpModal(false);
-      setOtpUser(null);
-      setOtpError("");
-    }
-  };
-
+  // ── OTP ────────────────────────────────────────────────────────────────
   const sendOtp = async (email: string, userId: string) => {
     try {
-      const response = await fetch("/api/auth/send-otp", {
+      const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -135,10 +149,10 @@ export default function LoginPage() {
           password: form.password,
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to send OTP");
-    } catch (error) {
-      console.error("Send OTP error:", error);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send OTP");
+    } catch (err) {
+      console.error("Send OTP error:", err);
       setOtpError("Failed to send OTP. Please try again.");
     }
   };
@@ -148,31 +162,28 @@ export default function LoginPage() {
     setOtpError("");
 
     try {
-      const response = await fetch("/api/auth/verify-otp", {
+      const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: otpUser.email,
-          otp: otp,
+          otp,
           userId: otpUser.id,
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (response.ok) {
+      if (res.ok) {
         setOtpSuccess("Login verification successful!");
-        // After 1.5s success message, close modal and show PageLoader before redirect
-        setTimeout(() => {
-          setShowOtpModal(false);
-          setRedirecting(true);          // ← triggers PageLoader
-          handleSuccessfulLogin(data);
-        }, 1500);
+        // Close the OTP modal, show the full-page loader, then navigate
+        setShowOtpModal(false);
+        handleSuccessfulLogin(data);
       } else {
         setOtpError(data.error || "Invalid OTP. Please try again.");
       }
-    } catch (error) {
-      console.error("OTP verification error:", error);
+    } catch (err) {
+      console.error("OTP verification error:", err);
       setOtpError("Network error. Please try again.");
     } finally {
       setOtpLoading(false);
@@ -188,22 +199,79 @@ export default function LoginPage() {
     }
   };
 
+  const handleOtpModalClose = () => {
+    if (!otpLoading) {
+      setShowOtpModal(false);
+      setOtpUser(null);
+      setOtpError("");
+    }
+  };
+
+  // ── Email verification ─────────────────────────────────────────────────
   const sendVerificationEmail = async (email: string, userId: string) => {
     setVerificationError("");
     try {
-      const response = await fetch("/api/auth/send-verification-email", {
+      const res = await fetch("/api/auth/send-verification-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, userId }),
       });
-      const data = await response.json();
-      if (!response.ok)
+      const data = await res.json();
+      if (!res.ok)
         throw new Error(data.error || "Failed to send verification email");
-    } catch (error) {
-      console.error("Send verification email error:", error);
+    } catch (err) {
+      console.error("Send verification email error:", err);
       setVerificationError(
         "Failed to send verification email. Please try again."
       );
+    }
+  };
+
+  const handleEmailVerification = async (otp: string) => {
+    setVerificationLoading(true);
+    setVerificationError("");
+
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: verificationUser.email,
+          otp,
+          userId: verificationUser.id,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setVerificationSuccess("Your email has been verified successfully!");
+        setShowEmailVerificationModal(false);
+        setVerificationUser(null);
+        handleSuccessfulLogin({
+          user: data.user,
+          expiresIn: 24 * 60 * 60 * 1000,
+        });
+      } else {
+        setVerificationError(
+          data.error || "Invalid verification code. Please try again."
+        );
+      }
+    } catch (err) {
+      console.error("Email verification error:", err);
+      setVerificationError("Network error. Please try again.");
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
+  const handleEmailVerificationResend = async () => {
+    setVerificationError("");
+    setVerificationLoading(true);
+    try {
+      await sendVerificationEmail(verificationUser.email, verificationUser.id);
+    } finally {
+      setVerificationLoading(false);
     }
   };
 
@@ -215,91 +283,50 @@ export default function LoginPage() {
     }
   };
 
-  const handleEmailVerification = async (otp: string) => {
-    setVerificationLoading(true);
-    setVerificationError("");
-
-    try {
-      const response = await fetch("/api/auth/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: verificationUser.email,
-          otp: otp,
-          userId: verificationUser.id,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setVerificationSuccess("Your email has been verified successfully!");
-        setTimeout(() => {
-          setShowEmailVerificationModal(false);
-          setVerificationUser(null);
-          handleSuccessfulLogin({
-            user: data.user,
-            expiresIn: 24 * 60 * 60 * 1000,
-          });
-        }, 1500);
-      } else {
-        setVerificationError(
-          data.error || "Invalid verification code. Please try again."
-        );
-      }
-    } catch (error) {
-      console.error("Email verification error:", error);
-      setVerificationError("Network error. Please try again.");
-    } finally {
-      setVerificationLoading(false);
-    }
-  };
-
-  const handleEmailVerificationResend = async () => {
-    setVerificationError("");
-    setVerificationLoading(true);
-    try {
-      await sendVerificationEmail(
-        verificationUser.email,
-        verificationUser.id
-      );
-    } finally {
-      setVerificationLoading(false);
-    }
-  };
-
+  // ── Successful login ───────────────────────────────────────────────────
   const handleSuccessfulLogin = (data: any) => {
     const expiresIn =
-      typeof data.expiresIn === "number"
-        ? data.expiresIn
-        : 24 * 60 * 60 * 1000;
+      typeof data.expiresIn === "number" ? data.expiresIn : 24 * 60 * 60 * 1000;
     const expiry = String(Date.now() + expiresIn);
     const userJson = JSON.stringify(data.user);
 
+    // Write to storage first
     localStorage.setItem("user", userJson);
     localStorage.setItem("sessionExpiry", expiry);
     sessionStorage.setItem("user", userJson);
     sessionStorage.setItem("sessionExpiry", expiry);
 
+    // Show the PageLoader overlay immediately
+    setRedirecting(true);
+
     const destination =
-      data.user.role === "super_admin"
+      data.user.role === "admin"
         ? "/SuperAdmin/Inspection/management/analytics"
         : "/Admin/Inspection/management/analytics";
 
-    // 2-second delay so the PageLoader is visible before navigating
+    // Small delay so PageLoader renders visibly before the browser navigates
     setTimeout(() => {
+      // Force redirect and ensure PageLoader is hidden
+      setRedirecting(false);
       window.location.href = destination;
+    }, 500);
+
+    // Fallback redirect in case setTimeout doesn't work
+    setTimeout(() => {
+      window.location.replace(destination);
     }, 2000);
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <>
-      {/* PageLoader: shown on initial page load AND after OTP success → redirect */}
+      {/* PageLoader covers both initial page load and post-login redirect */}
       <PageLoader isVisible={pageLoading || redirecting} />
 
       <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 sm:p-6 font-sans text-gray-900">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-sm min-h-[600px] flex flex-col justify-between">
           <div>
+            {/* Logo */}
             <div className="flex justify-center mb-6">
               <img
                 src="/bplo-logo.png"
@@ -307,12 +334,16 @@ export default function LoginPage() {
                 className="w-36 h-36 object-contain rounded-full"
               />
             </div>
+
+            {/* Headings */}
             <h2 className="text-md font-bold text-gray-800 text-center mb-2">
               Business Permit and Licensing Office
             </h2>
             <p className="text-sm font-bold text-gray-800 text-center mb-6">
               Inspection Management System
             </p>
+
+            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               <input
                 type="text"
@@ -322,6 +353,7 @@ export default function LoginPage() {
                 onChange={handleChange}
                 required
               />
+
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -339,6 +371,7 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+
               <div className="text-right">
                 <Link
                   href="/forgot-password"
@@ -347,6 +380,7 @@ export default function LoginPage() {
                   Forgot your password?
                 </Link>
               </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -358,6 +392,14 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Modals ─────────────────────────────────────────────────────────── */}
+
+      <InvalidCredentialsModal
+        isOpen={showInvalidModal}
+        onClose={() => setShowInvalidModal(false)}
+        message={invalidMessage}
+      />
 
       <LoginOtpModal
         isOpen={showOtpModal}

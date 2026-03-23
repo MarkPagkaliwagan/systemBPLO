@@ -50,7 +50,7 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
   const userRole = getUserData().role;
 
   const getNavItems = (): NavItem[] => {
-    if (userRole === 'super_admin') {
+    if (userRole === 'admin') {
       return [
         { id: "home",              label: "Home",              icon: <FiHome className="w-6 h-6" />,        href: "/SuperAdmin/Inspection/management/analytics" },
         { id: "scheduling",        label: "Scheduling",        icon: <FiBookOpen className="w-6 h-6" />,    href: "/SuperAdmin/Inspection/management/review"    },

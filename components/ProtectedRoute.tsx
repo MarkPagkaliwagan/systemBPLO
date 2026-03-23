@@ -5,13 +5,25 @@ import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'super_admin';
+  requiredRole?: 'admin' | 'staff';
   redirectTo?: string;
 }
 
+/**
+ * Role hierarchy:
+ *   admin (2) — full access    → /SuperAdmin/...
+ *   staff (1) — limited access → /Admin/...
+ *
+ * A higher-ranked role automatically satisfies a lower requirement.
+ * e.g. requiredRole="staff" also allows admin users through.
+ *
+ * Default is 'staff' (least-privileged) so all authenticated users
+ * can access pages that don't explicitly require admin.
+ * Pages under /SuperAdmin must explicitly pass requiredRole="admin".
+ */
 const ROLE_HIERARCHY: Record<string, number> = {
-  admin: 1,
-  super_admin: 2,
+  staff: 1,
+  admin: 2,
 };
 
 function hasRequiredRole(userRole: string, requiredRole: string): boolean {
@@ -19,20 +31,21 @@ function hasRequiredRole(userRole: string, requiredRole: string): boolean {
 }
 
 function getDefaultRedirect(role?: string): string {
-  if (role === 'admin') return '/Admin/Inspection/management/analytics';
-  if (role === 'super_admin') return '/SuperAdmin/users';
+  if (role === 'admin') return '/SuperAdmin/Inspection/management/analytics';
+  if (role === 'staff') return '/Admin/Inspection/management/analytics';
   return '/';
 }
 
 export default function ProtectedRoute({
   children,
-  requiredRole = 'admin',
+  requiredRole = 'staff', // ← changed from 'admin' to 'staff'
   redirectTo,
 }: ProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  const roleOk = isAuthenticated && !!user?.role && hasRequiredRole(user.role, requiredRole);
+  const roleOk =
+    isAuthenticated && !!user?.role && hasRequiredRole(user.role, requiredRole);
 
   useEffect(() => {
     if (isLoading) return;
@@ -47,7 +60,7 @@ export default function ProtectedRoute({
     }
   }, [isLoading, isAuthenticated, roleOk, user?.role, router, redirectTo]);
 
-  // Show spinner while loading OR while redirect is in-flight
+  // Show spinner while loading or while a redirect is in-flight
   if (isLoading || !isAuthenticated || !roleOk) {
     return (
       <div className="min-h-screen flex items-center justify-center">
