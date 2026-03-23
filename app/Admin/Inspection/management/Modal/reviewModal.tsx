@@ -261,7 +261,7 @@ export default function ReviewModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-gray-900/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
 
         {/* Mobile toast */}
         {isMobile && (
@@ -304,10 +304,19 @@ export default function ReviewModal({
           </div>
         </div>
 
-        <div className={`${isMobile ? "w-full max-w-full max-h-full" : "max-w-5xl w-full mx-4"} bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto`}>
+        <div
+          className={`${isMobile ? "w-full rounded-t-2xl max-h-[92vh]" : "max-w-5xl w-full mx-4 rounded-xl"} bg-white shadow-2xl overflow-y-auto`}
+          onClick={(e) => e.stopPropagation()}
+        >
 
           {/* ── Modal header ── */}
-          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-xl">
+          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-2xl">
+            {/* Drag handle — mobile only */}
+            {isMobile && (
+              <div className="flex justify-center mb-2">
+                <div className="w-10 h-1 bg-white/40 rounded-full" />
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className={`${isMobile ? "text-lg" : "text-2xl"} font-bold`}>Review Business</h2>
@@ -695,29 +704,52 @@ function MapPickerModal({
       await import("leaflet/dist/leaflet.css" as any);
       if (!mapRef.current || !isMounted) return;
 
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      // Fix broken Leaflet icons in webpack/Next.js by using a custom icon
+      const customIcon = L.divIcon({
+        className: "",
+        html: `
+          <div style="
+            width: 28px;
+            height: 28px;
+            background: #2563eb;
+            border: 3px solid white;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+          "></div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28],
       });
 
       // Start with fallback center, then move to device location if no initial coords
       const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 15);
       mapInstance.current = map;
 
-      // If no initial pin, try to fly to the device's current location
+      // If no initial pin, get device location, place pin + fly there
       if (!initialLat && !initialLng && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             if (!isMounted || !mapInstance.current) return;
-            mapInstance.current.flyTo(
-              [pos.coords.latitude, pos.coords.longitude],
-              16,
-              { animate: true, duration: 1 }
-            );
+            const { latitude: lat, longitude: lng } = pos.coords;
+
+            // Fly to device location
+            mapInstance.current.flyTo([lat, lng], 16, { animate: true, duration: 1 });
+
+            // Place pin automatically at current location
+            setPinned({ lat, lng });
+            if (markerRef.current) {
+              markerRef.current.setLatLng([lat, lng]);
+            } else {
+              markerRef.current = L.marker([lat, lng], { icon: customIcon, draggable: true }).addTo(mapInstance.current);
+              markerRef.current.on("dragend", (ev: any) => {
+                const p = ev.target.getLatLng();
+                setPinned({ lat: p.lat, lng: p.lng });
+              });
+            }
           },
-          () => {}, // silently fail — keeps fallback center
+          () => {}, // silently fail — keeps fallback center, no auto pin
           { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
         );
       }
@@ -728,7 +760,7 @@ function MapPickerModal({
       }).addTo(map);
 
       if (initialLat && initialLng) {
-        markerRef.current = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+        markerRef.current = L.marker([initialLat, initialLng], { icon: customIcon, draggable: true }).addTo(map);
         markerRef.current.on("dragend", (e: any) => {
           const pos = e.target.getLatLng();
           setPinned({ lat: pos.lat, lng: pos.lng });
@@ -741,7 +773,7 @@ function MapPickerModal({
         if (markerRef.current) {
           markerRef.current.setLatLng([lat, lng]);
         } else {
-          markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(map);
+          markerRef.current = L.marker([lat, lng], { icon: customIcon, draggable: true }).addTo(map);
           markerRef.current.on("dragend", (ev: any) => {
             const pos = ev.target.getLatLng();
             setPinned({ lat: pos.lat, lng: pos.lng });
