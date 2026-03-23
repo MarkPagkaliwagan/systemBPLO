@@ -290,7 +290,7 @@ export default function InspectorSummary() {
                           {inspector.name}
                         </div>
                         <div className="text-[11px] text-slate-400">
-                          Last: {formatDate(inspector.latest)}
+                          Last Update: {formatDate(inspector.latest)}
                         </div>
                       </div>
 
