@@ -13,6 +13,7 @@ import MobileBottomNav from "../../../../components/MobileBottomNav";
 import ProtectedRoute from "../../../../../components/ProtectedRoute";
 import { supabase } from "@/lib/supabaseClient";
 import InspectorSummary from "./inspectorsummary";
+
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
 function DashboardPageContent() {
@@ -100,12 +101,13 @@ function DashboardPageContent() {
           case '6m': start.setMonth(now.getMonth() - 6); break;
           case '1yr': start.setFullYear(now.getFullYear() - 1); break;
         }
-        const fmt = (d: Date) => d.toISOString().replace('T', ' ').replace('Z', '').slice(0, 19);
+
         const { data, error } = await supabase
           .from('business_violations')
           .select('notice_level, resolved, created_at')
-          .gte('created_at', fmt(start))
-          .lte('created_at', fmt(now));
+          .gte('created_at', start.toISOString())
+          .lte('created_at', now.toISOString());
+
         if (error) { console.error('fetchViolationCounts error:', error); return; }
         const violations = data ?? [];
         setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
@@ -196,10 +198,10 @@ function DashboardPageContent() {
   };
 
   const kpiData = [
-    { title: "Active Businesses", value: String(activeCount),      icon: Building2,    iconColor: "text-blue-400" },
-    { title: "Compliant",         value: String(compliantCount),   icon: CheckCircle,  iconColor: "text-green-400" },
+    { title: "Active Businesses", value: String(activeCount),        icon: Building2,     iconColor: "text-blue-400" },
+    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   iconColor: "text-green-400" },
     { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList, iconColor: "text-yellow-400" },
-    { title: "Non-Compliant",     value: String(nonCompliantCount), icon: AlertTriangle, iconColor: "text-red-400" },
+    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle, iconColor: "text-red-400" },
   ];
 
   const noticeStats = [
@@ -221,16 +223,8 @@ function DashboardPageContent() {
   const prevMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)); setSelectedDay(null); };
   const nextMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)); setSelectedDay(null); };
 
-  const monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
   const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
   const today = new Date();
-
-  const isToday = (day: number) =>
-    day === today.getDate() &&
-    currentMonth.getMonth() === today.getMonth() &&
-    currentMonth.getFullYear() === today.getFullYear();
-
-  const isSelected = (day: number) => day === selectedDay;
 
   const getScheduleDaysForMonth = (month: Date) => {
     const year = month.getFullYear();
