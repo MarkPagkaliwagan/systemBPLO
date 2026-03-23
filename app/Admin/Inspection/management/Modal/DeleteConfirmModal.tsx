@@ -10,7 +10,7 @@ interface DeleteConfirmModalProps {
   businessName: string;
   bin: string;
   onClose: () => void;
-  onDeleted: (id: string) => void;
+  onDeleted: (bin: string) => void;
   isMobile: boolean;
 }
 
@@ -37,11 +37,11 @@ export default function DeleteConfirmModal({
       const { error: sbError } = await supabase
         .from("business_records")
         .delete()
-        .eq("id", recordId);
+        .eq("Business Identification Number", bin);
 
       if (sbError) throw new Error(sbError.message);
 
-      onDeleted(recordId);
+      onDeleted(bin);
       onClose();
     } catch (err: any) {
       setError(err.message ?? "Delete failed. Please try again.");
