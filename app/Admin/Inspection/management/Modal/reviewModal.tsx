@@ -10,7 +10,7 @@ import {
 import { handlePhotoAndLocationUpload } from "@/lib/photoUpload";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
-import ActivityLogModal from "./ActivityLogModal";
+import ActivityLogModal from "./Activitylogmodal";
 
 interface BusinessRecord {
   id: string;
