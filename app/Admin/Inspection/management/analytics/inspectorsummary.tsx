@@ -85,21 +85,25 @@ export default function InspectorSummary() {
   }, []);
 
   async function fetchData() {
-    const { data } = await supabase
-      .from("business_records")
-      .select(
-        `assigned_inspector,
-         "Business Identification Number",
-         "Business Name",
-         scheduled_date`
-      );
+const { data, error } = await supabase
+  .from("business_records")
+  .select(`
+    assigned_inspector,
+    "Business Identification Number",
+    "Business Name",
+    scheduled_date
+  `);
 
-    const rows = data || [];
-    setRecords(rows);
+if (error) {
+  console.error("Supabase error:", error);
+}
+
+const rows = data || [];
+setRecords(rows);
 
 const grouped: Record<string, number> = {};
 
-records.forEach((r) => {
+rows.forEach((r) => {
   const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
 
   // Apply same filter as filteredRecords
