@@ -14,13 +14,13 @@ type RecordType = {
   "Business Identification Number": string | null;
   "Business Name": string | null;
   scheduled_date: string | null;
-  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 type InspectorCount = {
   name: string;
   total: number;
-  latest: number;
+  latest: number | null;
 };
 
 function parseAssignedInspectors(value: string | null | undefined): string[] {
@@ -46,11 +46,11 @@ function parseAssignedInspectors(value: string | null | undefined): string[] {
   return [trimmed];
 }
 
-function formatDate(dateString: string | null) {
-  if (!dateString) return "-";
+function formatDate(dateValue: string | number | null) {
+  if (dateValue === null || dateValue === undefined || dateValue === "") return "-";
 
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return dateString;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "-";
 
   return date.toLocaleDateString("en-US", {
     year: "numeric",
@@ -72,104 +72,114 @@ function getBarTheme(index: number) {
   return themes[index % themes.length];
 }
 
+function isWithinPeriod(dateString: string | null, period: string) {
+  if (!dateString) return false;
+
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const now = new Date();
+
+  switch (period) {
+    case "last_7_days": {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(now.getDate() - 7);
+      return date >= sevenDaysAgo && date <= now;
+    }
+
+    case "last_month": {
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      return date >= lastMonth && date < thisMonth;
+    }
+
+    case "last_year": {
+      const lastYear = new Date(now.getFullYear() - 1, 0, 1);
+      const thisYear = new Date(now.getFullYear(), 0, 1);
+      return date >= lastYear && date < thisYear;
+    }
+
+    default:
+      return true;
+  }
+}
+
 export default function InspectorSummary() {
   const [records, setRecords] = useState<RecordType[]>([]);
-  const [inspectors, setInspectors] = useState<InspectorCount[]>([]);
   const [selectedInspector, setSelectedInspector] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
-const [modalSortAsc, setModalSortAsc] = useState(true);
+
+  const [modalSortAsc, setModalSortAsc] = useState(true);
   const [modalMonth, setModalMonth] = useState("");
 
-
   useEffect(() => {
-  fetchData();
-}, [monthFilter, sortAsc]);
+    fetchData();
+  }, []);
 
   async function fetchData() {
-const { data, error } = await supabase
-  .from("business_records")
-.select(`
-  assigned_inspector,
-  "Business Identification Number",
-  "Business Name",
-  scheduled_date,
-  created_at
-`);
+    const { data, error } = await supabase
+      .from("business_records")
+      .select(`
+        assigned_inspector,
+        "Business Identification Number",
+        "Business Name",
+        scheduled_date,
+        updated_at
+      `);
 
-if (error) {
-  console.error("Supabase error:", error);
-}
-
-const rows = data || [];
-setRecords(rows);
-
-const grouped: Record<string, { total: number; latest: number }> = {};
-
-
-rows.forEach((r) => {
-  const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
-
-  // FILTER (same as before)
-  if (monthFilter && r.scheduled_date) {
-    const date = new Date(r.scheduled_date);
-    const now = new Date();
-    let include = true;
-
-    switch (monthFilter) {
-      case "last_7_days":
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(now.getDate() - 7);
-        include = date >= sevenDaysAgo && date <= now;
-        break;
-
-      case "last_month":
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        include = date >= lastMonth && date < thisMonth;
-        break;
-
-      case "last_year":
-        const lastYear = new Date(now.getFullYear() - 1, 0, 1);
-        const thisYear = new Date(now.getFullYear(), 0, 1);
-        include = date >= lastYear && date < thisYear;
-        break;
+    if (error) {
+      console.error("Supabase error:", error);
     }
 
-    if (!include) return;
+    setRecords(data || []);
   }
 
-  const createdTime = r.created_at
-    ? new Date(r.created_at).getTime()
-    : 0;
+  const inspectors = useMemo(() => {
+    const grouped: Record<string, InspectorCount> = {};
+
+ records.forEach((r) => {
+  // Use updated_at for inspector list filtering
+  if (monthFilter && !isWithinPeriod(r.updated_at ?? null, monthFilter)) {
+  return;
+}
+
+
+  const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
+
+  const createdTime = r.updated_at ? new Date(r.updated_at).getTime() : 0;
 
   assignedInspectors.forEach((name) => {
     if (!grouped[name]) {
-      grouped[name] = { total: 0, latest: 0 };
+      grouped[name] = {
+        name,
+        total: 0,
+        latest: null,
+      };
     }
 
     grouped[name].total += 1;
 
-    // IMPORTANT: track latest created_at
-    grouped[name].latest = Math.max(grouped[name].latest, createdTime);
+    grouped[name].latest =
+      grouped[name].latest === null
+        ? createdTime
+        : Math.max(grouped[name].latest, createdTime);
   });
 });
 
-const list = Object.keys(grouped).map((name) => ({
-  name,
-  total: grouped[name].total,
-  latest: grouped[name].latest,
-}));
+    const list = Object.values(grouped);
 
-list.sort((a, b) => {
-  return sortAsc
-    ? a.latest - b.latest
-    : b.latest - a.latest;
-});
-setInspectors(list);
-  }
+    list.sort((a, b) => {
+      const aTime = a.latest ?? 0;
+      const bTime = b.latest ?? 0;
+      return sortAsc ? aTime - bTime : bTime - aTime;
+    });
+
+    return list;
+  }, [records, monthFilter, sortAsc]);
+
   const filteredRecords = useMemo(() => {
     if (!selectedInspector) return [];
 
@@ -186,43 +196,20 @@ setInspectors(list);
       );
     }
 
-  if (monthFilter) {
-  const now = new Date();
-  list = list.filter((r) => {
-    if (!r.scheduled_date) return false;
-    const date = new Date(r.scheduled_date);
-    switch (monthFilter) {
-      case "last_7_days":
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(now.getDate() - 7);
-        return date >= sevenDaysAgo && date <= now;
-      case "last_month":
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        return date >= lastMonth && date < thisMonth;
-      case "last_year":
-        const lastYear = new Date(now.getFullYear() - 1, 0, 1);
-        const thisYear = new Date(now.getFullYear(), 0, 1);
-        return date >= lastYear && date < thisYear;
-      default:
-        return true;
+    if (modalMonth) {
+      const selected = new Date(modalMonth);
+
+      list = list.filter((r) => {
+        if (!r.scheduled_date) return false;
+
+        const d = new Date(r.scheduled_date);
+        return (
+          d.getFullYear() === selected.getFullYear() &&
+          d.getMonth() === selected.getMonth()
+        );
+      });
     }
-  });
-}
 
-if (modalMonth) {
-  list = list.filter((r) => {
-    if (!r.scheduled_date) return false;
-
-    const d = new Date(r.scheduled_date);
-    const selected = new Date(modalMonth);
-
-    return (
-      d.getFullYear() === selected.getFullYear() &&
-      d.getMonth() === selected.getMonth()
-    );
-  });
-}
     list.sort((a, b) => {
       const da = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
       const db = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
@@ -230,109 +217,105 @@ if (modalMonth) {
     });
 
     return list;
-  }, [records, selectedInspector, search, monthFilter, modalMonth, sortAsc, modalSortAsc]);
+  }, [records, selectedInspector, search, modalMonth, modalSortAsc]);
 
   const maxTasks = inspectors.length > 0 ? Math.max(...inspectors.map((i) => i.total)) : 1;
 
-return (
-  <>
+  return (
+    <>
+      {/* Main Panel */}
+      <div className="flex flex-col h-130 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {/* Header */}
+        <div className="border-b border-slate-200 bg-white px-4 py-4 shrink-0">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            {/* Left side */}
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
+                <FiClipboard size={18} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+                  Inspector Workload
+                </h2>
+                <p className="text-[12px] text-slate-500">
+                  Click one inspector to view assigned records
+                </p>
+              </div>
+            </div>
 
-  {/* Main Panel */}
-  <div className="flex flex-col h-130 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-    {/* Header */}
-<div className="border-b border-slate-200 bg-white px-4 py-4 shrink-0">
-  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-    
-    {/* Left side */}
-    <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
-        <FiClipboard size={18} className="text-white" />
-      </div>
-      <div>
-        <h2 className="text-base font-semibold text-slate-900 md:text-lg">
-          Inspector Workload
-        </h2>
-        <p className="text-[12px] text-slate-500">
-          Click one inspector to view assigned records
-        </p>
-      </div>
-    </div>
-
-    {/* Right side */}
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end md:w-auto">
-      <select
-        value={monthFilter}
-        onChange={(e) => setMonthFilter(e.target.value)}
-        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none sm:w-auto"
-      >
-        <option value="">All Dates</option>
-        <option value="last_7_days">Last 7 Days</option>
-        <option value="last_month">Last Month</option>
-        <option value="last_year">Last Year</option>
-      </select>
-
-      <button
-        onClick={() => setSortAsc(!sortAsc)}
-        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50 sm:w-auto"
-      >
-        {modalSortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
-        Date
-      </button>
-    </div>
-
-  </div>
-</div>
-
-    {/* Scrollable Inspector List */}
-    <div className="flex-1 overflow-y-auto p-4">
-      {inspectors.length > 0 ? (
-        <div className="space-y-2">
-          {inspectors.map((inspector, index) => {
-            const progress = (inspector.total / maxTasks) * 100;
-            const isSelected = selectedInspector === inspector.name;
-            const barTheme = getBarTheme(index);
-
-            return (
-              <button
-                key={inspector.name}
-                onClick={() => setSelectedInspector(inspector.name)}
-                className={`w-full rounded-2xl px-3 py-3 text-left transition-all duration-200 ${
-                  isSelected ? "bg-slate-100" : "hover:bg-slate-50"
-                }`}
+            {/* Right side */}
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end md:w-auto">
+              <select
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none sm:w-auto"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-28 md:w-44">
-  <div className="truncate text-sm font-medium text-slate-900">
-    {inspector.name}
-  </div>
-  <div className="text-[11px] text-slate-400">
-    Last: {formatDate(new Date(inspector.latest).toISOString())}
-  </div>
-</div>
+                <option value="">All Dates</option>
+                <option value="last_7_days">Last 7 Days</option>
+                <option value="last_month">Last Month</option>
+                <option value="last_year">Last Year</option>
+              </select>
 
-                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={`h-full rounded-full ${barTheme} transition-all duration-300`}
-                      style={{ width: `${Math.max(progress, 8)}%` }}
-                    />
-                  </div>
-
-                  <span className="w-8 shrink-0 text-right text-sm font-semibold text-slate-700">
-                    {inspector.total}
-                  </span>
-                </div>
+              <button
+                onClick={() => setSortAsc(!sortAsc)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50 sm:w-auto"
+              >
+                {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
+                Date
               </button>
-            );
-          })}
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
-          No inspectors found
-        </div>
-      )}
-    </div>
-  </div>
 
+        {/* Scrollable Inspector List */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {inspectors.length > 0 ? (
+            <div className="space-y-2">
+              {inspectors.map((inspector, index) => {
+                const progress = (inspector.total / maxTasks) * 100;
+                const isSelected = selectedInspector === inspector.name;
+                const barTheme = getBarTheme(index);
+
+                return (
+                  <button
+                    key={inspector.name}
+                    onClick={() => setSelectedInspector(inspector.name)}
+                    className={`w-full rounded-2xl px-3 py-3 text-left transition-all duration-200 ${
+                      isSelected ? "bg-slate-100" : "hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-28 md:w-44">
+                        <div className="truncate text-sm font-medium text-slate-900">
+                          {inspector.name}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          Last: {formatDate(inspector.latest)}
+                        </div>
+                      </div>
+
+                      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={`h-full rounded-full ${barTheme} transition-all duration-300`}
+                          style={{ width: `${Math.max(progress, 8)}%` }}
+                        />
+                      </div>
+
+                      <span className="w-8 shrink-0 text-right text-sm font-semibold text-slate-700">
+                        {inspector.total}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+              No inspectors found
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Modal */}
       {selectedInspector && (
@@ -363,16 +346,17 @@ return (
               </div>
 
               <input
-  type="month"
-  value={modalMonth}
-  onChange={(e) => setModalMonth(e.target.value)}
-/>
+                type="month"
+                value={modalMonth}
+                onChange={(e) => setModalMonth(e.target.value)}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
+              />
 
               <button
                 onClick={() => setModalSortAsc(!modalSortAsc)}
                 className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50"
               >
-                {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
+                {modalSortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
                 Date
               </button>
             </div>
