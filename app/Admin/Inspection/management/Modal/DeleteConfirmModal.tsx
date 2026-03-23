@@ -83,7 +83,7 @@ export default function DeleteConfirmModal({
           <div className="flex gap-3 p-3 bg-red-50 border border-red-200 rounded-xl">
             <FiAlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             <p className="text-sm text-red-700">
-              You are about to <strong>permanently delete</strong> this record from the database.
+              You are about to <strong>permanently delete</strong> this record.
               All associated data will be lost and cannot be recovered.
             </p>
           </div>
