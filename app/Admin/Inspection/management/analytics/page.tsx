@@ -271,68 +271,86 @@ function DashboardPageContent() {
   }, []);
 
   // ── Fixed: fetch counts using actual DB status values ─────────────────────
-  useEffect(() => {
-    const fetchStatusCounts = async () => {
-      try {
-        const [
-          { count: forInspection },
-          { count: nonCompliant },
-          { count: notReviewed },
-          { count: reviewed },
-        ] = await Promise.all([
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'for_inspection'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'non_compliant'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'not reviewed'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'reviewed'),
-        ]);
-        setForInspectionCount(forInspection ?? 0);
-        setNonCompliantCount(nonCompliant ?? 0);
-        setNotReviewedCount(notReviewed ?? 0);
-        setReviewedCount(reviewed ?? 0);
-      } catch (err) {
-        console.error('fetchStatusCounts error:', err);
+ useEffect(() => {
+  const fetchViolationCounts = async () => {
+    try {
+      const now = new Date();
+
+      // 🔥 Convert to UTC-safe ISO (important!)
+      const nowISO = new Date(
+        now.getTime() - now.getTimezoneOffset() * 60000
+      ).toISOString();
+
+      const start = new Date(now);
+
+      switch (noticeRange) {
+        case "7d":
+          start.setDate(start.getDate() - 7);
+          break;
+        case "1m":
+          start.setMonth(start.getMonth() - 1);
+          break;
+        case "3m":
+          start.setMonth(start.getMonth() - 3);
+          break;
+        case "6m":
+          start.setMonth(start.getMonth() - 6);
+          break;
+        case "1yr":
+          start.setFullYear(start.getFullYear() - 1);
+          break;
       }
-    };
-    fetchStatusCounts();
-  }, []);
 
-  // ── Fixed: correct date clone + exact notice_level matching ──────────────
-  useEffect(() => {
-    const fetchViolationCounts = async () => {
-      try {
-        const now = new Date();
-        const start = new Date(now); // ← cloned correctly
+      const startISO = new Date(
+        start.getTime() - start.getTimezoneOffset() * 60000
+      ).toISOString();
 
-        switch (noticeRange) {
-          case '7d': start.setDate(start.getDate() - 7); break;
-          case '1m': start.setMonth(start.getMonth() - 1); break;
-          case '3m': start.setMonth(start.getMonth() - 3); break;
-          case '6m': start.setMonth(start.getMonth() - 6); break;
-          case '1yr': start.setFullYear(start.getFullYear() - 1); break;
-        }
+      // 🔥 USE last_sent_time instead of created_at
+      const { data, error } = await supabase
+        .from("business_violations")
+        .select("notice_level, resolved, cease_flag, last_sent_time")
+        .not("last_sent_time", "is", null)
+        .gte("last_sent_time", startISO)
+        .lte("last_sent_time", nowISO);
 
-        const { data, error } = await supabase
-          .from('business_violations')
-          .select('notice_level, resolved, cease_flag, created_at')
-          .gte('created_at', start.toISOString())
-          .lte('created_at', now.toISOString());
-
-        if (error) { console.error('fetchViolationCounts error:', error); return; }
-
-        const violations = data ?? [];
-
-        // Exact level counts — each violation counted once
-        setNotice1Count(violations.filter(v => v.notice_level === 1).length);
-        setNotice2Count(violations.filter(v => v.notice_level === 2).length);
-        setNotice3Count(violations.filter(v => v.notice_level === 3).length);
-        setActiveCasesCount(violations.filter(v => !v.resolved && !v.cease_flag).length);
-        setCeaseDesistCount(violations.filter(v => v.cease_flag === true).length);
-      } catch (err) {
-        console.error('fetchViolationCounts error:', err);
+      if (error) {
+        console.error("fetchViolationCounts error:", error);
+        return;
       }
-    };
-    fetchViolationCounts();
-  }, [noticeRange]);
+
+      const violations = data ?? [];
+
+      // 🔥 DEBUG (optional — remove later)
+      console.log("Range:", noticeRange);
+      console.log("Start:", startISO);
+      console.log("Now:", nowISO);
+      console.log("Filtered count:", violations.length);
+
+      // ✅ Counts
+      setNotice1Count(
+        violations.filter((v) => v.notice_level === 1).length
+      );
+      setNotice2Count(
+        violations.filter((v) => v.notice_level === 2).length
+      );
+      setNotice3Count(
+        violations.filter((v) => v.notice_level === 3).length
+      );
+
+      setActiveCasesCount(
+        violations.filter((v) => !v.resolved && !v.cease_flag).length
+      );
+
+      setCeaseDesistCount(
+        violations.filter((v) => v.cease_flag === true).length
+      );
+    } catch (err) {
+      console.error("fetchViolationCounts error:", err);
+    }
+  };
+
+  fetchViolationCounts();
+}, [noticeRange]);
 
   useEffect(() => {
     const fetchSchedules = async () => {
