@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   CheckCircle, AlertTriangle, ClipboardList, Building2,
@@ -95,6 +95,37 @@ interface BusinessRecord {
   accuracy: string | null;
 }
 
+// ── EventItem is defined OUTSIDE the component so it never remounts ──────────
+function EventItem({
+  event,
+  loadingBin,
+  onOpenReview,
+}: {
+  event: any;
+  loadingBin: string | null;
+  onOpenReview: (bin: string) => void;
+}) {
+  const isLoading = loadingBin === event.bin;
+  return (
+    <button
+      onClick={() => onOpenReview(event.bin)}
+      disabled={!!loadingBin}
+      className={`w-full text-left ${event.color} rounded-xl px-3 py-2 flex items-center justify-between shadow-sm
+        hover:opacity-90 active:scale-95 transition-all duration-150
+        ${loadingBin && !isLoading ? 'opacity-50' : ''}`}
+    >
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-white truncate">{event.title}</p>
+        {event.time && <p className="text-xs text-white/80 mt-0.5">{event.time}</p>}
+      </div>
+      {isLoading
+        ? <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-white rounded-full animate-spin shrink-0 ml-2" />
+        : <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
+      }
+    </button>
+  );
+}
+
 function DashboardPageContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -118,7 +149,6 @@ function DashboardPageContent() {
   const [mockEventsByDate, setMockEventsByDate] = useState<Record<string, any[]>>({});
   const [desktopMockEvents, setDesktopMockEvents] = useState<Record<number, any[]>>({});
 
-  // ReviewModal state
   const [reviewRecord, setReviewRecord] = useState<BusinessRecord | null>(null);
   const [loadingBin, setLoadingBin] = useState<string | null>(null);
 
@@ -171,6 +201,8 @@ function DashboardPageContent() {
     fetchStatusCounts();
   }, []);
 
+  // ── FIX: fetch ALL violations with no date filter, then filter client-side ─
+  // This avoids any timestamp format mismatch with Supabase
   useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
@@ -183,13 +215,26 @@ function DashboardPageContent() {
           case '6m': start.setMonth(now.getMonth() - 6); break;
           case '1yr': start.setFullYear(now.getFullYear() - 1); break;
         }
+
         const { data, error } = await supabase
           .from('business_violations')
-          .select('notice_level, resolved, created_at')
-          .gte('created_at', start.toISOString())
-          .lte('created_at', now.toISOString());
-        if (error) { console.error('fetchViolationCounts error:', error); return; }
-        const violations = data ?? [];
+          .select('notice_level, resolved, created_at');
+
+        if (error) {
+          console.error('fetchViolationCounts error:', error);
+          return;
+        }
+
+        console.log('Total violations fetched:', data?.length, 'Sample:', data?.[0]);
+
+        // Filter by date range client-side to avoid timestamp format issues
+        const violations = (data ?? []).filter((v) => {
+          const createdAt = new Date(v.created_at);
+          return createdAt >= start && createdAt <= now;
+        });
+
+        console.log(`Violations in range (${noticeRange}):`, violations.length);
+
         setNotice1Count(violations.filter(v => v.notice_level >= 1).length);
         setNotice2Count(violations.filter(v => v.notice_level >= 2).length);
         setNotice3Count(violations.filter(v => v.notice_level >= 3).length);
@@ -260,8 +305,8 @@ function DashboardPageContent() {
     setDropdownOpen(prev => !prev);
   };
 
-  // Fetch full record and open ReviewModal
-  const handleOpenReview = async (bin: string) => {
+  // ── useCallback so the reference is stable and EventItem doesn't remount ───
+  const handleOpenReview = useCallback(async (bin: string) => {
     setLoadingBin(bin);
     const { data, error } = await supabase
       .from("business_records")
@@ -271,7 +316,7 @@ function DashboardPageContent() {
     setLoadingBin(null);
     if (error || !data) { console.error("Failed to fetch record:", error); return; }
     setReviewRecord(data as BusinessRecord);
-  };
+  }, []);
 
   const handleReviewSave = async (reviewData: {
     reviewActions: string[];
@@ -374,30 +419,6 @@ function DashboardPageContent() {
   const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
   const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
 
-  // Shared event item — clickable, shows spinner while loading
-  const EventItem = ({ event }: { event: any }) => {
-    const isLoading = loadingBin === event.bin;
-    return (
-      <button
-        key={event.bin}
-        onClick={() => handleOpenReview(event.bin)}
-        disabled={!!loadingBin}
-        className={`w-full text-left ${event.color} rounded-xl px-3 py-2 flex items-center justify-between shadow-sm
-          hover:opacity-90 active:scale-95 transition-all duration-150
-          ${loadingBin && !isLoading ? 'opacity-50' : ''}`}
-      >
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-white truncate">{event.title}</p>
-          {event.time && <p className="text-xs text-white/80 mt-0.5">{event.time}</p>}
-        </div>
-        {isLoading
-          ? <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-white rounded-full animate-spin shrink-0 ml-2" />
-          : <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
-        }
-      </button>
-    );
-  };
-
   const MobileScheduleSection = () => (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
@@ -433,7 +454,12 @@ function DashboardPageContent() {
               <div className="flex-1 space-y-1.5 min-w-0">
                 {events.length > 0 ? (
                   events.map((event: any, i: number) => (
-                    <EventItem key={i} event={event} />
+                    <EventItem
+                      key={i}
+                      event={event}
+                      loadingBin={loadingBin}
+                      onOpenReview={handleOpenReview}
+                    />
                   ))
                 ) : (
                   <div className="flex items-center h-8">
@@ -460,7 +486,6 @@ function DashboardPageContent() {
 
       <PortalDropdown />
 
-      {/* ReviewModal */}
       {reviewRecord && (
         <ReviewModal
           selectedRow={reviewRecord}
@@ -488,7 +513,6 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* Mobile KPI cards */}
             <div className="grid grid-cols-4 gap-2">
               {kpiData.map((kpi, index) => (
                 <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-3">
@@ -501,7 +525,6 @@ function DashboardPageContent() {
               ))}
             </div>
 
-            {/* Mobile Notice Stats */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
@@ -555,7 +578,6 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* Desktop KPI cards */}
             <div className="grid grid-cols-4 gap-5 mb-5 shrink-0">
               {kpiData.map((kpi, index) => (
                 <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20 p-5">
@@ -568,7 +590,6 @@ function DashboardPageContent() {
               ))}
             </div>
 
-            {/* Desktop Notice Stats */}
             <div className="mb-5 shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">
@@ -597,10 +618,8 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* Schedule + Inspector Summary */}
             <div className="flex gap-5 flex-1 min-h-0 overflow-hidden">
 
-              {/* LEFT — Desktop Schedule */}
               <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
@@ -640,7 +659,12 @@ function DashboardPageContent() {
                           <div className="flex-1 space-y-1.5 min-w-0">
                             {events.length > 0 ? (
                               events.map((event: any, i: number) => (
-                                <EventItem key={i} event={event} />
+                                <EventItem
+                                  key={i}
+                                  event={event}
+                                  loadingBin={loadingBin}
+                                  onOpenReview={handleOpenReview}
+                                />
                               ))
                             ) : (
                               <div className="flex items-center h-8">
@@ -655,7 +679,6 @@ function DashboardPageContent() {
                 </div>
               </div>
 
-              {/* RIGHT — Inspector Summary */}
               <div className="w-1/2 min-h-0 overflow-y-auto rounded-2xl">
                 <InspectorSummary />
               </div>
