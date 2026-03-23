@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   FiCheck, FiX, FiSave, FiAlertTriangle, FiCalendar, FiUser,
   FiMapPin, FiBriefcase, FiCamera, FiUpload, FiTrash2, FiEdit2,
-  FiLoader, FiMap, FiActivity,
+  FiLoader, FiMap, FiActivity, FiClock,
 } from "react-icons/fi";
 import { handlePhotoAndLocationUpload } from "@/lib/photoUpload";
 import { supabase } from "@/lib/supabaseClient";
@@ -83,6 +83,7 @@ interface BusinessRecord {
   status: string | null;
   assigned_inspector: string | null;
   scheduled_date: string | null;
+  schedule_time: string | null;
   photo: string | null;
   latitude: string | null;
   longitude: string | null;
@@ -98,6 +99,7 @@ interface ReviewModalProps {
     violations: string[];
     assignedInspector?: string;
     scheduledDate?: string;
+    scheduledTime?: string;
     location?: { lat: number; lng: number; accuracy: number };
     photo?: File;
     photoUrl?: string;
@@ -220,7 +222,7 @@ export default function ReviewModal({
     if (reviewData.assignedInspector)
       actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
     if (reviewData.scheduledDate)
-      actionDetails.push(`Scheduled: ${reviewData.scheduledDate}`);
+      actionDetails.push(`Scheduled: ${reviewData.scheduledDate}${reviewData.scheduledTime ? " " + reviewData.scheduledTime : ""}`);
     if (reviewData.photoUrl)
       actionDetails.push("Photo uploaded");
     if (reviewData.location)
@@ -559,6 +561,7 @@ export default function ReviewModal({
                   initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
                   initialInspector={selectedRow.assigned_inspector ?? undefined}
                   initialScheduledDate={selectedRow.scheduled_date ?? undefined}
+                  initialScheduledTime={selectedRow.schedule_time ?? undefined}
                   onSave={handleSaveWithToast}
                   onCancel={onClose}
                   onUploadPhoto={onUploadPhoto}
@@ -779,17 +782,20 @@ function MapPickerModal({
 // ── Review Form ───────────────────────────────────────────────────────────────
 function ReviewForm({
   initialActions, initialViolations, initialInspector, initialScheduledDate,
+  initialScheduledTime,
   onSave, onCancel, onUploadPhoto, isMobile = false,
 }: {
   initialActions: string[];
   initialViolations: string[];
   initialInspector?: string;
   initialScheduledDate?: string;
+  initialScheduledTime?: string;
   onSave: (data: {
     reviewActions: string[];
     violations: string[];
     assignedInspector?: string;
     scheduledDate?: string;
+    scheduledTime?: string;
     location?: { lat: number; lng: number; accuracy: number };
     photo?: File;
     photoUrl?: string;
@@ -806,6 +812,7 @@ function ReviewForm({
   const [violationText, setViolationText]         = useState(initialViolations.join(", "));
   const [assignedInspector, setAssignedInspector] = useState(initialInspector || "");
   const [scheduledDate, setScheduledDate]         = useState(initialScheduledDate || "");
+  const [scheduledTime, setScheduledTime]         = useState(initialScheduledTime || "");
   const [isSaving, setIsSaving]                   = useState(false);
 
   const [location, setLocation]             = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
@@ -886,6 +893,7 @@ function ReviewForm({
         violations,
         assignedInspector: assignedInspector || undefined,
         scheduledDate: scheduledDate || undefined,
+        scheduledTime: scheduledTime || undefined,
         location: location || undefined,
         photo: photoFile || undefined,
         photoUrl,
@@ -1124,6 +1132,14 @@ function ReviewForm({
                   <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)}
                     className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors" />
                   <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled Time</label>
+                <div className="relative">
+                  <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
+                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors" />
+                  <FiClock className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
                 </div>
               </div>
             </div>
