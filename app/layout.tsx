@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "BPLO IMS",
   description: "BPLO System",
+  icons: {
+  icon: "/bplo-logo.png",
+  shortcut: "/bplo-logo.png",
+  apple: "/bplo-logo.png",
+  },
 };
 
 export const viewport: Viewport = {
