@@ -14,11 +14,13 @@ type RecordType = {
   "Business Identification Number": string | null;
   "Business Name": string | null;
   scheduled_date: string | null;
+  created_at?: string | null;
 };
 
 type InspectorCount = {
   name: string;
   total: number;
+  latest: number;
 };
 
 function parseAssignedInspectors(value: string | null | undefined): string[] {
@@ -78,21 +80,24 @@ export default function InspectorSummary() {
   const [search, setSearch] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
+const [modalSortAsc, setModalSortAsc] = useState(true);
+  const [modalMonth, setModalMonth] = useState("");
 
 
   useEffect(() => {
-    fetchData();
-  }, []);
+  fetchData();
+}, [monthFilter, sortAsc]);
 
   async function fetchData() {
 const { data, error } = await supabase
   .from("business_records")
-  .select(`
-    assigned_inspector,
-    "Business Identification Number",
-    "Business Name",
-    scheduled_date
-  `);
+.select(`
+  assigned_inspector,
+  "Business Identification Number",
+  "Business Name",
+  scheduled_date,
+  created_at
+`);
 
 if (error) {
   console.error("Supabase error:", error);
@@ -101,47 +106,68 @@ if (error) {
 const rows = data || [];
 setRecords(rows);
 
-const grouped: Record<string, number> = {};
+const grouped: Record<string, { total: number; latest: number }> = {};
+
 
 rows.forEach((r) => {
   const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
 
-  // Apply same filter as filteredRecords
+  // FILTER (same as before)
   if (monthFilter && r.scheduled_date) {
     const date = new Date(r.scheduled_date);
     const now = new Date();
     let include = true;
+
     switch (monthFilter) {
       case "last_7_days":
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(now.getDate() - 7);
         include = date >= sevenDaysAgo && date <= now;
         break;
+
       case "last_month":
         const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         include = date >= lastMonth && date < thisMonth;
         break;
+
       case "last_year":
         const lastYear = new Date(now.getFullYear() - 1, 0, 1);
         const thisYear = new Date(now.getFullYear(), 0, 1);
         include = date >= lastYear && date < thisYear;
         break;
     }
+
     if (!include) return;
   }
 
+  const createdTime = r.created_at
+    ? new Date(r.created_at).getTime()
+    : 0;
+
   assignedInspectors.forEach((name) => {
-    grouped[name] = (grouped[name] || 0) + 1;
+    if (!grouped[name]) {
+      grouped[name] = { total: 0, latest: 0 };
+    }
+
+    grouped[name].total += 1;
+
+    // IMPORTANT: track latest created_at
+    grouped[name].latest = Math.max(grouped[name].latest, createdTime);
   });
 });
 
 const list = Object.keys(grouped).map((name) => ({
   name,
-  total: grouped[name],
+  total: grouped[name].total,
+  latest: grouped[name].latest,
 }));
 
-list.sort((a, b) => b.total - a.total);
+list.sort((a, b) => {
+  return sortAsc
+    ? a.latest - b.latest
+    : b.latest - a.latest;
+});
 setInspectors(list);
   }
   const filteredRecords = useMemo(() => {
@@ -184,14 +210,27 @@ setInspectors(list);
   });
 }
 
+if (modalMonth) {
+  list = list.filter((r) => {
+    if (!r.scheduled_date) return false;
+
+    const d = new Date(r.scheduled_date);
+    const selected = new Date(modalMonth);
+
+    return (
+      d.getFullYear() === selected.getFullYear() &&
+      d.getMonth() === selected.getMonth()
+    );
+  });
+}
     list.sort((a, b) => {
       const da = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0;
       const db = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0;
-      return sortAsc ? da - db : db - da;
+      return modalSortAsc ? da - db : db - da;
     });
 
     return list;
-  }, [records, selectedInspector, search, monthFilter, sortAsc]);
+  }, [records, selectedInspector, search, monthFilter, modalMonth, sortAsc, modalSortAsc]);
 
   const maxTasks = inspectors.length > 0 ? Math.max(...inspectors.map((i) => i.total)) : 1;
 
@@ -236,7 +275,7 @@ return (
         onClick={() => setSortAsc(!sortAsc)}
         className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50 sm:w-auto"
       >
-        {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
+        {modalSortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
         Date
       </button>
     </div>
@@ -262,9 +301,14 @@ return (
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-28 shrink-0 truncate text-sm font-medium text-slate-900 md:w-44">
-                    {inspector.name}
-                  </span>
+                  <div className="w-28 md:w-44">
+  <div className="truncate text-sm font-medium text-slate-900">
+    {inspector.name}
+  </div>
+  <div className="text-[11px] text-slate-400">
+    Last: {formatDate(new Date(inspector.latest).toISOString())}
+  </div>
+</div>
 
                   <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                     <div
@@ -319,14 +363,13 @@ return (
               </div>
 
               <input
-                type="month"
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none"
-              />
+  type="month"
+  value={modalMonth}
+  onChange={(e) => setModalMonth(e.target.value)}
+/>
 
               <button
-                onClick={() => setSortAsc(!sortAsc)}
+                onClick={() => setModalSortAsc(!modalSortAsc)}
                 className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50"
               >
                 {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
