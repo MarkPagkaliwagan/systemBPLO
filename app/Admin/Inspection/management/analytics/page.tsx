@@ -95,8 +95,6 @@ interface BusinessRecord {
   accuracy: string | null;
 }
 
-// ── All these are outside the component so they never remount ────────────────
-
 function EventItem({
   event,
   loadingBin,
@@ -185,8 +183,6 @@ function ScheduleRow({
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 function DashboardPageContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -218,10 +214,10 @@ function DashboardPageContent() {
   const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
   const mobileDropdownButtonRef  = useRef<HTMLButtonElement>(null);
 
-  const desktopScrollRef   = useRef<HTMLDivElement>(null);
-  const mobileScrollRef    = useRef<HTMLDivElement>(null);
-  const desktopTodayRef    = useRef<HTMLDivElement>(null);
-  const mobileTodayRef     = useRef<HTMLDivElement>(null);
+  const desktopScrollRef  = useRef<HTMLDivElement>(null);
+  const mobileScrollRef   = useRef<HTMLDivElement>(null);
+  const desktopTodayRef   = useRef<HTMLDivElement>(null);
+  const mobileTodayRef    = useRef<HTMLDivElement>(null);
 
   const today = new Date();
 
@@ -234,7 +230,7 @@ function DashboardPageContent() {
   ];
   const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
 
-  // ── Scroll to today after data loads and whenever month changes ───────────
+  // ── Auto-scroll to today ───────────────────────────────────────────────────
   useEffect(() => {
     const isCurrentMonth =
       scheduleMonth.getMonth() === today.getMonth() &&
@@ -244,10 +240,10 @@ function DashboardPageContent() {
 
     const t = setTimeout(() => {
       if (desktopTodayRef.current && desktopScrollRef.current) {
-        desktopScrollRef.current.scrollTop = desktopTodayRef.current.offsetTop - 8;
+        desktopScrollRef.current.scrollTop = Math.max(0, desktopTodayRef.current.offsetTop - 12);
       }
       if (mobileTodayRef.current && mobileScrollRef.current) {
-        mobileScrollRef.current.scrollTop = mobileTodayRef.current.offsetTop - 8;
+        mobileScrollRef.current.scrollTop = Math.max(0, mobileTodayRef.current.offsetTop - 12);
       }
     }, 120);
 
