@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FiClock, FiEdit, FiSearch, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiClock, FiEdit, FiSearch, FiChevronLeft, FiChevronRight, FiPlus } from "react-icons/fi";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import Sidebar from "../../../../components/sidebar";
 import ReviewModal from "../Modal/reviewModal";
 
@@ -91,25 +90,23 @@ interface BusinessRecord {
 
 export default function CSVReview() {
   const router = useRouter();
-  const [isCollapsed, setIsCollapsed]           = useState(false);
-  // ── FIX 1: Start isMobile as null so we never render the wrong layout ────
-  const [isMobile, setIsMobile]                 = useState<boolean | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const [csvData, setCSVData]       = useState<BusinessRecord[]>([]);
+  const [csvData, setCSVData] = useState<BusinessRecord[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm]               = useState('');
-  const [debouncedSearch, setDebouncedSearch]     = useState('');
-  const [currentPage, setCurrentPage]             = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [showScheduledOnly, setShowScheduledOnly] = useState(false);
 
-  const [selectedRow, setSelectedRow]         = useState<BusinessRecord | null>(null);
+  const [selectedRow, setSelectedRow] = useState<BusinessRecord | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  // ── FIX 2: pendingCount starts as null so badge doesn't flash in/out ─────
-  const [pendingCount, setPendingCount]       = useState<number | null>(null);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
 
   // ── Responsive ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -139,7 +136,7 @@ export default function CSVReview() {
       setLoading(true);
       try {
         const from = (currentPage - 1) * PAGE_SIZE;
-        const to   = from + PAGE_SIZE - 1;
+        const to = from + PAGE_SIZE - 1;
 
         let query = supabase
           .from('business_records')
@@ -198,11 +195,11 @@ export default function CSVReview() {
   // ── Helpers ───────────────────────────────────────────────────────────────
   const getRowStatusBadge = (status: string | null) => {
     switch (status) {
-      case 'compliant':      return 'bg-green-100 text-green-800';
-      case 'active':         return 'bg-blue-100 text-blue-800';
-      case 'non_compliant':  return 'bg-red-100 text-red-800';
+      case 'compliant': return 'bg-green-100 text-green-800';
+      case 'active': return 'bg-blue-100 text-blue-800';
+      case 'non_compliant': return 'bg-red-100 text-red-800';
       case 'for_inspection': return 'bg-orange-100 text-orange-800';
-      default:               return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-yellow-100 text-yellow-800';
     }
   };
 
@@ -227,14 +224,14 @@ export default function CSVReview() {
   }) => {
     if (!selectedRow) return;
 
-    const violationStr    = reviewData.violations.join(', ')    || null;
+    const violationStr = reviewData.violations.join(', ') || null;
     const reviewActionStr = reviewData.reviewActions.join(', ') || null;
 
     let rowStatus = 'reviewed';
-    if (reviewData.reviewActions.includes('For Inspection'))     rowStatus = 'for_inspection';
+    if (reviewData.reviewActions.includes('For Inspection')) rowStatus = 'for_inspection';
     else if (reviewData.reviewActions.includes('Non-Compliant')) rowStatus = 'non_compliant';
-    else if (reviewData.reviewActions.includes('Compliant'))     rowStatus = 'compliant';
-    else if (reviewData.reviewActions.includes('Active'))        rowStatus = 'active';
+    else if (reviewData.reviewActions.includes('Compliant')) rowStatus = 'compliant';
+    else if (reviewData.reviewActions.includes('Active')) rowStatus = 'active';
 
     const bin = selectedRow["Business Identification Number"];
 
@@ -242,13 +239,13 @@ export default function CSVReview() {
       const { error } = await supabase
         .from('business_records')
         .update({
-          violation:          violationStr,
-          review_action:      reviewActionStr,
-          review_date:        new Date().toISOString().split('T')[0],
-          reviewed_by:        null,
-          status:             rowStatus,
+          violation: violationStr,
+          review_action: reviewActionStr,
+          review_date: new Date().toISOString().split('T')[0],
+          reviewed_by: null,
+          status: rowStatus,
           assigned_inspector: reviewData.assignedInspector ?? null,
-          scheduled_date:     reviewData.scheduledDate     ?? null,
+          scheduled_date: reviewData.scheduledDate ?? null,
         })
         .eq('Business Identification Number', bin);
 
@@ -258,15 +255,15 @@ export default function CSVReview() {
         prev.map(r =>
           r["Business Identification Number"] === bin
             ? {
-                ...r,
-                violation:          violationStr,
-                review_action:      reviewActionStr,
-                review_date:        new Date().toISOString().split('T')[0],
-                reviewed_by:        null,
-                status:             rowStatus,
-                assigned_inspector: reviewData.assignedInspector ?? null,
-                scheduled_date:     reviewData.scheduledDate     ?? null,
-              }
+              ...r,
+              violation: violationStr,
+              review_action: reviewActionStr,
+              review_date: new Date().toISOString().split('T')[0],
+              reviewed_by: null,
+              status: rowStatus,
+              assigned_inspector: reviewData.assignedInspector ?? null,
+              scheduled_date: reviewData.scheduledDate ?? null,
+            }
             : r
         )
       );
@@ -295,10 +292,7 @@ export default function CSVReview() {
 
     return (
       <div className="px-[1.5vw] py-[1vh] border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <span
-          className="text-gray-600 text-center"
-          style={{ fontSize: 'clamp(10px, 1vw, 14px)' }}
-        >
+        <span className="text-gray-600 text-center" style={{ fontSize: 'clamp(10px, 1vw, 14px)' }}>
           {((currentPage - 1) * PAGE_SIZE) + 1}–{Math.min(currentPage * PAGE_SIZE, totalCount)} of {totalCount.toLocaleString()} records
         </span>
         <div className="flex items-center justify-center flex-wrap" style={{ gap: 'clamp(2px, 0.4vw, 6px)' }}>
@@ -310,7 +304,6 @@ export default function CSVReview() {
           >
             <FiChevronLeft style={{ width: 'clamp(11px, 1vw, 16px)', height: 'clamp(11px, 1vw, 16px)' }} />
           </button>
-
           {pageNumbers.map(page => (
             <button
               key={page}
@@ -328,7 +321,6 @@ export default function CSVReview() {
               {page}
             </button>
           ))}
-
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
@@ -342,7 +334,6 @@ export default function CSVReview() {
     );
   };
 
-  // ── FIX 3: Don't render anything until we know if mobile or desktop ───────
   if (isMobile === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -351,7 +342,6 @@ export default function CSVReview() {
     );
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <Sidebar
@@ -366,13 +356,11 @@ export default function CSVReview() {
         <div className={isMobile ? 'px-3 py-5' : 'px-6 py-10'}>
 
           {/* ── Header ── */}
-          {/* FIX 4: Reserve space for pending badge always so it doesn't shift layout */}
           <div className="mb-5">
             <h1 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-bold text-gray-900 mb-1`}>
               Scheduling
             </h1>
             <p className="text-sm text-gray-500">Reviewing and Scheduling</p>
-            {/* Always render the badge container with fixed height to prevent CLS */}
             <div className="mt-2 h-7 flex items-center">
               {pendingCount !== null && pendingCount > 0 && (
                 <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
@@ -391,18 +379,16 @@ export default function CSVReview() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-base font-semibold text-gray-900">All Business Records</h2>
-                    {/* FIX 5: Reserve space for count so it doesn't shift on load */}
                     <p className="text-xs text-gray-500 mt-0.5 h-4">
                       {totalCount > 0 ? `${totalCount.toLocaleString()} total records` : ''}
                     </p>
                   </div>
                   <button
                     onClick={() => setShowScheduledOnly(!showScheduledOnly)}
-                    className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${
-                      showScheduledOnly
+                    className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${showScheduledOnly
                         ? 'bg-green-600 text-white border-green-600'
                         : 'bg-white text-gray-700 border-gray-300'
-                    }`}
+                      }`}
                   >
                     {showScheduledOnly ? '📅 Scheduled' : 'Scheduled'}
                   </button>
@@ -419,10 +405,8 @@ export default function CSVReview() {
                 </div>
               </div>
 
-              {/* FIX 6: Always reserve the table area height — overlay spinner instead of replacing content */}
               <div className="relative" style={{ minHeight: isMobile ? '400px' : '600px' }}>
 
-                {/* Spinner overlay — sits on top, doesn't shift layout */}
                 {loading && (
                   <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
                     <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
@@ -516,13 +500,13 @@ export default function CSVReview() {
                     {searchTerm && !csvData.some(row =>
                       row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
                     ) && (
-                      <div
-                        className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
-                        onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
-                      >
-                        + Add "{searchTerm}"
-                      </div>
-                    )}
+                        <div
+                          className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
+                          onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                        >
+                          + Add "{searchTerm}"
+                        </div>
+                      )}
                   </div>
 
                 ) : (
@@ -632,15 +616,15 @@ export default function CSVReview() {
                         {searchTerm && !csvData.some(row =>
                           row["Business Name"]?.toLowerCase() === searchTerm.toLowerCase()
                         ) && (
-                          <tr
-                            className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
-                            onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
-                          >
-                            <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
-                              + Add "{searchTerm}"
-                            </td>
-                          </tr>
-                        )}
+                            <tr
+                              className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
+                              onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                            >
+                              <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
+                                + Add "{searchTerm}"
+                              </td>
+                            </tr>
+                          )}
                       </tbody>
                     </table>
                   </div>
@@ -658,26 +642,47 @@ export default function CSVReview() {
               <Pagination />
             </div>
           </div>
-
         </div>
       </div>
 
+      {/* ── ReviewModal — with live update callbacks ── */}
       <ReviewModal
         selectedRow={selectedRow}
         showReviewModal={showReviewModal}
-        onClose={() => setShowReviewModal(false)}
+        onClose={() => { setShowReviewModal(false); setSelectedRow(null); }}
         onSave={handleSaveReview}
         isMobile={isMobile}
+        onRecordUpdated={(updated) => {
+          setCSVData(prev =>
+            prev.map(r =>
+              r["Business Identification Number"] === updated["Business Identification Number"]
+                ? (updated as BusinessRecord)
+                : r
+            )
+          );
+          setSelectedRow(updated as BusinessRecord);
+        }}
+        onRecordDeleted={(bin) => {
+          setCSVData(prev =>
+            prev.filter(
+              r => r["Business Identification Number"] !== bin
+            )
+          );
+          setTotalCount(prev => prev - 1);
+          setSelectedRow(null);
+          setShowReviewModal(false);
+        }}
       />
+
       {!isMobile && (
-  <Link
-    href="/Admin/Inspection/management/manual_add"
-    title="Manual Add Record"
-    className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
-  >
-    <FiPlus className="w-6 h-6" />
-  </Link>
-)}
+        <Link
+          href="/Admin/Inspection/management/manual_add"
+          title="Manual Add Record"
+          className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+        >
+          <FiPlus className="w-6 h-6" />
+        </Link>
+      )}
     </>
   );
 }

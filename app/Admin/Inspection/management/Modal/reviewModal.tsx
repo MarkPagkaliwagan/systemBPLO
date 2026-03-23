@@ -215,50 +215,7 @@ export default function ReviewModal({
     return photoUrl;
   };
 
-  // ── Shared input style ────────────────────────────────────────────────────
-  const inputCls =
-    "w-full px-2 py-1 text-sm border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-colors text-gray-900 bg-white";
-  const readonlyCls =
-    "w-full px-2 py-1 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-400 cursor-not-allowed";
 
-  // ── Render a field: static text vs input ─────────────────────────────────
-  const Field = ({
-    label,
-    fieldKey,
-    type = "text",
-    breakAll = false,
-  }: {
-    label: string;
-    fieldKey: keyof BusinessRecord;
-    type?: "text" | "number" | "date" | "email" | "tel";
-    breakAll?: boolean;
-  }) => {
-    const raw = display[fieldKey];
-    const strVal = raw === null || raw === undefined ? "" : String(raw);
-    const isReadonly = READONLY_KEYS.includes(fieldKey);
-
-    return (
-      <div className="flex items-start gap-2 text-sm">
-        <span className="font-bold text-gray-700 shrink-0 min-w-[90px]">{label}:</span>
-        {isEditing ? (
-          isReadonly ? (
-            <input value={strVal} disabled className={readonlyCls} title="Read-only" />
-          ) : (
-            <input
-              type={type}
-              value={strVal}
-              onChange={(e) => setField(fieldKey, e.target.value)}
-              className={inputCls}
-            />
-          )
-        ) : (
-          <span className={`text-gray-600 ${breakAll ? "break-all" : "break-words"}`}>
-            {strVal || "-"}
-          </span>
-        )}
-      </div>
-    );
-  };
 
   return (
     <>
@@ -400,88 +357,336 @@ export default function ReviewModal({
 
                   {/* Business Details */}
                   <Section title="Business Details">
-                    <Field label="BIN"           fieldKey="Business Identification Number" breakAll />
-                    <Field label="Business Name" fieldKey="Business Name" />
-                    <Field label="Trade Name"    fieldKey="Trade Name" />
-                    <Field label="Nature"        fieldKey="Business Nature" />
-                    <Field label="Line"          fieldKey="Business Line" />
-                    <Field label="Type"          fieldKey="Business Type" />
-                    <Field label="Transmittal"   fieldKey="Transmittal No." />
-                    <Field label="Module"        fieldKey="Module Type" />
-                    <Field label="Transaction"   fieldKey="Transaction Type" />
-                    <Field label="Year"          fieldKey="Year" type="number" />
-                    <Field label="Source Type"   fieldKey="Source Type" />
+                    <Field label="BIN"           fieldKey="Business Identification Number" breakAll
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Business Name" fieldKey="Business Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Trade Name"    fieldKey="Trade Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Nature"        fieldKey="Business Nature"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Line"          fieldKey="Business Line"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Type"          fieldKey="Business Type"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Transmittal"   fieldKey="Transmittal No."
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Module"        fieldKey="Module Type"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Transaction"   fieldKey="Transaction Type"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Year"          fieldKey="Year" type="number"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Source Type"   fieldKey="Source Type"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
                   </Section>
 
                   {/* Incharge Information */}
                   <Section title="Incharge Information">
-                    <Field label="First Name"  fieldKey="Incharge First Name" />
-                    <Field label="Middle Name" fieldKey="Incharge Middle Name" />
-                    <Field label="Last Name"   fieldKey="Incharge Last Name" />
-                    <Field label="Extension"   fieldKey="Incharge Extension Name" />
-                    <Field label="Sex"         fieldKey="Incharge Sex" />
-                    <Field label="Citizenship" fieldKey="Citizenship" />
+                    <Field label="First Name"  fieldKey="Incharge First Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Middle Name" fieldKey="Incharge Middle Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Last Name"   fieldKey="Incharge Last Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Extension"   fieldKey="Incharge Extension Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Sex"         fieldKey="Incharge Sex"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Citizenship" fieldKey="Citizenship"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
                   </Section>
 
                   {/* Office Address */}
                   <Section title="Office Address">
-                    <Field label="Street"       fieldKey="Office Street" />
-                    <Field label="Region"       fieldKey="Office Region" />
-                    <Field label="Province"     fieldKey="Office Province" />
-                    <Field label="Municipality" fieldKey="Office Municipality" />
-                    <Field label="Barangay"     fieldKey="Office Barangay" />
-                    <Field label="Zipcode"      fieldKey="Office Zipcode" />
+                    <Field label="Street"       fieldKey="Office Street"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Region"       fieldKey="Office Region"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Province"     fieldKey="Office Province"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Municipality" fieldKey="Office Municipality"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Barangay"     fieldKey="Office Barangay"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Zipcode"      fieldKey="Office Zipcode"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
                   </Section>
 
                   {/* Financial Information */}
                   <Section title="Financial Information">
-                    <Field label="Capital"         fieldKey="Capital"                     type="number" />
-                    <Field label="Gross Amount"     fieldKey="Gross Amount"                type="number" />
-                    <Field label="Essential"        fieldKey="Gross Amount Essential"      type="number" />
-                    <Field label="Non-Essential"    fieldKey="Gross Amount Non-Essential"  type="number" />
-                    <Field label="Annual Amount"    fieldKey="Annual Amount"               type="number" />
-                    <Field label="Amount Paid"      fieldKey="Amount Paid"                 type="number" />
-                    <Field label="Balance"          fieldKey="Balance"                     type="number" />
-                    <Field label="Term"             fieldKey="Term" />
-                    <Field label="Payment Type"     fieldKey="Payment Type" />
-                    <Field label="Payment Date"     fieldKey="Payment Date"                type="date" />
-                    <Field label="Reject Remarks"   fieldKey="Reject Remarks" />
+                    <Field label="Capital"         fieldKey="Capital"                     type="number"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Gross Amount"     fieldKey="Gross Amount"                type="number"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Essential"        fieldKey="Gross Amount Essential"      type="number"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Non-Essential"    fieldKey="Gross Amount Non-Essential"  type="number"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Annual Amount"    fieldKey="Annual Amount"               type="number"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Amount Paid"      fieldKey="Amount Paid"                 type="number"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Balance"          fieldKey="Balance"                     type="number"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Term"             fieldKey="Term"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Payment Type"     fieldKey="Payment Type"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Payment Date"     fieldKey="Payment Date"                type="date"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Reject Remarks"   fieldKey="Reject Remarks"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
                   </Section>
 
                   {/* Requestor Information */}
                   <Section title="Requestor Information">
-                    <Field label="First Name"    fieldKey="Requestor First Name" />
-                    <Field label="Middle Name"   fieldKey="Requestor Middle Name" />
-                    <Field label="Last Name"     fieldKey="Requestor Last Name" />
-                    <Field label="Extension"     fieldKey="Requestor Extension Name" />
-                    <Field label="Email"         fieldKey="Requestor Email"      type="email" breakAll />
-                    <Field label="Mobile No"     fieldKey="Requestor Mobile No." type="tel" />
-                    <Field label="Birth Date"    fieldKey="Birth Date"           type="date" />
-                    <Field label="Sex"           fieldKey="Requestor Sex" />
-                    <Field label="Civil Status"  fieldKey="Civil Status" />
-                    <Field label="Street"        fieldKey="Requestor Street" />
-                    <Field label="Province"      fieldKey="Requestor Province" />
-                    <Field label="Municipality"  fieldKey="Requestor Municipality" />
-                    <Field label="Barangay"      fieldKey="Requestor Barangay" />
-                    <Field label="Zipcode"       fieldKey="Requestor Zipcode" />
+                    <Field label="First Name"    fieldKey="Requestor First Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Middle Name"   fieldKey="Requestor Middle Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Last Name"     fieldKey="Requestor Last Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Extension"     fieldKey="Requestor Extension Name"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Email"         fieldKey="Requestor Email"      type="email" breakAll
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Mobile No"     fieldKey="Requestor Mobile No." type="tel"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Birth Date"    fieldKey="Birth Date"           type="date"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Sex"           fieldKey="Requestor Sex"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Civil Status"  fieldKey="Civil Status"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Street"        fieldKey="Requestor Street"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Province"      fieldKey="Requestor Province"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Municipality"  fieldKey="Requestor Municipality"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Barangay"      fieldKey="Requestor Barangay"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Zipcode"       fieldKey="Requestor Zipcode"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
                   </Section>
 
                   {/* Transaction Details */}
                   <Section title="Transaction Details">
-                    <Field label="Transaction ID"   fieldKey="Transaction ID"            breakAll />
-                    <Field label="Reference No"     fieldKey="Reference No." />
-                    <Field label="Transaction Date" fieldKey="Transaction Date"           type="date" />
-                    <Field label="Brgy Clearance"   fieldKey="Brgy. Clearance Status" />
-                    <Field label="Brgy Clearance No" fieldKey="Brgy. Clearance No." />
-                    <Field label="SITE Transaction" fieldKey="SITE Transaction Status" />
-                    <Field label="Core Transaction" fieldKey="CORE Transaction Status" />
-                    <Field label="SOA No"           fieldKey="SOA No." />
-                    <Field label="O.R No"           fieldKey="O.R. No." />
-                    <Field label="O.R Date"         fieldKey="O.R. Date"                 type="date" />
-                    <Field label="Permit No"        fieldKey="Permit No." />
-                    <Field label="Plate No"         fieldKey="Business Plate No." />
-                    <Field label="Closure Date"     fieldKey="Actual Closure Date"       type="date" />
-                    <Field label="Retirement"       fieldKey="Retirement Reason" />
+                    <Field label="Transaction ID"   fieldKey="Transaction ID"            breakAll
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Reference No"     fieldKey="Reference No."
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Transaction Date" fieldKey="Transaction Date"           type="date"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Brgy Clearance"   fieldKey="Brgy. Clearance Status"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Brgy Clearance No" fieldKey="Brgy. Clearance No."
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="SITE Transaction" fieldKey="SITE Transaction Status"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Core Transaction" fieldKey="CORE Transaction Status"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="SOA No"           fieldKey="SOA No."
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="O.R No"           fieldKey="O.R. No."
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="O.R Date"         fieldKey="O.R. Date"                 type="date"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Permit No"        fieldKey="Permit No."
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Plate No"         fieldKey="Business Plate No."
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Closure Date"     fieldKey="Actual Closure Date"       type="date"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
+                    <Field label="Retirement"       fieldKey="Retirement Reason"
+                  isEditing={isEditing}
+                  display={display}
+                  onChangeField={setField}
+                />
                   </Section>
 
                   {/* Geo-Tagging — always read-only */}
@@ -567,6 +772,57 @@ export default function ReviewModal({
         />
       )}
     </>
+  );
+}
+
+// ── Shared input styles ──────────────────────────────────────────────────────
+const inputCls =
+  "w-full px-2 py-1 text-sm border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-colors text-gray-900 bg-white";
+const readonlyCls =
+  "w-full px-2 py-1 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-400 cursor-not-allowed";
+
+// ── Field — defined OUTSIDE ReviewModal so it never remounts on re-render ────
+function Field({
+  label,
+  fieldKey,
+  type = "text",
+  breakAll = false,
+  isEditing,
+  display,
+  onChangeField,
+}: {
+  label: string;
+  fieldKey: keyof BusinessRecord;
+  type?: "text" | "number" | "date" | "email" | "tel";
+  breakAll?: boolean;
+  isEditing: boolean;
+  display: BusinessRecord;
+  onChangeField: (key: keyof BusinessRecord, value: string) => void;
+}) {
+  const raw = display[fieldKey];
+  const strVal = raw === null || raw === undefined ? "" : String(raw);
+  const isReadonly = READONLY_KEYS.includes(fieldKey);
+
+  return (
+    <div className="flex items-start gap-2 text-sm">
+      <span className="font-bold text-gray-700 shrink-0 min-w-[90px]">{label}:</span>
+      {isEditing ? (
+        isReadonly ? (
+          <input value={strVal} disabled className={readonlyCls} title="Read-only" />
+        ) : (
+          <input
+            type={type}
+            value={strVal}
+            onChange={(e) => onChangeField(fieldKey, e.target.value)}
+            className={inputCls}
+          />
+        )
+      ) : (
+        <span className={`text-gray-600 ${breakAll ? "break-all" : "break-words"}`}>
+          {strVal || "-"}
+        </span>
+      )}
+    </div>
   );
 }
 
