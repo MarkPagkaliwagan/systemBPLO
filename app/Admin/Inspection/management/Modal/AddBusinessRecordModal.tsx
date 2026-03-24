@@ -263,17 +263,18 @@ useEffect(() => {
   return () => clearTimeout(timeout);
 }, [form["Business Identification Number"]]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setForm(emptyRecord());
-      setErrors({});
-      setSaveError(null);
-      setShowSuccess(false);
-      setTimeout(() => setVisible(true), 10);
-    } else {
-      setVisible(false);
-    }
-  }, [isOpen]);
+useEffect(() => {
+  if (isOpen) {
+    setForm(emptyRecord());
+    setErrors({});
+    setSaveError(null);
+    setShowSuccess(false);
+    setShowConfirm(false); // 🔥 ADD THIS
+    setTimeout(() => setVisible(true), 10);
+  } else {
+    setVisible(false);
+  }
+}, [isOpen]);
 
   const set = (key: string, value: string | number | null) =>
     setForm(prev => ({ ...prev, [key]: value === "" ? null : value }));
@@ -301,6 +302,7 @@ const validate = () => {
 };
 
 const handleAddMore = () => {
+  onSaved(form as BusinessRecord); // 🔥 SAVE RECORD DITO
   setForm(emptyRecord());
   setErrors({});
   setShowConfirm(false);
@@ -308,6 +310,7 @@ const handleAddMore = () => {
 };
 
 const handleSchedule = () => {
+  onSaved(form as BusinessRecord); // 🔥 SAVE RECORD DITO
   window.location.href = "/Admin/Inspection/management/review";
 };
 
@@ -355,14 +358,15 @@ const handleSchedule = () => {
       }
 
       // ── Show success toast then close ─────────────────────────────────────
-      setShowSuccess(true);
+setShowSuccess(true);
 
 // instead of closing → show confirmation popup
 setTimeout(() => {
   setShowConfirm(true);
+  setShowSuccess(false); // para mawala toast pag lumabas modal
 }, 800);
 
-onSaved(data as BusinessRecord);
+// ✅ REMOVE onSaved dito, ilalagay sa buttons
 
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
