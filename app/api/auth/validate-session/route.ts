@@ -21,12 +21,21 @@ export async function GET(request: NextRequest) {
     // Get user data from database
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, full_name, email, role')
+      .select('id, full_name, email, role, email_verified')
       .eq('id', sessionData.userId)
       .single();
 
     if (error || !user) {
       return NextResponse.json({ valid: false, error: 'User not found' }, { status: 404 });
+    }
+
+    // Check email verification status
+    if (user.email_verified === false) {
+      return NextResponse.json({ 
+        valid: false, 
+        error: 'Email verification required',
+        requiresEmailVerification: true 
+      }, { status: 401 });
     }
 
     // Return user data for client-side authentication
