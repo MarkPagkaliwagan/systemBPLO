@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Sidebar from "../../../../components/sidebar";
 import ReviewModal from "../Modal/reviewModal";
-import AddBusinessRecordModal from "../Modal/AddBusinessRecordModal";
 import ProtectedRoute from "../../../../../components/ProtectedRoute";
  
 const PAGE_SIZE = 50;
@@ -108,9 +107,6 @@ function CSVReviewContent() {
  
   const [selectedRow, setSelectedRow]         = useState<BusinessRecord | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
-
-  // ── Add modal state ────────────────────────────────────────────────────────
-  const [showAddModal, setShowAddModal] = useState(false);
  
   const [pendingCount, setPendingCount] = useState<number | null>(null);
  
@@ -221,12 +217,6 @@ function CSVReviewContent() {
     setSelectedRow(row);
     setShowReviewModal(true);
   };
-
-  // ── Open ReviewModal for a newly added record (from ConfirmScheduleModal) ─
-  const handleScheduleFromAdd = (record: BusinessRecord) => {
-    setSelectedRow(record);
-    setShowReviewModal(true);
-  };
  
   const handleSaveReview = async (reviewData: {
     reviewActions: string[];
@@ -263,7 +253,9 @@ function CSVReviewContent() {
           assigned_inspector: reviewData.assignedInspector ?? null,
           scheduled_date:     reviewData.scheduledDate     ?? null,
           schedule_time:      reviewData.scheduledTime     ?? null,
+          // ── Save photo URL if uploaded ──
           ...(reviewData.photoUrl ? { photo: reviewData.photoUrl } : {}),
+          // ── Save location if captured ──
           ...(reviewData.location ? {
             latitude:  String(reviewData.location.lat),
             longitude: String(reviewData.location.lng),
@@ -675,7 +667,6 @@ function CSVReviewContent() {
           </div>
         </div>
       </div>
-
       {/* ── ReviewModal — with live update callbacks ── */}
       <ReviewModal
         selectedRow={selectedRow}
@@ -695,21 +686,7 @@ function CSVReviewContent() {
           setSelectedRow(updated as BusinessRecord);
         }}
       />
-
-      {/* ── AddBusinessRecordModal ── */}
-      <AddBusinessRecordModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onSaved={(record) => {
-          // Prepend the new record to the table without a full refetch
-          setCSVData(prev => [record as unknown as BusinessRecord, ...prev]);
-          setTotalCount(prev => prev + 1);
-        }}
-        onSchedule={(record) => handleScheduleFromAdd(record as unknown as BusinessRecord)}
-      />
-
-      {/* ── FAB: manual_add (original, untouched) ── */}
-      {!isMobile && (
+{!isMobile && (
         <Link
           href="/Admin/Inspection/management/manual_add"
           title="Manual Add Record"
@@ -721,7 +698,6 @@ function CSVReviewContent() {
     </>
   );
 }
-
 
 export default function CSVReview() {
   return (
