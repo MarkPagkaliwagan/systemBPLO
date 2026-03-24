@@ -107,16 +107,34 @@ interface BusinessRecord {
   accuracy: string | null;
 }
 
+// ── Multi-color palette for same-day schedules ────────────────────────────
+const MULTI_COLORS = [
+  "border-l-blue-400",
+  "border-l-violet-400",
+  "border-l-rose-400",
+  "border-l-amber-400",
+  "border-l-emerald-400",
+  "border-l-cyan-400",
+];
+
 function EventItem({
   event,
   loadingBin,
   onOpenReview,
+  colorIndex = 0,
+  isMulti = false,
 }: {
   event: any;
   loadingBin: string | null;
   onOpenReview: (bin: string) => void;
+  colorIndex?: number;
+  isMulti?: boolean;
 }) {
   const isLoading = loadingBin === event.bin;
+  const borderColor = isMulti
+    ? MULTI_COLORS[colorIndex % MULTI_COLORS.length]
+    : "border-l-slate-300";
+
   return (
     <button
       onClick={() => onOpenReview(event.bin)}
@@ -125,9 +143,15 @@ function EventItem({
         hover:opacity-90 active:scale-95 transition-all duration-150
         ${loadingBin && !isLoading ? "opacity-50" : ""}`}
     >
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-white truncate">{event.title}</p>
-        {event.time && <p className="text-xs text-white/80 mt-0.5">{event.time}</p>}
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-slate-700 truncate leading-tight">
+          {event.title}
+        </p>
+        {event.time && (
+          <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+            {event.time}
+          </p>
+        )}
       </div>
       {isLoading ? (
         <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-white rounded-full animate-spin shrink-0 ml-2" />
@@ -186,6 +210,8 @@ function ScheduleRow({
           </span>
         </div>
       </div>
+
+      {/* ── Events list ── */}
       <div className="flex-1 space-y-1.5 min-w-0">
         {events.length > 0 ? (
           events.map((event: any, i: number) => (
@@ -193,7 +219,7 @@ function ScheduleRow({
           ))
         ) : (
           <div className="flex items-center h-8">
-            <div className="flex-1 border-t border-dashed border-slate-200" />
+            <div className="flex-1 border-t border-dashed border-slate-100" />
           </div>
         )}
       </div>
@@ -378,7 +404,7 @@ function DashboardPageContent() {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
         .from("business_records")
-        .select('scheduled_date, "Business Identification Number", "Business Name"')
+        .select('scheduled_date, schedule_time, "Business Identification Number", "Business Name"')
         .not("scheduled_date", "is", null);
       if (error) {
         console.error("Schedule fetch error:", error);
@@ -387,27 +413,35 @@ function DashboardPageContent() {
       const rows = data ?? [];
       const byDate: Record<string, any[]> = {};
       const byDay: Record<number, any[]> = {};
+
       rows.forEach((r) => {
         const dateOnly = r.scheduled_date.split("T")[0];
         const [y, m, d] = dateOnly.split("-").map(Number);
-        const title =
-          `${r["Business Name"] ?? ""}` +
-          (r["Business Name"] ? " — " : "") +
-          `${r["Business Identification Number"]}`;
+
+        const formattedTime = r.schedule_time
+          ? new Date(`1970-01-01T${r.schedule_time}`).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : null;
+
         const event = {
-          title,
-          time: "",
-          color: "bg-blue-500",
-          colorDot: "bg-blue-500",
+          title: r["Business Name"] ?? r["Business Identification Number"],
           bin: r["Business Identification Number"],
+          time: formattedTime,
+          color: "",
+          colorDot: "",
         };
+
         if (!byDate[dateOnly]) byDate[dateOnly] = [];
         byDate[dateOnly].push(event);
+
         if (y === currentMonth.getFullYear() && m - 1 === currentMonth.getMonth()) {
           if (!byDay[d]) byDay[d] = [];
-          byDay[d].push({ title, time: "", color: "bg-blue-500", bin: r["Business Identification Number"] });
+          byDay[d].push(event);
         }
       });
+
       setMockEventsByDate(byDate);
       setDesktopMockEvents(byDay);
     };
@@ -644,7 +678,7 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* Mobile Schedule */}
+            {/* ── Mobile Schedule ── */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
               <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
                 <span className="text-base font-bold text-slate-800">Schedule</span>
