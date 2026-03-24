@@ -1,9 +1,11 @@
+// app/module-2-inspection/Review Modal/AddBusinessRecordModal.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
+import ConfirmScheduleModal from "./Confirmschedulemodal";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface BusinessRecord {
   "Business Identification Number": string;
@@ -76,13 +78,13 @@ export interface BusinessRecord {
   assigned_inspector: string | null;
   scheduled_date: string | null;
   file_id: string | null;
-  
 }
 
 interface AddBusinessRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: (record: BusinessRecord) => void;
+  onSchedule?: (record: BusinessRecord) => void;
 }
 
 // ── Section Component ─────────────────────────────────────────────────────────
@@ -222,44 +224,15 @@ const emptyRecord = () => ({
 });
 
 // ── Main Component ────────────────────────────────────────────────────────────
-const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordModalProps) => {
+const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBusinessRecordModalProps) => {
   const [form, setForm] = useState(emptyRecord());
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [checkingBin, setCheckingBin] = useState(false);
-const [binExists, setBinExists] = useState(false);
-  const router = useRouter();
-useEffect(() => {
-  const bin = form["Business Identification Number"];
-
-  if (!bin || bin.length < 9) {
-    setBinExists(false);
-    return;
-  }
-
-  const timeout = setTimeout(async () => {
-    setCheckingBin(true);
-
-    const { data, error } = await supabase
-      .from("business_records")
-      .select("Business Identification Number")
-      .eq("Business Identification Number", bin)
-      .maybeSingle();
-
-    if (data) {
-      setBinExists(true);
-    } else {
-      setBinExists(false);
-    }
-
-    setCheckingBin(false);
-  }, 500); // debounce 500ms
-
-  return () => clearTimeout(timeout);
-}, [form["Business Identification Number"]]);
+  const [showScheduleConfirm, setShowScheduleConfirm] = useState(false);
+  const [savedRecord, setSavedRecord] = useState<BusinessRecord | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -267,6 +240,8 @@ useEffect(() => {
       setErrors({});
       setSaveError(null);
       setShowSuccess(false);
+      setShowScheduleConfirm(false);
+      setSavedRecord(null);
       setTimeout(() => setVisible(true), 10);
     } else {
       setVisible(false);
@@ -279,54 +254,27 @@ useEffect(() => {
   const num = (v: string) => (v === "" ? null : parseFloat(v));
 
   // ── Validate ──────────────────────────────────────────────────────────────
-const validate = () => {
-  const e: Partial<Record<string, string>> = {};
-  const bin = form["Business Identification Number"].trim();
-
-  if (!bin) {
-    e["bin"] = "BIN is required.";
-  } else if (!/^\d+$/.test(bin)) {
-    e["bin"] = "BIN must be numbers only.";
-  } else if (bin.length < 9 || bin.length > 12) {
-    e["bin"] = "BIN must be 9 to 12 digits.";
-  }
-
-  if (!form["Business Name"].trim()) {
-    e["name"] = "Business Name is required.";
-  }
-
-  return e;
-};
+  const validate = () => {
+    const e: Partial<Record<string, string>> = {};
+    const bin = form["Business Identification Number"].trim();
+    if (!bin) {
+      e["bin"] = "BIN is required.";
+    } else if (!/^[0-9-]+$/.test(bin)) {
+      e["bin"] = "BIN must contain numbers only (e.g. 2024-00123).";
+    }
+    if (!form["Business Name"].trim()) e["name"] = "Business Name is required.";
+    return e;
+  };
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-  const e = validate();
+    const e = validate();
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
 
-  if (Object.keys(e).length > 0) {
-    setErrors(e);
-    return;
-  }
+    setSaving(true);
+    setSaveError(null);
 
-  if (checkingBin) {
-    setErrors(prev => ({
-      ...prev,
-      bin: "Please wait, checking BIN...",
-    }));
-    return;
-  }
-
-  if (binExists) {
-    setErrors(prev => ({
-      ...prev,
-      bin: "BIN already exists.",
-    }));
-    return;
-  }
-
-  setSaving(true);
-  setSaveError(null);
-
-  try {
+    try {
       const { file_id, ...recordWithoutFileId } = form as any;
 
       const { data, error } = await supabase
@@ -341,17 +289,13 @@ const validate = () => {
         return;
       }
 
-      // ── Show success toast then close ─────────────────────────────────────
-     // ── Show success toast then close ─────────────────────────────────────
-setShowSuccess(true);
-setTimeout(() => {
-  onSaved(data as BusinessRecord);
-
-  // Redirect to /Admin/Inspection/management/review
-  router.push("/Admin/Inspection/management/review");
-
-  handleClose();
-}, 1500);
+      // ── Show success toast then ask about scheduling ───────────────────────
+      setSavedRecord(data as BusinessRecord);
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setShowScheduleConfirm(true);
+      }, 1500);
 
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
@@ -363,6 +307,24 @@ setTimeout(() => {
   const handleClose = () => {
     setVisible(false);
     setTimeout(onClose, 300);
+  };
+
+  // ── Schedule confirm handlers ─────────────────────────────────────────────
+  const handleConfirmSchedule = () => {
+    setShowScheduleConfirm(false);
+    if (savedRecord) {
+      onSaved(savedRecord);       // notify parent record was saved
+      onSchedule?.(savedRecord);  // open ReviewModal with this record
+    }
+    handleClose();
+  };
+
+  const handleSkipSchedule = () => {
+    setShowScheduleConfirm(false);
+    if (savedRecord) {
+      onSaved(savedRecord);
+    }
+    handleClose();
   };
 
   if (!isOpen) return null;
@@ -463,34 +425,20 @@ setTimeout(() => {
             defaultOpen
           >
             <Field label="Business Identification Number (BIN)" required error={errors["bin"]}>
-<input
-  type="text"
-  placeholder="Enter 9–12 digit BIN"
-  value={form["Business Identification Number"]}
-  onChange={e => {
-    const val = e.target.value;
-
-    // allow numbers only
-    if (/^\d*$/.test(val)) {
-      setForm(p => ({ ...p, "Business Identification Number": val }));
-
-      if (errors["bin"]) {
-        setErrors(prev => ({ ...prev, bin: undefined }));
-      }
-    }
-  }}
-  className={inputCls(!!errors["bin"] || binExists)}
-/>
+              <input
+                type="text"
+                placeholder="e.g. 2024-00123"
+                value={form["Business Identification Number"]}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (/^[0-9-]*$/.test(val)) {
+                    setForm(p => ({ ...p, "Business Identification Number": val }));
+                    if (errors["bin"]) setErrors(prev => ({ ...prev, bin: undefined }));
+                  }
+                }}
+                className={inputCls(!!errors["bin"])}
+              />
             </Field>
-            {checkingBin && (
-  <p className="text-xs text-slate-400 mt-1">Checking BIN...</p>
-)}
-
-{binExists && (
-  <p className="text-xs text-red-500 mt-1">
-    ⚠ BIN already exists.
-  </p>
-)}
             <Field label="Business Name" required error={errors["name"]}>
               <input
                 type="text"
@@ -831,6 +779,14 @@ setTimeout(() => {
           <div className="h-8" />
         </div>
       </div>
+
+      {/* ── Confirm Schedule Modal ── */}
+      <ConfirmScheduleModal
+        isOpen={showScheduleConfirm}
+        businessName={savedRecord?.["Business Name"] ?? ""}
+        onConfirm={handleConfirmSchedule}
+        onSkip={handleSkipSchedule}
+      />
     </>
   );
 };

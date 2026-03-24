@@ -806,26 +806,19 @@ function DashboardPageContent() {
 
             </div>
           </div>
-
-          {!isMobile && (
-            <>
-              <Link
-                href="/Admin/Inspection/management/review"
-                title="Scheduling / Review"
-                className="fixed bottom-24 right-8 z-50 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center transition-all duration-200 hover:scale-105"
-              >
-                <CalendarDays className="w-5 h-5" />
-              </Link>
-
-              <Link
-                href="/Admin/Inspection/management/manual_add"
-                title="Manual Add Record"
-                className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
-              >
-                <FiPlus className="w-6 h-6" />
-              </Link>
-            </>
-          )}
+          
+{!isMobile && (
+  <>
+    {/* Main Button (Manual Add) */}
+    <Link
+      href="/Admin/Inspection/management/manual_add"
+      title="Manual Add Record"
+      className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+    >
+      <FiPlus className="w-6 h-6" />
+    </Link>
+  </>
+)}
         </div>
       )}
     </>
