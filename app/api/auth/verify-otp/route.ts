@@ -39,11 +39,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mark OTP as used
-    await supabase
-      .from('login_2fa_otp')
-      .update({ is_used: true })
-      .eq('id', otpRecord.id);
+    // Don't mark OTP as used - keep it valid for 24 hours for subsequent logins
+    // await supabase
+    //   .from('login_2fa_otp')
+    //   .update({ is_used: true })
+    //   .eq('id', otpRecord.id);
 
     // Get user data
     const { data: user, error: userError } = await supabase
@@ -62,11 +62,11 @@ export async function POST(request: NextRequest) {
     // Create session token
     const sessionToken = await createSessionToken(user.id, user.role);
 
-    // Clean up all OTP codes for this user
-    await supabase
-      .from('login_2fa_otp')
-      .delete()
-      .eq('user_id', user.id);
+    // Don't clean up OTP codes - keep them valid for 24 hours for subsequent logins
+    // await supabase
+    //   .from('login_2fa_otp')
+    //   .delete()
+    //   .eq('user_id', user.id);
 
     const response = NextResponse.json({
       user: {
