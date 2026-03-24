@@ -786,15 +786,6 @@ function DashboardPageContent() {
           
 {!isMobile && (
   <>
-    {/* Small Button (Scheduling / Review) */}
-    <Link
-      href="/Admin/Inspection/management/review"
-      title="Scheduling / Review"
-      className="fixed bottom-24 right-8 z-50 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center transition-all duration-200 hover:scale-105"
-    >
-      <CalendarDays className="w-5 h-5" />
-    </Link>
-
     {/* Main Button (Manual Add) */}
     <Link
       href="/Admin/Inspection/management/manual_add"
