@@ -14,6 +14,8 @@ import ProtectedRoute from "../../../../../components/ProtectedRoute";
 import { supabase } from "@/lib/supabaseClient";
 import InspectorSummary from "./inspectorsummary";
 import ReviewModal from "../Modal/reviewModal";
+import Link from "next/link";
+import { FiPlus } from "react-icons/fi";
 
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
@@ -627,36 +629,43 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* ── Mobile Schedule ── */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
-              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
-                <span className="text-base font-bold text-slate-800">Schedule</span>
-                <div className="flex items-center space-x-1">
-                  <button onClick={prevScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-                    <ChevronLeft size={15} className="text-slate-600" />
-                  </button>
-                  <span className="text-xs font-semibold text-slate-600 min-w-[100px] text-center">{scheduleMonthLabel}</span>
-                  <button onClick={nextScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-                    <ChevronRight size={15} className="text-slate-600" />
-                  </button>
-                </div>
-              </div>
-              <div ref={mobileScrollRef} className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                {scheduleDays.map(({ day, date, events }) => (
-                  <ScheduleRow
-                    key={day}
-                    day={day}
-                    date={date}
-                    events={events}
-                    isToday={isTodayRow(day)}
-                    isMobileView={true}
-                    todayRef={mobileTodayRef}
-                    loadingBin={loadingBin}
-                    onOpenReview={handleOpenReview}
-                  />
-                ))}
-              </div>
-            </div>
+            {/* ── Mobile Schedule (Compact Google Calendar Style) ── */}
+<div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+    <div className="flex items-center gap-2">
+      <CalendarDays size={16} className="text-blue-600" />
+      <span className="text-sm font-bold text-slate-800 tracking-tight">Schedule</span>
+    </div>
+    <div className="flex items-center space-x-1">
+      <button onClick={prevScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+        <ChevronLeft size={16} className="text-slate-600" />
+      </button>
+      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider min-w-[90px] text-center">
+        {scheduleMonthLabel}
+      </span>
+      <button onClick={nextScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+        <ChevronRight size={16} className="text-slate-600" />
+      </button>
+    </div>
+  </div>
+
+  {/* Height restricted to show ~4-5 rows, similar to a mobile peek view */}
+  <div ref={mobileScrollRef} className="divide-y divide-slate-50 max-h-[320px] overflow-y-auto scroll-smooth">
+    {scheduleDays.map(({ day, date, events }) => (
+      <ScheduleRow
+        key={day}
+        day={day}
+        date={date}
+        events={events}
+        isToday={isTodayRow(day)}
+        isMobileView={true}
+        todayRef={mobileTodayRef}
+        loadingBin={loadingBin}
+        onOpenReview={handleOpenReview}
+      />
+    ))}
+  </div>
+</div>
 
             <div className="mt-4">
               <InspectorSummary />
@@ -766,6 +775,7 @@ function DashboardPageContent() {
                   </div>
                 </div>
               </div>
+              
 
               <div className="w-1/2 min-h-0 overflow-y-auto rounded-2xl">
                 <InspectorSummary />
@@ -773,6 +783,28 @@ function DashboardPageContent() {
 
             </div>
           </div>
+          
+{!isMobile && (
+  <>
+    {/* Small Button (Scheduling / Review) */}
+    <Link
+      href="/Admin/Inspection/management/review"
+      title="Scheduling / Review"
+      className="fixed bottom-24 right-8 z-50 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center transition-all duration-200 hover:scale-105"
+    >
+      <CalendarDays className="w-5 h-5" />
+    </Link>
+
+    {/* Main Button (Manual Add) */}
+    <Link
+      href="/Admin/Inspection/management/manual_add"
+      title="Manual Add Record"
+      className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+    >
+      <FiPlus className="w-6 h-6" />
+    </Link>
+  </>
+)}
         </div>
       )}
     </>
