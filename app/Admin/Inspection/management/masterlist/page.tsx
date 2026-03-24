@@ -7,6 +7,7 @@ import Sidebar from "../../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import Link from "next/link";
+import ProtectedRoute from "../../../../../components/ProtectedRoute";
 
 interface CSVFile {
   id: string;
@@ -22,7 +23,7 @@ interface CSVFile {
   errors?: string[];
 }
 
-export default function CSVManager() {
+function CSVManagerContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -651,5 +652,13 @@ export default function CSVManager() {
       />
 
     </>
+  );
+}
+
+export default function CSVManager() {
+  return (
+    <ProtectedRoute requiredRole="staff">
+      <CSVManagerContent />
+    </ProtectedRoute>
   );
 }

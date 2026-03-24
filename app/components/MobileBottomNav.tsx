@@ -71,10 +71,10 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
 
   const getActiveTab = (): string => {
     if (pathname.includes("/Compliance")) return "compliance";
-    if (pathname.includes("/analytics") || pathname.includes("/Dashboard")) return "home";
+    if (pathname.includes("/analytics")) return "home";
+    if (pathname.includes("/Dashboard")) return "home";
     if (pathname.includes("/review")) return "scheduling";
     if (pathname.includes("/masterlist")) return "business-registry";
-    if (pathname.includes("/notifCompliance")) return "settings";
     return "home";
   };
 
