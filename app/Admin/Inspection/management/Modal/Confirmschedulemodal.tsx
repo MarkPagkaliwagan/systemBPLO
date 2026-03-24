@@ -1,4 +1,3 @@
-// app/module-2-inspection/Review Modal/ConfirmScheduleModal.tsx
 "use client";
 
 import { CheckCircle, Calendar, X } from "lucide-react";
@@ -22,7 +21,7 @@ export default function ConfirmScheduleModal({
     <div className="fixed inset-0 z-[80] bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
 
-        {/* Drag handle — mobile only */}
+        {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-slate-200" />
         </div>
