@@ -134,6 +134,21 @@ export default function ReviewModal({
   const [reviewedByName, setReviewedByName]   = useState<string>("");
   const [showLog, setShowLog]                 = useState(false);
   const reviewFormRef = useRef<HTMLDivElement>(null);
+
+  // ── Mobile scroll effect ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const timer = setTimeout(() => {
+      reviewFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [isMobile]);
+
   // ── Fetch current user's full_name from localStorage → users table ────────
   useEffect(() => {
     const fetchUser = async () => {
@@ -169,18 +184,7 @@ export default function ReviewModal({
       : raw === "" ? null : raw;
     setEditForm((prev) => prev ? { ...prev, [key]: value } : prev);
   };
-useEffect(() => {
-  if (!isMobile) return;
 
-  const timer = setTimeout(() => {
-    reviewFormRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }, 200);
-
-  return () => clearTimeout(timer);
-}, [isMobile]);
   const handleSaveEdit = async () => {
     if (!editForm) return;
     setIsSavingEdit(true);

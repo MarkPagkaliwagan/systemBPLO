@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Sidebar from "../../../../components/sidebar";
 import ReviewModal from "../Modal/reviewModal";
+import ProtectedRoute from "../../../../../components/ProtectedRoute";
  
 const PAGE_SIZE = 50;
  
@@ -89,7 +90,7 @@ interface BusinessRecord {
   accuracy: string | null;
 }
  
-export default function CSVReview() {
+function CSVReviewContent() {
   const router = useRouter();
   const [isCollapsed, setIsCollapsed]           = useState(false);
   const [isMobile, setIsMobile]                 = useState<boolean | null>(null);
@@ -685,8 +686,23 @@ export default function CSVReview() {
           setSelectedRow(updated as BusinessRecord);
         }}
       />
-
-
+{!isMobile && (
+        <Link
+          href="/Admin/Inspection/management/manual_add"
+          title="Manual Add Record"
+          className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+        >
+          <FiPlus className="w-6 h-6" />
+        </Link>
+      )}
     </>
+  );
+}
+
+export default function CSVReview() {
+  return (
+    <ProtectedRoute requiredRole="staff">
+      <CSVReviewContent />
+    </ProtectedRoute>
   );
 }

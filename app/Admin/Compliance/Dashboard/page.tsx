@@ -1551,7 +1551,7 @@ function ViolationsPageContent() {
 
 export default function ComplianceDashboardPage() {
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="staff">
       <ViolationsPageContent />
     </ProtectedRoute>
   );

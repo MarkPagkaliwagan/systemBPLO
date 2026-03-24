@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 import Sidebar from "../../../components/sidebar";
+import ProtectedRoute from "../../../../components/ProtectedRoute";
 import {
   FiPlusCircle,
   FiDollarSign,
@@ -17,7 +18,7 @@ interface Business {
   business_name: string;
 }
 
-export default function InsertViolationPage() {
+function InsertViolationPageContent() {
   const router = useRouter();
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -173,5 +174,13 @@ export default function InsertViolationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function InsertViolationPage() {
+  return (
+    <ProtectedRoute requiredRole="staff">
+      <InsertViolationPageContent />
+    </ProtectedRoute>
   );
 }
