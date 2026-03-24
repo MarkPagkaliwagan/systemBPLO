@@ -613,7 +613,7 @@ function DashboardPageContent() {
                     <kpi.icon size={10} className={`${kpi.iconColor} shrink-0`} />
                   </div>
                   {/* text-xs → text-[9px], mb-1 → mb-0.5 */}
-                  <p className="text-slate-500 text-[9px] font-medium mb-0.5 leading-tight">{kpi.title}</p>
+                  <p className="text-slate-500 text-[9px] font-medium mb-0.5 leading-tight h-6">{kpi.title}</p>
                   {/* text-xl → text-lg */}
                   <h3 className="text-lg font-bold text-slate-800 leading-none">{kpi.value}</h3>
                 </div>
@@ -673,7 +673,7 @@ function DashboardPageContent() {
               <div
                 ref={mobileScrollRef}
                 className="divide-y divide-slate-50 overflow-y-auto scroll-smooth"
-                style={{ maxHeight: '200px' }}
+                style={{ maxHeight: '300px' }}
               >
                 {scheduleDays.map(({ day, date, events }) => (
                   <ScheduleRow
