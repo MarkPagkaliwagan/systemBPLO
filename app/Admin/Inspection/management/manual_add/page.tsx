@@ -403,13 +403,19 @@ function ManualAddBusinessContent() {
         // --- Modal confirmation prompt ---
         const proceedToScheduling = await openProceedModal();
 
-        if (proceedToScheduling) {
-            // Redirect to scheduling page
-            router.push("/Admin/Inspection/management/review"); // <-- replace with your scheduling page
-        } else {
-            // Redirect to review page
-            router.push("/Admin/Inspection/management/manual_add");
-        }
+if (proceedToScheduling) {
+    router.push("/Admin/Inspection/management/review");
+} else {
+    // ✅ CLEAR FORM INSTEAD OF REDIRECT
+    setForm({});
+    setInspectorList([]);
+    setInspectorInput("");
+    setSelectedAdminInspector("");
+    setErrors({});
+    setBinDuplicate(false);
+
+    addToast("info", "Form cleared. You can add another record.");
+}
     };
 
     /* ---------- SAVE BUTTON CLICK ---------- */
