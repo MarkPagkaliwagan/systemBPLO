@@ -113,12 +113,14 @@ function EventItem({
   onOpenReview,
   colorIndex = 0,
   isMulti = false,
+  isMobileView = false,
 }: {
   event: any;
   loadingBin: string | null;
   onOpenReview: (bin: string) => void;
   colorIndex?: number;
   isMulti?: boolean;
+  isMobileView?: boolean;
 }) {
   const isLoading = loadingBin === event.bin;
   const borderColor = isMulti
@@ -132,17 +134,18 @@ function EventItem({
       style={{ borderLeftColor: borderColor }}
       className={`
         w-full text-left bg-white border border-slate-100 border-l-4
-        rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2
+        rounded-lg flex items-center justify-between gap-1.5
         hover:bg-slate-50 active:scale-95 transition-all duration-150 shadow-sm
+        ${isMobileView ? 'px-2 py-1' : 'px-2.5 py-1.5'}
         ${loadingBin && !isLoading ? "opacity-40" : ""}
       `}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-slate-700 truncate leading-tight">
+        <p className={`font-semibold text-slate-700 truncate leading-tight ${isMobileView ? 'text-[10px]' : 'text-xs'}`}>
           {event.title}
         </p>
         {event.time && (
-          <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+          <p className={`text-slate-400 font-medium mt-0.5 ${isMobileView ? 'text-[9px]' : 'text-[10px]'}`}>
             {event.time}
           </p>
         )}
@@ -150,7 +153,7 @@ function EventItem({
       {isLoading ? (
         <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin shrink-0" />
       ) : (
-        <ListChecks size={11} className="text-slate-300 shrink-0" />
+        <ListChecks size={isMobileView ? 10 : 11} className="text-slate-300 shrink-0" />
       )}
     </button>
   );
@@ -182,21 +185,22 @@ function ScheduleRow({
   return (
     <div
       ref={isToday ? todayRef : undefined}
-      className={`flex ${isMobileView ? 'px-4 py-2.5 gap-3' : 'px-5 py-3 gap-4'} ${isPast && !isToday ? isMobileView ? 'opacity-50' : 'opacity-40' : ''}`}
+      className={`flex ${isMobileView ? 'px-3 py-1.5 gap-2' : 'px-5 py-3 gap-4'} ${isPast && !isToday ? 'opacity-40' : ''}`}
     >
-      <div className={`${isMobileView ? 'w-12' : 'w-14'} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
-        <span className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+      {/* Day column */}
+      <div className={`${isMobileView ? 'w-9' : 'w-14'} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
+        <span className={`font-semibold uppercase tracking-wide ${isMobileView ? 'text-[8px]' : 'text-xs'} ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
           {dayLabel}
         </span>
-        <div className={`${isMobileView ? 'w-7 h-7 mt-0.5' : 'w-8 h-8 mt-1'} rounded-full flex items-center justify-center ${isToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
-          <span className={`${isMobileView ? 'text-xs' : 'text-sm'} font-bold ${isToday ? 'text-white' : 'text-slate-700'}`}>
+        <div className={`${isMobileView ? 'w-6 h-6 mt-0.5' : 'w-8 h-8 mt-1'} rounded-full flex items-center justify-center ${isToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
+          <span className={`font-bold ${isMobileView ? 'text-[10px]' : 'text-sm'} ${isToday ? 'text-white' : 'text-slate-700'}`}>
             {day}
           </span>
         </div>
       </div>
 
-      {/* ── Events list ── */}
-      <div className="flex-1 space-y-1.5 min-w-0">
+      {/* Events list */}
+      <div className="flex-1 space-y-1 min-w-0">
         {events.length > 0 ? (
           events.map((event: any, i: number) => (
             <EventItem
@@ -206,10 +210,11 @@ function ScheduleRow({
               onOpenReview={onOpenReview}
               colorIndex={i}
               isMulti={events.length > 1}
+              isMobileView={isMobileView}
             />
           ))
         ) : (
-          <div className="flex items-center h-8">
+          <div className={`flex items-center ${isMobileView ? 'h-5' : 'h-8'}`}>
             <div className="flex-1 border-t border-dashed border-slate-100" />
           </div>
         )}
@@ -368,7 +373,7 @@ function DashboardPageContent() {
     fetchViolationCounts();
   }, [noticeRange]);
 
-  // ── Fetch schedules — includes schedule_time ──────────────────────────────
+  // ── Fetch schedules ───────────────────────────────────────────────────────
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
@@ -629,43 +634,48 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* ── Mobile Schedule (Compact Google Calendar Style) ── */}
-<div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-    <div className="flex items-center gap-2">
-      <CalendarDays size={16} className="text-blue-600" />
-      <span className="text-sm font-bold text-slate-800 tracking-tight">Schedule</span>
-    </div>
-    <div className="flex items-center space-x-1">
-      <button onClick={prevScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
-        <ChevronLeft size={16} className="text-slate-600" />
-      </button>
-      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider min-w-[90px] text-center">
-        {scheduleMonthLabel}
-      </span>
-      <button onClick={nextScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
-        <ChevronRight size={16} className="text-slate-600" />
-      </button>
-    </div>
-  </div>
+            {/* ── Mobile Schedule — Compact ── */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-1.5">
+                  <CalendarDays size={13} className="text-blue-600" />
+                  <span className="text-xs font-bold text-slate-800 tracking-tight">Schedule</span>
+                </div>
+                <div className="flex items-center space-x-0.5">
+                  <button onClick={prevScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+                    <ChevronLeft size={13} className="text-slate-600" />
+                  </button>
+                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider min-w-[80px] text-center">
+                    {scheduleMonthLabel}
+                  </span>
+                  <button onClick={nextScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+                    <ChevronRight size={13} className="text-slate-600" />
+                  </button>
+                </div>
+              </div>
 
-  {/* Height restricted to show ~4-5 rows, similar to a mobile peek view */}
-  <div ref={mobileScrollRef} className="divide-y divide-slate-50 max-h-[320px] overflow-y-auto scroll-smooth">
-    {scheduleDays.map(({ day, date, events }) => (
-      <ScheduleRow
-        key={day}
-        day={day}
-        date={date}
-        events={events}
-        isToday={isTodayRow(day)}
-        isMobileView={true}
-        todayRef={mobileTodayRef}
-        loadingBin={loadingBin}
-        onOpenReview={handleOpenReview}
-      />
-    ))}
-  </div>
-</div>
+              {/* Scroll area — shows ~4 rows compactly */}
+              <div
+                ref={mobileScrollRef}
+                className="divide-y divide-slate-50 overflow-y-auto scroll-smooth"
+                style={{ maxHeight: '200px' }}
+              >
+                {scheduleDays.map(({ day, date, events }) => (
+                  <ScheduleRow
+                    key={day}
+                    day={day}
+                    date={date}
+                    events={events}
+                    isToday={isTodayRow(day)}
+                    isMobileView={true}
+                    todayRef={mobileTodayRef}
+                    loadingBin={loadingBin}
+                    onOpenReview={handleOpenReview}
+                  />
+                ))}
+              </div>
+            </div>
 
             <div className="mt-4">
               <InspectorSummary />
@@ -775,7 +785,6 @@ function DashboardPageContent() {
                   </div>
                 </div>
               </div>
-              
 
               <div className="w-1/2 min-h-0 overflow-y-auto rounded-2xl">
                 <InspectorSummary />
@@ -783,28 +792,28 @@ function DashboardPageContent() {
 
             </div>
           </div>
-          
-{!isMobile && (
-  <>
-    {/* Small Button (Scheduling / Review) */}
-    <Link
-      href="/Admin/Inspection/management/review"
-      title="Scheduling / Review"
-      className="fixed bottom-24 right-8 z-50 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center transition-all duration-200 hover:scale-105"
-    >
-      <CalendarDays className="w-5 h-5" />
-    </Link>
 
-    {/* Main Button (Manual Add) */}
-    <Link
-      href="/Admin/Inspection/management/manual_add"
-      title="Manual Add Record"
-      className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
-    >
-      <FiPlus className="w-6 h-6" />
-    </Link>
-  </>
-)}
+          {!isMobile && (
+            <>
+              {/* Small Button (Scheduling / Review) */}
+              <Link
+                href="/Admin/Inspection/management/review"
+                title="Scheduling / Review"
+                className="fixed bottom-24 right-8 z-50 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center transition-all duration-200 hover:scale-105"
+              >
+                <CalendarDays className="w-5 h-5" />
+              </Link>
+
+              {/* Main Button (Manual Add) */}
+              <Link
+                href="/Admin/Inspection/management/manual_add"
+                title="Manual Add Record"
+                className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+              >
+                <FiPlus className="w-6 h-6" />
+              </Link>
+            </>
+          )}
         </div>
       )}
     </>
