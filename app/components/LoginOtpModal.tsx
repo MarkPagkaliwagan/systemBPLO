@@ -28,14 +28,14 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
   success,
 }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [timeLeft, setTimeLeft] = useState(120);
+  const [timeLeft, setTimeLeft] = useState(180);
   const [canResend, setCanResend] = useState(false);
   const isSubmitting = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
       setOtp(["", "", "", "", "", ""]);
-      setTimeLeft(120);
+      setTimeLeft(180);
       setCanResend(false);
       return;
     }
@@ -120,11 +120,11 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
   const handleResend = async () => {
     try {
       await onResend();
-      setTimeLeft(120);
+      setTimeLeft(180);
       setCanResend(false);
       setOtp(["", "", "", "", "", ""]);
-    } catch (error) {
-      console.error("Resend error:", error);
+    } catch (err) {
+      console.error("Resend error:", err);
     }
   };
 
