@@ -95,32 +95,60 @@ interface BusinessRecord {
   accuracy: string | null;
 }
 
+// ── Multi-color palette for same-day schedules ────────────────────────────
+const MULTI_COLORS = [
+  "border-l-blue-400",
+  "border-l-violet-400",
+  "border-l-rose-400",
+  "border-l-amber-400",
+  "border-l-emerald-400",
+  "border-l-cyan-400",
+];
+
 function EventItem({
   event,
   loadingBin,
   onOpenReview,
+  colorIndex = 0,
+  isMulti = false,
 }: {
   event: any;
   loadingBin: string | null;
   onOpenReview: (bin: string) => void;
+  colorIndex?: number;
+  isMulti?: boolean;
 }) {
   const isLoading = loadingBin === event.bin;
+  const borderColor = isMulti
+    ? MULTI_COLORS[colorIndex % MULTI_COLORS.length]
+    : "border-l-slate-300";
+
   return (
     <button
       onClick={() => onOpenReview(event.bin)}
       disabled={!!loadingBin}
-      className={`w-full text-left ${event.color} rounded-xl px-3 py-2 flex items-center justify-between shadow-sm
-        hover:opacity-90 active:scale-95 transition-all duration-150
-        ${loadingBin && !isLoading ? 'opacity-50' : ''}`}
+      className={`
+        w-full text-left bg-white border border-slate-100 border-l-4 ${borderColor}
+        rounded-lg px-3 py-2 flex items-center justify-between gap-2
+        hover:bg-slate-50 active:scale-95 transition-all duration-150 shadow-sm
+        ${loadingBin && !isLoading ? "opacity-40" : ""}
+      `}
     >
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-white truncate">{event.title}</p>
-        {event.time && <p className="text-xs text-white/80 mt-0.5">{event.time}</p>}
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-slate-700 truncate leading-tight">
+          {event.title}
+        </p>
+        {event.time && (
+          <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+            {event.time}
+          </p>
+        )}
       </div>
-      {isLoading
-        ? <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-white rounded-full animate-spin shrink-0 ml-2" />
-        : <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
-      }
+      {isLoading ? (
+        <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin shrink-0" />
+      ) : (
+        <ListChecks size={12} className="text-slate-300 shrink-0" />
+      )}
     </button>
   );
 }
@@ -163,6 +191,8 @@ function ScheduleRow({
           </span>
         </div>
       </div>
+
+      {/* ── Events list ── */}
       <div className="flex-1 space-y-1.5 min-w-0">
         {events.length > 0 ? (
           events.map((event: any, i: number) => (
@@ -171,11 +201,13 @@ function ScheduleRow({
               event={event}
               loadingBin={loadingBin}
               onOpenReview={onOpenReview}
+              colorIndex={i}
+              isMulti={events.length > 1}
             />
           ))
         ) : (
           <div className="flex items-center h-8">
-            <div className="flex-1 border-t border-dashed border-slate-200" />
+            <div className="flex-1 border-t border-dashed border-slate-100" />
           </div>
         )}
       </div>
@@ -230,7 +262,7 @@ function DashboardPageContent() {
   ];
   const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
 
-  // ── Scroll to today using getBoundingClientRect ───────────────────────────
+  // ── Scroll to today ───────────────────────────────────────────────────────
   useEffect(() => {
     const isCurrentMonth =
       scheduleMonth.getMonth() === today.getMonth() &&
@@ -294,118 +326,87 @@ function DashboardPageContent() {
     fetchStatusCounts();
   }, []);
 
-  // ── Fixed violation counts using correct columns ──────────────────────────
   useEffect(() => {
-  const fetchViolationCounts = async () => {
-    try {
-      const now = new Date();
+    const fetchViolationCounts = async () => {
+      try {
+        const now = new Date();
+        const nowISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
+        const start = new Date(now);
 
-      // 🔥 Convert to UTC-safe ISO (important!)
-      const nowISO = new Date(
-        now.getTime() - now.getTimezoneOffset() * 60000
-      ).toISOString();
+        switch (noticeRange) {
+          case "7d": start.setDate(start.getDate() - 7); break;
+          case "1m": start.setMonth(start.getMonth() - 1); break;
+          case "3m": start.setMonth(start.getMonth() - 3); break;
+          case "6m": start.setMonth(start.getMonth() - 6); break;
+          case "1yr": start.setFullYear(start.getFullYear() - 1); break;
+        }
 
-      const start = new Date(now);
+        const startISO = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString();
 
-      switch (noticeRange) {
-        case "7d":
-          start.setDate(start.getDate() - 7);
-          break;
-        case "1m":
-          start.setMonth(start.getMonth() - 1);
-          break;
-        case "3m":
-          start.setMonth(start.getMonth() - 3);
-          break;
-        case "6m":
-          start.setMonth(start.getMonth() - 6);
-          break;
-        case "1yr":
-          start.setFullYear(start.getFullYear() - 1);
-          break;
+        const { data, error } = await supabase
+          .from("business_violations")
+          .select("notice_level, resolved, cease_flag, last_sent_time")
+          .not("last_sent_time", "is", null)
+          .gte("last_sent_time", startISO)
+          .lte("last_sent_time", nowISO);
+
+        if (error) { console.error("fetchViolationCounts error:", error); return; }
+
+        const violations = data ?? [];
+        setNotice1Count(violations.filter((v) => v.notice_level === 1).length);
+        setNotice2Count(violations.filter((v) => v.notice_level === 2).length);
+        setNotice3Count(violations.filter((v) => v.notice_level === 3).length);
+        setActiveCasesCount(violations.filter((v) => !v.resolved && !v.cease_flag).length);
+        setCeaseDesistCount(violations.filter((v) => v.cease_flag === true).length);
+      } catch (err) {
+        console.error("fetchViolationCounts error:", err);
       }
+    };
+    fetchViolationCounts();
+  }, [noticeRange]);
 
-      const startISO = new Date(
-        start.getTime() - start.getTimezoneOffset() * 60000
-      ).toISOString();
-
-      // 🔥 USE last_sent_time instead of created_at
-      const { data, error } = await supabase
-        .from("business_violations")
-        .select("notice_level, resolved, cease_flag, last_sent_time")
-        .not("last_sent_time", "is", null)
-        .gte("last_sent_time", startISO)
-        .lte("last_sent_time", nowISO);
-
-      if (error) {
-        console.error("fetchViolationCounts error:", error);
-        return;
-      }
-
-      const violations = data ?? [];
-
-      // 🔥 DEBUG (optional — remove later)
-      console.log("Range:", noticeRange);
-      console.log("Start:", startISO);
-      console.log("Now:", nowISO);
-      console.log("Filtered count:", violations.length);
-
-      // ✅ Counts
-      setNotice1Count(
-        violations.filter((v) => v.notice_level === 1).length
-      );
-      setNotice2Count(
-        violations.filter((v) => v.notice_level === 2).length
-      );
-      setNotice3Count(
-        violations.filter((v) => v.notice_level === 3).length
-      );
-
-      setActiveCasesCount(
-        violations.filter((v) => !v.resolved && !v.cease_flag).length
-      );
-
-      setCeaseDesistCount(
-        violations.filter((v) => v.cease_flag === true).length
-      );
-    } catch (err) {
-      console.error("fetchViolationCounts error:", err);
-    }
-  };
-
-  fetchViolationCounts();
-}, [noticeRange]);
+  // ── Fetch schedules — includes schedule_time ──────────────────────────────
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
         .from("business_records")
-        .select('scheduled_date, "Business Identification Number", "Business Name"')
+        .select('scheduled_date, schedule_time, "Business Identification Number", "Business Name"')
         .not("scheduled_date", "is", null);
+
       if (error) { console.error("Schedule fetch error:", error); return; }
+
       const rows = data ?? [];
       const byDate: Record<string, any[]> = {};
       const byDay: Record<number, any[]> = {};
+
       rows.forEach((r) => {
         const dateOnly = r.scheduled_date.split("T")[0];
         const [y, m, d] = dateOnly.split("-").map(Number);
-        const title =
-          `${r["Business Name"] ?? ""}` +
-          (r["Business Name"] ? " — " : "") +
-          `${r["Business Identification Number"]}`;
+
+        const formattedTime = r.schedule_time
+          ? new Date(`1970-01-01T${r.schedule_time}`).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : null;
+
         const event = {
-          title,
-          time: "",
-          color: "bg-blue-500",
-          colorDot: "bg-blue-500",
+          title: r["Business Name"] ?? r["Business Identification Number"],
           bin: r["Business Identification Number"],
+          time: formattedTime,
+          color: "",
+          colorDot: "",
         };
+
         if (!byDate[dateOnly]) byDate[dateOnly] = [];
         byDate[dateOnly].push(event);
+
         if (y === currentMonth.getFullYear() && m - 1 === currentMonth.getMonth()) {
           if (!byDay[d]) byDay[d] = [];
-          byDay[d].push({ title, time: "", color: "bg-blue-500", bin: r["Business Identification Number"] });
+          byDay[d].push(event);
         }
       });
+
       setMockEventsByDate(byDate);
       setDesktopMockEvents(byDay);
     };
@@ -625,7 +626,7 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* Mobile Schedule */}
+            {/* ── Mobile Schedule ── */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border-2 border-slate-200 overflow-hidden">
               <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-100">
                 <span className="text-base font-bold text-slate-800">Schedule</span>
@@ -724,6 +725,7 @@ function DashboardPageContent() {
 
             <div className="flex gap-5 flex-1 min-h-0 overflow-hidden">
 
+              {/* ── Desktop Schedule ── */}
               <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
