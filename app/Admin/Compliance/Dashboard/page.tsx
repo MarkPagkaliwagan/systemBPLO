@@ -562,7 +562,7 @@ function ViolationsPageContent() {
           <div className="flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
               <h1 className="text-3xl font-extrabold text-gray-900">
-                Violations Monitoring
+                Violation Monitoring
               </h1>
               <p className="text-gray-500 mt-1 text-sm max-w-xl">
                 Track business violations and notices
