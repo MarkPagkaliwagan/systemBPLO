@@ -709,12 +709,12 @@ function DashboardPageContent() {
           className={`
             flex items-center justify-center rounded-lg border transition-colors
             ${showMiniCal
-              ? "bg-blue-700 border-blue-700 text-white"
-              : "bg-blue-500 border-blue-500 text-white hover:bg-blue-600 hover:border-blue-600"}
+              ? "bg-green-900 border-green-900 text-white"
+              : "bg-green-900 border-green-900 text-white hover:bg-green-800 hover:border-green-800"}
             ${isMobileView ? "w-6 h-6" : "w-7 h-7"}
           `}
         >
-          <CalendarDays size={isMobileView ? 11 : 13} />
+          <ChevronDown size={isMobileView ? 11 : 13} />
         </button>
       </div>
 
@@ -797,8 +797,8 @@ function DashboardPageContent() {
                   <div className="flex items-center gap-1 mb-1">
                     <kpi.icon size={10} className={`${kpi.iconColor} shrink-0`} />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800 leading-none mb-0.5">{kpi.value}</h3>
                   <p className="text-slate-500 text-[9px] font-medium leading-tight">{kpi.title}</p>
+                  <h3 className="text-lg font-bold text-slate-800 leading-none mb-0.5">{kpi.value}</h3>
                 </div>
               ))}
             </div>
