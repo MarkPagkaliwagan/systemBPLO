@@ -1363,51 +1363,50 @@ function ViolationsPageContent() {
                       <NoticeBadge notice={3} v={v} />
                     </div>
 
-                    {/* Interval */}
-                    <div className="text-xs text-gray-500">
-                      Interval:{" "}
-                      {editingInterval === v.id ? (
-                        <span className="flex items-center gap-2 mt-1">
-                          <input
-                            type="number"
-                            value={intervalValue}
-                            onChange={(e) =>
-                              setIntervalValue(Number(e.target.value))
-                            }
-                            className="w-16 border rounded px-1 py-0.5 text-xs"
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateInterval(v.id);
-                            }}
-                            className="text-green-600 text-xs hover:underline"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingInterval(null);
-                            }}
-                            className="text-gray text-xs hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      ) : (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingInterval(v.id);
-                            setIntervalValue(v.interval_days ?? 7);
-                          }}
-                          className="cursor-pointer text-gray-700 hover:text-green-700"
-                        >
-                          {v.interval_days ?? 7} days
-                        </span>
-                      )}
-                    </div>
+{/* Interval */}
+<div className="text-xs text-gray-500">
+  Interval:{" "}
+  {editingInterval === v.id ? (
+    <span className="flex items-center gap-2 mt-1">
+      <input
+        type="number"
+        value={intervalValue}
+        onChange={(e) => setIntervalValue(Number(e.target.value))}
+        className="w-16 border rounded px-1 py-0.5 text-xs"
+      />
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          updateInterval(v.id);
+        }}
+        className="text-green-600 text-xs hover:underline"
+      >
+        Save
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setEditingInterval(null);
+        }}
+        className="text-gray text-xs hover:underline"
+      >
+        Cancel
+      </button>
+    </span>
+  ) : (
+    <span
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditingInterval(v.id);
+        setIntervalValue(v.interval_days ?? 7);
+      }}
+      className="cursor-pointer text-gray-700 hover:text-green-700 flex items-center gap-1"
+    >
+      {v.interval_days ?? 7} days
+      <span className="text-gray-400 text-[10px] italic">Click to edit</span>
+    </span>
+  )}
+</div>
 
                     {/* Last Sent */}
                     {v.last_sent_time && (
