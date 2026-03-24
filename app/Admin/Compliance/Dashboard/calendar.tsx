@@ -1,14 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, JSX } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import DetailsForBusinessFormModal from "./DetailsForBusinessFormModal"; // Make sure modal component is imported
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+
 
 type Violation = {
     id: number;
