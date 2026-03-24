@@ -133,7 +133,7 @@ export default function ReviewModal({
   const [showEditToast, setShowEditToast]     = useState(false);
   const [reviewedByName, setReviewedByName]   = useState<string>("");
   const [showLog, setShowLog]                 = useState(false);
-
+  const reviewFormRef = useRef<HTMLDivElement>(null);
   // ── Fetch current user's full_name from localStorage → users table ────────
   useEffect(() => {
     const fetchUser = async () => {
@@ -169,7 +169,18 @@ export default function ReviewModal({
       : raw === "" ? null : raw;
     setEditForm((prev) => prev ? { ...prev, [key]: value } : prev);
   };
+useEffect(() => {
+  if (!isMobile) return;
 
+  const timer = setTimeout(() => {
+    reviewFormRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, 200);
+
+  return () => clearTimeout(timer);
+}, [isMobile]);
   const handleSaveEdit = async () => {
     if (!editForm) return;
     setIsSavingEdit(true);
@@ -563,8 +574,11 @@ export default function ReviewModal({
                 </div>
               </div>
 
-              {/* Right: Review Form */}
-              <div className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}>
+             {/* Right: Review Form */}
+<div
+  ref={reviewFormRef}
+  className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}
+>
                 <ReviewForm
                   initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map((a) => a.trim()) : []}
                   initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
