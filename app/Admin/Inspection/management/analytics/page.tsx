@@ -222,7 +222,6 @@ function MiniCalendarDropdown({
               `}
             >
               {d}
-              {/* Green dot for days with events */}
               {hasEvent(d) && !isToday(d) && (
                 <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-green-500" />
               )}
@@ -698,27 +697,29 @@ function DashboardPageContent() {
   // ── Shared Schedule Header ────────────────────────────────────────────────
   const ScheduleHeader = ({ isMobileView }: { isMobileView: boolean }) => (
     <div className={`flex items-center justify-between ${isMobileView ? "px-3 py-2 bg-slate-50/50" : "px-5 py-4"} border-b border-slate-100 shrink-0`}>
+      {/* Left: "Schedule" label + blue calendar toggle button right beside it */}
       <div className="flex items-center gap-1.5">
-        <CalendarDays size={isMobileView ? 13 : 18} className="text-blue-600" />
-        <span className={`font-bold text-slate-800 tracking-tight ${isMobileView ? "text-xs" : "text-sm"}`}>Schedule</span>
-      </div>
-      <div className="flex items-center gap-1">
-        {/* Mini calendar toggle */}
+        <span className={`font-bold text-slate-800 tracking-tight ${isMobileView ? "text-xs" : "text-sm"}`}>
+          Schedule
+        </span>
         <button
           ref={isMobileView ? mobileCalBtnRef : desktopCalBtnRef}
           onClick={() => setShowMiniCal((prev) => !prev)}
           title="Jump to date"
           className={`
-            flex items-center justify-center rounded-lg border transition-colors mr-1
+            flex items-center justify-center rounded-lg border transition-colors
             ${showMiniCal
-              ? "bg-blue-100 border-blue-200 text-blue-600"
-              : "bg-white border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-600"}
+              ? "bg-blue-700 border-blue-700 text-white"
+              : "bg-blue-500 border-blue-500 text-white hover:bg-blue-600 hover:border-blue-600"}
             ${isMobileView ? "w-6 h-6" : "w-7 h-7"}
           `}
         >
           <CalendarDays size={isMobileView ? 11 : 13} />
         </button>
+      </div>
 
+      {/* Right: month navigation */}
+      <div className="flex items-center gap-1">
         <button
           onClick={prevScheduleMonth}
           className={`${isMobileView ? "p-1 rounded-full" : "w-7 h-7 flex items-center justify-center rounded-lg"} hover:bg-slate-100 transition-colors`}
