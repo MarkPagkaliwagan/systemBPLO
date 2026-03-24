@@ -136,34 +136,26 @@ export default function InspectorSummary() {
   const inspectors = useMemo(() => {
     const grouped: Record<string, InspectorCount> = {};
 
- records.forEach((r) => {
-  // Use updated_at for inspector list filtering
-  if (monthFilter && !isWithinPeriod(r.updated_at ?? null, monthFilter)) {
-  return;
-}
+    records.forEach((r) => {
+      if (monthFilter && !isWithinPeriod(r.updated_at ?? null, monthFilter)) {
+        return;
+      }
 
+      const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
+      const createdTime = r.updated_at ? new Date(r.updated_at).getTime() : 0;
 
-  const assignedInspectors = parseAssignedInspectors(r.assigned_inspector);
+      assignedInspectors.forEach((name) => {
+        if (!grouped[name]) {
+          grouped[name] = { name, total: 0, latest: null };
+        }
 
-  const createdTime = r.updated_at ? new Date(r.updated_at).getTime() : 0;
-
-  assignedInspectors.forEach((name) => {
-    if (!grouped[name]) {
-      grouped[name] = {
-        name,
-        total: 0,
-        latest: null,
-      };
-    }
-
-    grouped[name].total += 1;
-
-    grouped[name].latest =
-      grouped[name].latest === null
-        ? createdTime
-        : Math.max(grouped[name].latest, createdTime);
-  });
-});
+        grouped[name].total += 1;
+        grouped[name].latest =
+          grouped[name].latest === null
+            ? createdTime
+            : Math.max(grouped[name].latest, createdTime);
+      });
+    });
 
     const list = Object.values(grouped);
 
@@ -194,10 +186,8 @@ export default function InspectorSummary() {
 
     if (modalMonth) {
       const selected = new Date(modalMonth);
-
       list = list.filter((r) => {
         if (!r.scheduled_date) return false;
-
         const d = new Date(r.scheduled_date);
         return (
           d.getFullYear() === selected.getFullYear() &&
@@ -220,31 +210,36 @@ export default function InspectorSummary() {
   return (
     <>
       {/* Main Panel */}
-      <div className="flex flex-col h-130 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {/* Header */}
-        <div className="border-b border-slate-200 bg-white px-4 py-4 shrink-0">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            {/* Left side */}
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900">
-                <FiClipboard size={18} className="text-white" />
+      <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+
+        {/* Header — compact */}
+        <div className="border-b border-slate-200 bg-white px-3 py-2.5 shrink-0">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+
+            {/* Left side — tighter */}
+            <div className="flex items-center gap-2">
+              {/* icon box: h-10 w-10 → h-7 w-7, rounded-2xl → rounded-lg */}
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 shrink-0">
+                <FiClipboard size={13} className="text-white" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-slate-900 md:text-lg">
+                {/* text-lg → text-sm */}
+                <h2 className="text-sm font-semibold text-slate-900 leading-tight">
                   Inspector Workload
                 </h2>
-                <p className="text-[12px] text-slate-500">
-                  Click one inspector to view assigned records
+                {/* text-[12px] → text-[10px] */}
+                <p className="text-[10px] text-slate-500 leading-tight">
+                  Tap an inspector to view records
                 </p>
               </div>
             </div>
 
-            {/* Right side */}
-            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end md:w-auto">
+            {/* Right side — smaller controls */}
+            <div className="flex w-full flex-row gap-1.5 sm:items-center sm:justify-end md:w-auto">
               <select
                 value={monthFilter}
                 onChange={(e) => setMonthFilter(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none sm:w-auto"
+                className="flex-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[11px] text-slate-900 outline-none sm:w-auto"
               >
                 <option value="">All Dates</option>
                 <option value="last_7_days">Last 7 Days</option>
@@ -254,19 +249,19 @@ export default function InspectorSummary() {
 
               <button
                 onClick={() => setSortAsc(!sortAsc)}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors hover:bg-slate-50 sm:w-auto"
+                className="flex items-center justify-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-[11px] text-slate-900 transition-colors hover:bg-slate-50 shrink-0"
               >
-                {sortAsc ? <FiArrowUp size={16} /> : <FiArrowDown size={16} />}
+                {sortAsc ? <FiArrowUp size={11} /> : <FiArrowDown size={11} />}
                 Date
               </button>
             </div>
           </div>
         </div>
 
-        {/* Scrollable Inspector List */}
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* Scrollable Inspector List — tighter rows */}
+        <div className="flex-1 overflow-y-auto p-2" style={{ maxHeight: '220px' }}>
           {inspectors.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-0.5">
               {inspectors.map((inspector, index) => {
                 const progress = (inspector.total / maxTasks) * 100;
                 const isSelected = selectedInspector === inspector.name;
@@ -276,28 +271,34 @@ export default function InspectorSummary() {
                   <button
                     key={inspector.name}
                     onClick={() => setSelectedInspector(inspector.name)}
-                    className={`w-full rounded-2xl px-3 py-3 text-left transition-all duration-200 ${
+                    // rounded-2xl → rounded-xl, px-3 py-3 → px-2 py-1.5
+                    className={`w-full rounded-xl px-2 py-1.5 text-left transition-all duration-200 ${
                       isSelected ? "bg-slate-100" : "hover:bg-slate-50"
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-28 md:w-44">
-                        <div className="truncate text-sm font-medium text-slate-900">
+                    <div className="flex items-center gap-2">
+                      {/* name column: w-28 md:w-44 → w-24 md:w-36 */}
+                      <div className="w-24 md:w-36 shrink-0">
+                        {/* text-sm → text-xs */}
+                        <div className="truncate text-xs font-medium text-slate-900">
                           {inspector.name}
                         </div>
-                        <div className="text-[11px] text-slate-400">
-                          Last Update: {formatDate(inspector.latest)}
+                        {/* text-[11px] → text-[9px] */}
+                        <div className="text-[9px] text-slate-400 leading-tight">
+                          {formatDate(inspector.latest)}
                         </div>
                       </div>
 
-                      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      {/* bar: h-2.5 → h-1.5 */}
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                         <div
                           className={`h-full rounded-full ${barTheme} transition-all duration-300`}
                           style={{ width: `${Math.max(progress, 8)}%` }}
                         />
                       </div>
 
-                      <span className="w-8 shrink-0 text-right text-sm font-semibold text-slate-700">
+                      {/* count: text-sm → text-xs */}
+                      <span className="w-6 shrink-0 text-right text-xs font-semibold text-slate-700">
                         {inspector.total}
                       </span>
                     </div>
@@ -306,14 +307,14 @@ export default function InspectorSummary() {
               })}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+            <div className="rounded-xl border border-dashed border-slate-200 bg-white p-4 text-center text-xs text-slate-400">
               No inspectors found
             </div>
           )}
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal — unchanged, already good size */}
       {selectedInspector && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
           <div className="flex max-h-[90vh] w-full max-w-[95%] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
@@ -362,12 +363,8 @@ export default function InspectorSummary() {
                 <thead className="sticky top-0 bg-slate-50">
                   <tr className="border-b border-slate-200">
                     <th className="p-3 text-left font-medium text-slate-600">BIN</th>
-                    <th className="p-3 text-left font-medium text-slate-600">
-                      Business Name
-                    </th>
-                    <th className="p-3 text-left font-medium text-slate-600">
-                      Scheduled Date
-                    </th>
+                    <th className="p-3 text-left font-medium text-slate-600">Business Name</th>
+                    <th className="p-3 text-left font-medium text-slate-600">Scheduled Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,9 +373,7 @@ export default function InspectorSummary() {
                       key={i}
                       className="border-b border-slate-100 transition-colors hover:bg-slate-50"
                     >
-                      <td className="p-3">
-                        {row["Business Identification Number"] || "-"}
-                      </td>
+                      <td className="p-3">{row["Business Identification Number"] || "-"}</td>
                       <td className="p-3">{row["Business Name"] || "-"}</td>
                       <td className="p-3">{formatDate(row.scheduled_date)}</td>
                     </tr>
