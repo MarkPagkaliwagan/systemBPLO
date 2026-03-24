@@ -9,8 +9,8 @@ export const generateOTP = (): OTPData => {
   // Generate 6-digit numeric code
   const code = crypto.randomInt(100000, 999999).toString();
   
-  // Set expiry to 2 minutes from now
-  const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
+  // Set expiry to 24 hours from now
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   
   return { code, expiresAt };
 };
@@ -89,7 +89,7 @@ export const generateOTPEmailTemplate = (code: string, userEmail: string): strin
         <div class="otp-code">${code}</div>
         
         <div class="warning">
-          <strong>Important:</strong> This OTP code will expire in 10 minutes for security reasons. Please use it immediately.
+          <strong>Important:</strong> This OTP code will expire in 24 hours for security reasons. Please use it within that time.
         </div>
         
         <p>If you did not request this OTP, please ignore this email or contact our support team immediately.</p>

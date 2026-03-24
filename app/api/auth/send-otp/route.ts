@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { comparePassword } from '@/lib/passwordUtils';
 import { generateOTP, generateOTPEmailTemplate } from '@/lib/otpUtils';
 import { sendEmail } from '@/lib/sendEmail';
+import { createSessionToken } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,8 +39,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Clean up any existing login 2FA OTP codes for this user
-    console.log('Cleaning up existing OTP codes for user:', user.id);
+    // Check for existing valid OTP (within 24 hours)
+    console.log('Checking for existing valid OTP for user:', user.id);
+    const { data: existingOtp, error: existingOtpError } = await supabase
+      .from('login_2fa_otp')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('email', user.email)
+      .eq('is_used', false)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (existingOtp && !existingOtpError) {
+      console.log('Found existing valid OTP, creating session and logging in');
+      
+      // Create session token for direct login
+      const sessionToken = await createSessionToken(user.id, user.role);
+      
+      const response = NextResponse.json({
+        message: 'Login successful (using existing OTP)',
+        user: {
+          id: user.id,
+          name: user.full_name || user.name,
+          email: user.email,
+          role: user.role,
+        },
+        sessionToken,
+        expiresIn: 24 * 60 * 60 * 1000,
+        existingOtp: true,
+        loginSuccess: true
+      });
+
+      // Set HTTP-only cookie
+      response.cookies.set('session-token', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24,
+      });
+
+      return response;
+    }
+
+    // Clean up any expired OTP codes for this user
+    console.log('Cleaning up expired OTP codes for user:', user.id);
     const { error: deleteError } = await supabase
       .from('login_2fa_otp')
       .delete()
