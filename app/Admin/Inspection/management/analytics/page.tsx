@@ -797,7 +797,7 @@ function DashboardPageContent() {
                   <div className="flex items-center gap-1 mb-1">
                     <kpi.icon size={10} className={`${kpi.iconColor} shrink-0`} />
                   </div>
-                  <p className="text-slate-500 text-[9px] font-medium leading-tight">{kpi.title}</p>
+                  <p className="text-slate-500 text-[9px] font-medium leading-tight h-6">{kpi.title}</p>
                   <h3 className="text-lg font-bold text-slate-800 leading-none mb-0.5">{kpi.value}</h3>
                 </div>
               ))}
