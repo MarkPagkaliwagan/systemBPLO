@@ -232,6 +232,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
   const [showSuccess, setShowSuccess] = useState(false);
   const [checkingBin, setCheckingBin] = useState(false);
 const [binExists, setBinExists] = useState(false);
+const [showConfirm, setShowConfirm] = useState(false);
 
 useEffect(() => {
   const bin = form["Business Identification Number"];
@@ -299,6 +300,17 @@ const validate = () => {
   return e;
 };
 
+const handleAddMore = () => {
+  setForm(emptyRecord());
+  setErrors({});
+  setShowConfirm(false);
+  setShowSuccess(false);
+};
+
+const handleSchedule = () => {
+  window.location.href = "/Admin/Inspection/management/review";
+};
+
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
   const e = validate();
@@ -344,10 +356,13 @@ const validate = () => {
 
       // ── Show success toast then close ─────────────────────────────────────
       setShowSuccess(true);
-      setTimeout(() => {
-        onSaved(data as BusinessRecord);
-        handleClose();
-      }, 1500);
+
+// instead of closing → show confirmation popup
+setTimeout(() => {
+  setShowConfirm(true);
+}, 800);
+
+onSaved(data as BusinessRecord);
 
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
@@ -379,6 +394,43 @@ const validate = () => {
           </div>
         </div>
       </div>
+
+      {showConfirm && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm text-center">
+
+      <CheckCircle size={40} className="text-green-500 mx-auto mb-3" />
+
+      <h3 className="text-lg font-bold text-slate-800">
+        Record Saved Successfully!
+      </h3>
+
+      <p className="text-sm text-slate-500 mt-1">
+        Do you want to add more or schedule inspection?
+      </p>
+
+      <div className="flex gap-3 mt-5">
+        
+        {/* Add More */}
+        <button
+          onClick={handleAddMore}
+          className="flex-1 py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition"
+        >
+          Add More
+        </button>
+
+        {/* Schedule */}
+        <button
+          onClick={handleSchedule}
+          className="flex-1 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
+        >
+          Schedule
+        </button>
+
+      </div>
+    </div>
+  </div>
+)}
 
       {/* ── Saving Overlay ── */}
       {saving && (
