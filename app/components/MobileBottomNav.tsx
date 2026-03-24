@@ -33,6 +33,7 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
   const pathname = usePathname();
   const router   = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
+  const [showActions, setShowActions] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
 
   useEffect(() => {
@@ -66,6 +67,12 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
       ];
     }
   };
+
+  useEffect(() => {
+  const handleClickOutside = () => setShowActions(false);
+  window.addEventListener("click", handleClickOutside);
+  return () => window.removeEventListener("click", handleClickOutside);
+}, []);
 
   const navItems = getNavItems();
 
@@ -112,16 +119,55 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
               <React.Fragment key={`nav-group-${index}`}>
                 {renderNavItem(item)}
 
-                <div className="relative flex-1 flex justify-center -top-6">
-                  <button
-                    onClick={() => setModalOpen(true)}
-                    className="w-16 h-16 bg-green-800 rounded-full flex items-center justify-center shadow-xl shadow-green-200 border-[6px] border-white text-white active:scale-95 transition-transform"
-                  >
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                      <path d="M12 5v14M5 12h14"/>
-                    </svg>
-                  </button>
-                </div>
+<div className="relative flex-1 flex justify-center -top-6">
+
+  {/* ACTION BUTTONS */}
+  {showActions && (
+    <div
+  onClick={(e) => e.stopPropagation()}
+  className="absolute bottom-20 flex flex-col items-center gap-3"
+>
+      
+      {/* ADD BUSINESS */}
+      <button
+        onClick={() => {
+          setModalOpen(true);
+          setShowActions(false);
+        }}
+        className="px-4 py-2 bg-white rounded-full shadow-md text-sm font-medium text-green-800"
+      >
+        Add Business
+      </button>
+
+      {/* SCHEDULE */}
+      <button
+        onClick={() => {
+          setShowActions(false);
+          setIsPageLoading(true);
+          router.push("/Admin/Inspection/management/review");
+        }}
+        className="px-4 py-2 bg-white rounded-full shadow-md text-sm font-medium text-green-800"
+      >
+        Schedule
+      </button>
+
+    </div>
+  )}
+
+  {/* PLUS BUTTON */}
+  <button
+    onClick={(e) => {
+  e.stopPropagation();
+  setShowActions(!showActions);
+}}
+    className="w-16 h-16 bg-green-800 rounded-full flex items-center justify-center shadow-xl shadow-green-200 border-[6px] border-white text-white active:scale-95 transition-transform"
+  >
+    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+  </button>
+
+</div>
               </React.Fragment>
             );
           }
