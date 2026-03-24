@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Sidebar from "../../../../components/sidebar";
 import ReviewModal from "../Modal/reviewModal";
+import ProtectedRoute from "../../../../../components/ProtectedRoute";
  
 const PAGE_SIZE = 50;
  
@@ -89,7 +90,7 @@ interface BusinessRecord {
   accuracy: string | null;
 }
  
-export default function CSVReview() {
+function CSVReviewContent() {
   const router = useRouter();
   const [isCollapsed, setIsCollapsed]           = useState(false);
   const [isMobile, setIsMobile]                 = useState<boolean | null>(null);
@@ -688,5 +689,13 @@ export default function CSVReview() {
 
 
     </>
+  );
+}
+
+export default function CSVReview() {
+  return (
+    <ProtectedRoute requiredRole="staff">
+      <CSVReviewContent />
+    </ProtectedRoute>
   );
 }

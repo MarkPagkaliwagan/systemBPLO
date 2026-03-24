@@ -106,7 +106,8 @@ export default function LoginPage() {
     const expiry = String(Date.now() + expiresIn);
     const userJson = JSON.stringify(data.user);
 
-    // Write to storage first
+    // Store in localStorage/sessionStorage for backup/fallback
+    // but primary authentication will rely on HTTP-only cookies
     localStorage.setItem("user", userJson);
     localStorage.setItem("sessionExpiry", expiry);
     sessionStorage.setItem("user", userJson);
@@ -282,7 +283,8 @@ export default function LoginPage() {
         setTimeout(() => {
           handleSuccessfulLogin({
             user: data.user,
-            expiresIn: 24 * 60 * 60 * 1000,
+            expiresIn: data.expiresIn,
+            sessionToken: data.sessionToken,
           });
         }, 50);
       } else {

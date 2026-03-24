@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { generateVerificationSuccessTemplate } from '@/lib/emailTemplates';
 import { sendEmail } from '@/lib/sendEmail';
+import { createSessionToken } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,6 +81,9 @@ export async function POST(request: NextRequest) {
       .delete()
       .eq('user_id', user.id);
 
+    // Create session token for consistent authentication
+    const sessionToken = await createSessionToken(user.id, user.role);
+
     // Send verification success email
     try {
       const successEmailHtml = generateVerificationSuccessTemplate(user.full_name || user.email);
@@ -89,7 +93,7 @@ export async function POST(request: NextRequest) {
       // Don't fail the verification if email fails
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: 'Email verified successfully',
       user: {
         id: user.id,
@@ -97,8 +101,21 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: user.role,
       },
+      sessionToken,
+      expiresIn: 24 * 60 * 60 * 1000, // 24 hours in ms
       verified: true
     });
+
+    // Set HTTP-only cookie with the user's role baked into the token
+    response.cookies.set('session-token', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24,
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Verify email error:', error);
