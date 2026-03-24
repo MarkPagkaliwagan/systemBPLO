@@ -1,4 +1,3 @@
-// app/module-2-inspection/Review Modal/ReviewModal.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -133,6 +132,18 @@ export default function ReviewModal({
   const [showEditToast, setShowEditToast]     = useState(false);
   const [reviewedByName, setReviewedByName]   = useState<string>("");
   const [showLog, setShowLog]                 = useState(false);
+  const reviewFormRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+  if (showReviewModal && isMobile) {
+    setTimeout(() => {
+      reviewFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 300); // delay para sure rendered na
+  }
+}, [showReviewModal, isMobile]);
 
   // ── Fetch current user's full_name from localStorage → users table ────────
   useEffect(() => {
@@ -564,7 +575,10 @@ export default function ReviewModal({
               </div>
 
               {/* Right: Review Form */}
-              <div className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}>
+              <div
+  ref={reviewFormRef}
+  className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}
+>
                 <ReviewForm
                   initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map((a) => a.trim()) : []}
                   initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
