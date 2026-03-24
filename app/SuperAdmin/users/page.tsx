@@ -16,7 +16,7 @@ interface User {
   name: string;
   email: string;
   contact_no?: string;
-  role: 'admin' | 'super_admin';
+  role: 'admin' | 'staff';
   createdAt: string;
 }
 
@@ -25,8 +25,16 @@ interface FormData {
   email: string;
   password: string;
   contact_no?: string;
-  role: 'admin' | 'super_admin';
+  role: 'admin' | 'staff';
 }
+
+type UserFormData = {
+  name: string;
+  email: string;
+  password: string;
+  contact_no?: string;
+  role: 'admin' | 'staff';
+};
 
 export default function SuperAdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -233,7 +241,7 @@ export default function SuperAdminUsersPage() {
   const handlePageChange = (page: number) => setCurrentPage(page);
 
   return (
-    <ProtectedRoute requiredRole="super_admin">
+    <ProtectedRoute requiredRole="admin">
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}

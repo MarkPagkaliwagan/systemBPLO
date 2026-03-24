@@ -11,13 +11,14 @@ import {
   FiBriefcase,
   FiArrowLeft,
 } from "react-icons/fi";
+import ProtectedRoute from "../../../../components/ProtectedRoute";
 
 interface Business {
   id: number;
   business_name: string;
 }
 
-export default function InsertViolationPage() {
+function InsertViolationPageContent() {
   const router = useRouter();
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -173,5 +174,13 @@ export default function InsertViolationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function InsertViolationPage() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <InsertViolationPageContent />
+    </ProtectedRoute>
   );
 }

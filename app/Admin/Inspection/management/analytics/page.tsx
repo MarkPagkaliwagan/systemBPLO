@@ -1,12 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
-  CheckCircle, AlertTriangle, ClipboardList, Building2,
-  Mail, Gavel, Ban, Activity, ChevronLeft, ChevronRight,
-  ListChecks, ChevronDown, CalendarDays
+  CheckCircle,
+  AlertTriangle,
+  ClipboardList,
+  Building2,
+  Mail,
+  Gavel,
+  Ban,
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  ListChecks,
+  ChevronDown,
+  CalendarDays,
 } from "lucide-react";
+import { FiPlus } from "react-icons/fi";
 
 import Sidebar from "../../../../components/sidebar";
 import MobileBottomNav from "../../../../components/MobileBottomNav";
@@ -15,7 +27,7 @@ import { supabase } from "@/lib/supabaseClient";
 import InspectorSummary from "./inspectorsummary";
 import ReviewModal from "../Modal/reviewModal";
 
-type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
+type NoticeRange = "7d" | "1m" | "3m" | "6m" | "1yr";
 
 interface BusinessRecord {
   id: string;
@@ -127,12 +139,9 @@ function EventItem({
     <button
       onClick={() => onOpenReview(event.bin)}
       disabled={!!loadingBin}
-      className={`
-        w-full text-left bg-white border border-slate-100 border-l-4 ${borderColor}
-        rounded-lg px-3 py-2 flex items-center justify-between gap-2
-        hover:bg-slate-50 active:scale-95 transition-all duration-150 shadow-sm
-        ${loadingBin && !isLoading ? "opacity-40" : ""}
-      `}
+      className={`w-full text-left ${event.color} rounded-xl px-3 py-2 flex items-center justify-between shadow-sm
+        hover:opacity-90 active:scale-95 transition-all duration-150
+        ${loadingBin && !isLoading ? "opacity-50" : ""}`}
     >
       <div className="min-w-0 flex-1">
         <p className="text-xs font-semibold text-slate-700 truncate leading-tight">
@@ -145,9 +154,9 @@ function EventItem({
         )}
       </div>
       {isLoading ? (
-        <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin shrink-0" />
+        <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-white rounded-full animate-spin shrink-0 ml-2" />
       ) : (
-        <ListChecks size={12} className="text-slate-300 shrink-0" />
+        <ListChecks size={13} className="text-white/70 shrink-0 ml-2" />
       )}
     </button>
   );
@@ -174,19 +183,29 @@ function ScheduleRow({
 }) {
   const now = new Date();
   const isPast = date < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
+  const dayLabel = date.toLocaleDateString("default", { weekday: "short" });
 
   return (
     <div
       ref={isToday ? todayRef : undefined}
-      className={`flex ${isMobileView ? 'px-4 py-2.5 gap-3' : 'px-5 py-3 gap-4'} ${isPast && !isToday ? isMobileView ? 'opacity-50' : 'opacity-40' : ''}`}
+      className={`flex ${isMobileView ? "px-4 py-2.5 gap-3" : "px-5 py-3 gap-4"} ${
+        isPast && !isToday ? (isMobileView ? "opacity-50" : "opacity-40") : ""
+      }`}
     >
-      <div className={`${isMobileView ? 'w-12' : 'w-14'} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
-        <span className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+      <div className={`${isMobileView ? "w-12" : "w-14"} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
+        <span
+          className={`text-xs font-semibold uppercase tracking-wide ${
+            isToday ? "text-blue-600" : "text-slate-400"
+          }`}
+        >
           {dayLabel}
         </span>
-        <div className={`${isMobileView ? 'w-7 h-7 mt-0.5' : 'w-8 h-8 mt-1'} rounded-full flex items-center justify-center ${isToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
-          <span className={`${isMobileView ? 'text-xs' : 'text-sm'} font-bold ${isToday ? 'text-white' : 'text-slate-700'}`}>
+        <div
+          className={`${isMobileView ? "w-7 h-7 mt-0.5" : "w-8 h-8 mt-1"} rounded-full flex items-center justify-center ${
+            isToday ? "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md" : ""
+          }`}
+        >
+          <span className={`${isMobileView ? "text-xs" : "text-sm"} font-bold ${isToday ? "text-white" : "text-slate-700"}`}>
             {day}
           </span>
         </div>
@@ -196,14 +215,7 @@ function ScheduleRow({
       <div className="flex-1 space-y-1.5 min-w-0">
         {events.length > 0 ? (
           events.map((event: any, i: number) => (
-            <EventItem
-              key={i}
-              event={event}
-              loadingBin={loadingBin}
-              onOpenReview={onOpenReview}
-              colorIndex={i}
-              isMulti={events.length > 1}
-            />
+            <EventItem key={i} event={event} loadingBin={loadingBin} onOpenReview={onOpenReview} />
           ))
         ) : (
           <div className="flex items-center h-8">
@@ -222,7 +234,7 @@ function DashboardPageContent() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
   const [scheduleMonth, setScheduleMonth] = useState(new Date());
-  const [noticeRange, setNoticeRange] = useState<NoticeRange>('7d');
+  const [noticeRange, setNoticeRange] = useState<NoticeRange>("7d");
 
   const [compliantCount, setCompliantCount] = useState(0);
   const [nonCompliantCount, setNonCompliantCount] = useState(0);
@@ -244,25 +256,24 @@ function DashboardPageContent() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
   const desktopDropdownButtonRef = useRef<HTMLButtonElement>(null);
-  const mobileDropdownButtonRef  = useRef<HTMLButtonElement>(null);
+  const mobileDropdownButtonRef = useRef<HTMLButtonElement>(null);
 
   const desktopScrollRef = useRef<HTMLDivElement>(null);
-  const mobileScrollRef  = useRef<HTMLDivElement>(null);
-  const desktopTodayRef  = useRef<HTMLDivElement>(null);
-  const mobileTodayRef   = useRef<HTMLDivElement>(null);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const desktopTodayRef = useRef<HTMLDivElement>(null);
+  const mobileTodayRef = useRef<HTMLDivElement>(null);
 
   const today = new Date();
 
   const rangeOptions: { value: NoticeRange; label: string }[] = [
-    { value: '7d', label: 'Last 7 Days' },
-    { value: '1m', label: 'Last 1 Month' },
-    { value: '3m', label: 'Last 3 Months' },
-    { value: '6m', label: 'Last 6 Months' },
-    { value: '1yr', label: 'Last 1 Year' },
+    { value: "7d", label: "Last 7 Days" },
+    { value: "1m", label: "Last 1 Month" },
+    { value: "3m", label: "Last 3 Months" },
+    { value: "6m", label: "Last 6 Months" },
+    { value: "1yr", label: "Last 1 Year" },
   ];
-  const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
+  const selectedLabel = rangeOptions.find((r) => r.value === noticeRange)?.label ?? "Last 7 Days";
 
-  // ── Scroll to today ───────────────────────────────────────────────────────
   useEffect(() => {
     const isCurrentMonth =
       scheduleMonth.getMonth() === today.getMonth() &&
@@ -288,7 +299,7 @@ function DashboardPageContent() {
     }, 150);
 
     return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleMonth, mockEventsByDate]);
 
   useEffect(() => {
@@ -310,17 +321,17 @@ function DashboardPageContent() {
           { count: forInspection },
           { count: active },
         ] = await Promise.all([
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'compliant'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'non_compliant'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'for_inspection'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "compliant"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "non_compliant"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "for_inspection"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "active"),
         ]);
         setCompliantCount(compliant ?? 0);
         setNonCompliantCount(nonCompliant ?? 0);
         setForInspectionCount(forInspection ?? 0);
         setActiveCount(active ?? 0);
       } catch (err) {
-        console.error('fetchStatusCounts error:', err);
+        console.error("fetchStatusCounts error:", err);
       }
     };
     fetchStatusCounts();
@@ -330,15 +341,27 @@ function DashboardPageContent() {
     const fetchViolationCounts = async () => {
       try {
         const now = new Date();
+
         const nowISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
+
         const start = new Date(now);
 
         switch (noticeRange) {
-          case "7d": start.setDate(start.getDate() - 7); break;
-          case "1m": start.setMonth(start.getMonth() - 1); break;
-          case "3m": start.setMonth(start.getMonth() - 3); break;
-          case "6m": start.setMonth(start.getMonth() - 6); break;
-          case "1yr": start.setFullYear(start.getFullYear() - 1); break;
+          case "7d":
+            start.setDate(start.getDate() - 7);
+            break;
+          case "1m":
+            start.setMonth(start.getMonth() - 1);
+            break;
+          case "3m":
+            start.setMonth(start.getMonth() - 3);
+            break;
+          case "6m":
+            start.setMonth(start.getMonth() - 6);
+            break;
+          case "1yr":
+            start.setFullYear(start.getFullYear() - 1);
+            break;
         }
 
         const startISO = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString();
@@ -350,31 +373,43 @@ function DashboardPageContent() {
           .gte("last_sent_time", startISO)
           .lte("last_sent_time", nowISO);
 
-        if (error) { console.error("fetchViolationCounts error:", error); return; }
+        if (error) {
+          console.error("fetchViolationCounts error:", error);
+          return;
+        }
 
         const violations = data ?? [];
+
+        console.log("Range:", noticeRange);
+        console.log("Start:", startISO);
+        console.log("Now:", nowISO);
+        console.log("Filtered count:", violations.length);
+
         setNotice1Count(violations.filter((v) => v.notice_level === 1).length);
         setNotice2Count(violations.filter((v) => v.notice_level === 2).length);
         setNotice3Count(violations.filter((v) => v.notice_level === 3).length);
+
         setActiveCasesCount(violations.filter((v) => !v.resolved && !v.cease_flag).length);
+
         setCeaseDesistCount(violations.filter((v) => v.cease_flag === true).length);
       } catch (err) {
         console.error("fetchViolationCounts error:", err);
       }
     };
+
     fetchViolationCounts();
   }, [noticeRange]);
 
-  // ── Fetch schedules — includes schedule_time ──────────────────────────────
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
         .from("business_records")
         .select('scheduled_date, schedule_time, "Business Identification Number", "Business Name"')
         .not("scheduled_date", "is", null);
-
-      if (error) { console.error("Schedule fetch error:", error); return; }
-
+      if (error) {
+        console.error("Schedule fetch error:", error);
+        return;
+      }
       const rows = data ?? [];
       const byDate: Record<string, any[]> = {};
       const byDay: Record<number, any[]> = {};
@@ -416,14 +451,14 @@ function DashboardPageContent() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
-      const portalEl = document.getElementById('range-dropdown-portal');
+      const portalEl = document.getElementById("range-dropdown-portal");
       const clickedDesktop = desktopDropdownButtonRef.current?.contains(target);
-      const clickedMobile  = mobileDropdownButtonRef.current?.contains(target);
-      const clickedPortal  = portalEl?.contains(target);
+      const clickedMobile = mobileDropdownButtonRef.current?.contains(target);
+      const clickedPortal = portalEl?.contains(target);
       if (!clickedDesktop && !clickedMobile && !clickedPortal) setDropdownOpen(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleDropdownToggle = (ref: React.RefObject<HTMLButtonElement | null>) => {
@@ -431,7 +466,7 @@ function DashboardPageContent() {
       const rect = ref.current.getBoundingClientRect();
       setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
     }
-    setDropdownOpen(prev => !prev);
+    setDropdownOpen((prev) => !prev);
   };
 
   const handleOpenReview = useCallback(async (bin: string) => {
@@ -442,7 +477,10 @@ function DashboardPageContent() {
       .eq("Business Identification Number", bin)
       .single();
     setLoadingBin(null);
-    if (error || !data) { console.error("Failed to fetch record:", error); return; }
+    if (error || !data) {
+      console.error("Failed to fetch record:", error);
+      return;
+    }
     setReviewRecord(data as BusinessRecord);
   }, []);
 
@@ -461,7 +499,8 @@ function DashboardPageContent() {
     const updates: Record<string, any> = {
       review_action: reviewData.reviewActions.join(", ") || null,
       violation: reviewData.violations.join(", ") || null,
-      status: reviewData.reviewActions[reviewData.reviewActions.length - 1]?.toLowerCase().replace(/ /g, "_") ?? null,
+      status:
+        reviewData.reviewActions[reviewData.reviewActions.length - 1]?.toLowerCase().replace(/ /g, "_") ?? null,
       review_date: new Date().toISOString(),
       reviewed_by: reviewData.reviewedBy ?? null,
       assigned_inspector: reviewData.assignedInspector ?? null,
@@ -484,15 +523,18 @@ function DashboardPageContent() {
     return createPortal(
       <div
         id="range-dropdown-portal"
-        style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, zIndex: 9999 }}
+        style={{ position: "fixed", top: dropdownPos.top, right: dropdownPos.right, zIndex: 9999 }}
         className="w-44 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden"
       >
         {rangeOptions.map((option) => (
           <button
             key={option.value}
-            onClick={() => { setNoticeRange(option.value); setDropdownOpen(false); }}
+            onClick={() => {
+              setNoticeRange(option.value);
+              setDropdownOpen(false);
+            }}
             className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors
-              ${noticeRange === option.value ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              ${noticeRange === option.value ? "bg-blue-50 text-blue-600 font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
           >
             {option.label}
           </button>
@@ -503,18 +545,18 @@ function DashboardPageContent() {
   };
 
   const kpiData = [
-    { title: "Active Businesses", value: String(activeCount),        icon: Building2,     iconColor: "text-blue-400" },
-    { title: "Compliant",         value: String(compliantCount),     icon: CheckCircle,   iconColor: "text-green-400" },
-    { title: "For Inspection",    value: String(forInspectionCount), icon: ClipboardList, iconColor: "text-yellow-400" },
-    { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle, iconColor: "text-red-400" },
+    { title: "Active Businesses", value: String(activeCount), icon: Building2, iconColor: "text-blue-400" },
+    { title: "Compliant", value: String(compliantCount), icon: CheckCircle, iconColor: "text-green-400" },
+    { title: "For Inspection", value: String(forInspectionCount), icon: ClipboardList, iconColor: "text-yellow-400" },
+    { title: "Non-Compliant", value: String(nonCompliantCount), icon: AlertTriangle, iconColor: "text-red-400" },
   ];
 
   const noticeStats = [
-    { title: "Notice 1 Sent",  value: String(notice1Count),     icon: Mail,  iconColor: "text-indigo-400" },
-    { title: "Notice 2 Sent",  value: String(notice2Count),     icon: Mail,  iconColor: "text-purple-400" },
-    { title: "Notice 3 Sent",  value: String(notice3Count),     icon: Mail,  iconColor: "text-pink-400" },
-    { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, iconColor: "text-orange-400" },
-    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   iconColor: "text-red-400" },
+    { title: "Notice 1 Sent", value: String(notice1Count), icon: Mail, iconColor: "text-indigo-400" },
+    { title: "Notice 2 Sent", value: String(notice2Count), icon: Mail, iconColor: "text-purple-400" },
+    { title: "Notice 3 Sent", value: String(notice3Count), icon: Mail, iconColor: "text-pink-400" },
+    { title: "Active Cases", value: String(activeCasesCount), icon: Gavel, iconColor: "text-orange-400" },
+    { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban, iconColor: "text-red-400" },
   ];
 
   const getDaysInMonth = (date: Date) => {
@@ -525,8 +567,14 @@ function DashboardPageContent() {
     return { firstDay, daysInMonth };
   };
 
-  const prevMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)); setSelectedDay(null); };
-  const nextMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)); setSelectedDay(null); };
+  const prevMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    setSelectedDay(null);
+  };
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    setSelectedDay(null);
+  };
   const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
 
   const getScheduleDaysForMonth = (month: Date) => {
@@ -535,15 +583,15 @@ function DashboardPageContent() {
     const daysCount = new Date(year, m + 1, 0).getDate();
     return Array.from({ length: daysCount }, (_, i) => {
       const day = i + 1;
-      const key = `${year}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const key = `${year}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       return { day, date: new Date(year, m, day), events: mockEventsByDate[key] ?? [] };
     });
   };
 
-  const scheduleMonthLabel = scheduleMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
-  const prevScheduleMonth  = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() - 1, 1));
-  const nextScheduleMonth  = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
-  const scheduleDays       = getScheduleDaysForMonth(scheduleMonth);
+  const scheduleMonthLabel = scheduleMonth.toLocaleString("default", { month: "long", year: "numeric" });
+  const prevScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() - 1, 1));
+  const nextScheduleMonth = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
+  const scheduleDays = getScheduleDaysForMonth(scheduleMonth);
 
   const isTodayRow = (day: number) =>
     day === today.getDate() &&
@@ -580,7 +628,9 @@ function DashboardPageContent() {
           <div className="px-3 py-3 pb-28 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Overview</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Overview
+                </h1>
                 <p className="text-slate-500 text-xs mt-0.5">Real-time inspection and notice monitoring</p>
               </div>
               <div className="flex items-center space-x-2">
@@ -610,7 +660,7 @@ function DashboardPageContent() {
                   className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   {selectedLabel}
-                  <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
                 </button>
               </div>
               <div className="grid grid-cols-5 gap-1">
@@ -620,7 +670,9 @@ function DashboardPageContent() {
                       <stat.icon size={11} className={`${stat.iconColor} shrink-0`} />
                     </div>
                     <p className="text-lg font-bold text-slate-800 leading-none">{stat.value}</p>
-                    <p className="text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
+                    <p className="text-slate-500 mt-1 leading-tight" style={{ fontSize: "8.5px" }}>
+                      {stat.title}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -669,11 +721,12 @@ function DashboardPageContent() {
       {!isMobile && (
         <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
           <div className="px-8 py-6 h-full flex flex-col">
-
             <div className="mb-4 shrink-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Overview</h1>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    Overview
+                  </h1>
                   <p className="text-slate-500 text-sm mt-0.5">Real-time inspection and notice monitoring</p>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -707,7 +760,7 @@ function DashboardPageContent() {
                   className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-md transition-all duration-200"
                 >
                   {selectedLabel}
-                  <ChevronDown size={15} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={15} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
                 </button>
               </div>
               <div className="grid grid-cols-5 gap-5">
@@ -724,8 +777,6 @@ function DashboardPageContent() {
             </div>
 
             <div className="flex gap-5 flex-1 min-h-0 overflow-hidden">
-
-              {/* ── Desktop Schedule ── */}
               <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
@@ -747,7 +798,7 @@ function DashboardPageContent() {
                   <div
                     ref={desktopScrollRef}
                     className="overflow-y-auto divide-y divide-slate-100"
-                    style={{ maxHeight: '460px' }}
+                    style={{ maxHeight: "460px" }}
                   >
                     {scheduleDays.map(({ day, date, events }) => (
                       <ScheduleRow
@@ -769,9 +820,30 @@ function DashboardPageContent() {
               <div className="w-1/2 min-h-0 overflow-y-auto rounded-2xl">
                 <InspectorSummary />
               </div>
-
             </div>
           </div>
+
+{!isMobile && (
+  <>
+    {/* Small Button (Scheduling / Review) */}
+    <Link
+      href="/Admin/Inspection/management/review"
+      title="Scheduling / Review"
+      className="fixed bottom-24 right-8 z-50 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center transition-all duration-200 hover:scale-105"
+    >
+      <CalendarDays className="w-5 h-5" />
+    </Link>
+
+    {/* Main Button (Manual Add) */}
+    <Link
+      href="/Admin/Inspection/management/manual_add"
+      title="Manual Add Record"
+      className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+    >
+      <FiPlus className="w-6 h-6" />
+    </Link>
+  </>
+)}
         </div>
       )}
     </>
@@ -780,7 +852,7 @@ function DashboardPageContent() {
 
 export default function DashboardPage() {
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="staff">
       <DashboardPageContent />
     </ProtectedRoute>
   );

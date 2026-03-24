@@ -98,10 +98,10 @@ export default function ChangePasswordPage() {
         
         // Redirect based on user role after 2 seconds
         setTimeout(() => {
-          if (user?.role === 'super_admin') {
-            router.push('/SuperAdmin/users'); // Super Admin goes to user management
-          } else if (user?.role === 'admin') {
-            router.push('/Admin/Inspection/management/analytics'); // Admin goes to dashboard
+          if (user?.role === 'admin') {
+            router.push('/SuperAdmin/users'); // Admin goes to user management
+          } else if (user?.role === 'staff') {
+            router.push('/Admin/Inspection/management/analytics'); // Staff goes to dashboard
           } else {
             router.push('/'); // Fallback to login
           }

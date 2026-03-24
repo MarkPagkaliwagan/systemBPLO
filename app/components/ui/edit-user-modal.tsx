@@ -9,7 +9,7 @@ interface User {
   name: string;
   email: string;
   contact_no?: string;
-  role: 'admin' | 'super_admin';
+  role: 'admin' | 'staff';
   createdAt: string;
 }
 
@@ -32,7 +32,7 @@ export function EditUserModal({
     name: '',
     email: '',
     contact_no: '',
-    role: 'admin' as 'admin' | 'super_admin'
+    role: 'admin' as 'admin' | 'staff'
   });
   const [nameError, setNameError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -258,7 +258,7 @@ export function EditUserModal({
                     }}
                   >
                     <option value="admin">Administrator</option>
-                    <option value="super_admin">Super Administrator</option>
+                    <option value="staff">Staff</option>
                   </select>
                 </div>
               </div>

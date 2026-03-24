@@ -12,7 +12,8 @@ interface OtpModalProps {
   onResend: () => Promise<void>;
   isLoading?: boolean;
   error?: string;
-  success?: string;
+  // success prop removed — modal closes immediately on success,
+  // so the success banner is never needed
 }
 
 const EmailVerificationModal: React.FC<OtpModalProps> = ({
@@ -23,7 +24,6 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
   onResend,
   isLoading = false,
   error,
-  success,
 }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(120);
@@ -105,8 +105,8 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
       setTimeLeft(120);
       setCanResend(false);
       setOtp(["", "", "", "", "", ""]);
-    } catch (error) {
-      console.error("Resend error:", error);
+    } catch (err) {
+      console.error("Resend error:", err);
     }
   };
 
@@ -138,38 +138,14 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
 
         <div className="px-6 py-6">
           <div className="text-center mb-6">
-            <p className="text-gray-600 mb-2">
-              We've sent a 6-digit code to:
-            </p>
+            <p className="text-gray-600 mb-2">We've sent a 6-digit code to:</p>
             <p className="font-semibold text-gray-800">{email}</p>
           </div>
 
           {/* Error */}
-          {error && !success && (
+          {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
               {error}
-            </div>
-          )}
-
-          {/* Success */}
-          {success && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
-              <div className="flex items-center">
-                <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                  <svg
-                    className="w-4 h-4 text-white"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium">{success}</p>
-              </div>
             </div>
           )}
 
@@ -185,19 +161,17 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
                   onChange={(e) => handleInputChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
-                  disabled={isLoading || !!success}
+                  className="w-12 h-12 text-center text-lg text-gray-800 font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  disabled={isLoading}
                 />
               ))}
             </div>
 
             <button
               type="submit"
-              disabled={
-                isLoading || otp.join("").length !== 6 || !!success
-              }
+              disabled={isLoading || otp.join("").length !== 6}
               className={`w-full py-3 font-medium rounded-xl transition-colors duration-200 ${
-                isLoading || otp.join("").length !== 6 || !!success
+                isLoading || otp.join("").length !== 6
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-green-800 hover:bg-green-900 text-white"
               }`}
@@ -213,7 +187,7 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
                 : `Code expires in ${formatTime(timeLeft)}`}
             </p>
 
-            {canResend && !success && (
+            {canResend && (
               <button
                 onClick={handleResend}
                 disabled={isLoading}
@@ -233,7 +207,7 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
         <div className="px-6 pb-4">
           <button
             onClick={!isLoading ? onClose : undefined}
-            disabled={isLoading || !!success}
+            disabled={isLoading}
             className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Cancel
