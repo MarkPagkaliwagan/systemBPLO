@@ -163,7 +163,7 @@ function MiniCalendarDropdown({
     ? {
         position: "fixed",
         top: rect.bottom + 6,
-        right: isMobileView ? 12 : window.innerWidth - rect.left,
+        left: isMobileView ? 12 : rect.left,
         zIndex: 9999,
         width: 240,
       }
@@ -372,6 +372,9 @@ function DashboardPageContent() {
   const [scheduleMonth, setScheduleMonth] = useState(new Date());
   const [noticeRange, setNoticeRange] = useState<NoticeRange>("7d");
 
+  // ── Refresh trigger — bumped after every save to re-fetch all data ────────
+  const [refreshKey, setRefreshKey] = useState(0);
+
   // ── Mini calendar ─────────────────────────────────────────────────────────
   const [showMiniCal, setShowMiniCal] = useState(false);
   const [highlightedDate, setHighlightedDate] = useState<Date | null>(null);
@@ -465,6 +468,7 @@ function DashboardPageContent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // ── Fetch status counts — re-runs on refreshKey ───────────────────────────
   useEffect(() => {
     const fetchStatusCounts = async () => {
       try {
@@ -488,8 +492,9 @@ function DashboardPageContent() {
       }
     };
     fetchStatusCounts();
-  }, []);
+  }, [refreshKey]); // ← refreshKey added
 
+  // ── Fetch violation counts — re-runs on noticeRange or refreshKey ─────────
   useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
@@ -522,8 +527,9 @@ function DashboardPageContent() {
       }
     };
     fetchViolationCounts();
-  }, [noticeRange]);
+  }, [noticeRange, refreshKey]); // ← refreshKey added
 
+  // ── Fetch schedules — re-runs on currentMonth or refreshKey ──────────────
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
@@ -558,7 +564,7 @@ function DashboardPageContent() {
       setDesktopMockEvents(byDay);
     };
     fetchSchedules();
-  }, [currentMonth]);
+  }, [currentMonth, refreshKey]); // ← refreshKey added
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -624,6 +630,7 @@ function DashboardPageContent() {
       .update(updates)
       .eq("Business Identification Number", reviewRecord["Business Identification Number"]);
     setReviewRecord(null);
+    setRefreshKey(prev => prev + 1); // ← triggers all three fetches simultaneously
   };
 
   const PortalDropdown = () => {
@@ -697,7 +704,6 @@ function DashboardPageContent() {
   // ── Shared Schedule Header ────────────────────────────────────────────────
   const ScheduleHeader = ({ isMobileView }: { isMobileView: boolean }) => (
     <div className={`flex items-center justify-between ${isMobileView ? "px-3 py-2 bg-slate-50/50" : "px-5 py-4"} border-b border-slate-100 shrink-0`}>
-      {/* Left: "Schedule" label + blue calendar toggle button right beside it */}
       <div className="flex items-center gap-1.5">
         <span className={`font-bold text-slate-800 tracking-tight ${isMobileView ? "text-xs" : "text-sm"}`}>
           Schedule
@@ -718,7 +724,6 @@ function DashboardPageContent() {
         </button>
       </div>
 
-      {/* Right: month navigation */}
       <div className="flex items-center gap-1">
         <button
           onClick={prevScheduleMonth}
@@ -751,7 +756,6 @@ function DashboardPageContent() {
 
       <PortalDropdown />
 
-      {/* ── Mini Calendar Dropdown Portal ── */}
       {showMiniCal && (
         <MiniCalendarDropdown
           currentMonth={scheduleMonth}
@@ -922,7 +926,6 @@ function DashboardPageContent() {
 
             <div className="flex gap-5 flex-1 min-h-0 overflow-hidden">
 
-              {/* Desktop Schedule */}
               <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
                   <ScheduleHeader isMobileView={false} />
