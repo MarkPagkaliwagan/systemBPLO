@@ -10,7 +10,6 @@ type RecordType = {
   "Business Identification Number": string | null;
   "Business Name": string | null;
   scheduled_date: string | null;
-  schedule_time: string | null; // <-- new field
   updated_at?: string | null;
 };
 
