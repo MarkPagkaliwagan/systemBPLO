@@ -97,15 +97,157 @@ interface BusinessRecord {
   accuracy: string | null;
 }
 
-// ── Multi-color palette for same-day schedules (inline hex — Tailwind-purge safe) ──
 const MULTI_COLORS = [
-  "#60a5fa", // blue-400
-  "#a78bfa", // violet-400
-  "#fb7185", // rose-400
-  "#fbbf24", // amber-400
-  "#34d399", // emerald-400
-  "#22d3ee", // cyan-400
+  "#60a5fa",
+  "#a78bfa",
+  "#fb7185",
+  "#fbbf24",
+  "#34d399",
+  "#22d3ee",
 ];
+
+// ── Mini Calendar Dropdown ────────────────────────────────────────────────────
+function MiniCalendarDropdown({
+  currentMonth,
+  eventDates,
+  onSelectDate,
+  onClose,
+  anchorRef,
+  isMobileView,
+}: {
+  currentMonth: Date;
+  eventDates: Set<string>;
+  onSelectDate: (date: Date) => void;
+  onClose: () => void;
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  isMobileView: boolean;
+}) {
+  const [calMonth, setCalMonth] = useState(new Date(currentMonth));
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const today = new Date();
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node) &&
+        !anchorRef.current?.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose, anchorRef]);
+
+  const year = calMonth.getFullYear();
+  const month = calMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthLabel = calMonth.toLocaleString("default", { month: "long", year: "numeric" });
+
+  const days: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) days.push(d);
+
+  const isToday = (d: number) =>
+    d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+  const hasEvent = (d: number) => {
+    const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    return eventDates.has(key);
+  };
+
+  const rect = anchorRef.current?.getBoundingClientRect();
+  const portalStyle: React.CSSProperties = rect
+    ? {
+        position: "fixed",
+        top: rect.bottom + 6,
+        right: isMobileView ? 12 : window.innerWidth - rect.right,
+        zIndex: 9999,
+        width: 240,
+      }
+    : { position: "fixed", top: 60, right: 16, zIndex: 9999, width: 240 };
+
+  return createPortal(
+    <div
+      ref={dropdownRef}
+      style={portalStyle}
+      className="bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+    >
+      {/* Month nav */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100">
+        <button
+          onClick={() => setCalMonth(new Date(year, month - 1, 1))}
+          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+        >
+          <ChevronLeft size={12} className="text-slate-500" />
+        </button>
+        <span className="text-[11px] font-bold text-slate-700 tracking-wide">{monthLabel}</span>
+        <button
+          onClick={() => setCalMonth(new Date(year, month + 1, 1))}
+          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+        >
+          <ChevronRight size={12} className="text-slate-500" />
+        </button>
+      </div>
+
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 px-2 pt-1.5">
+        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+          <div key={i} className="text-center text-[9px] font-semibold text-slate-400 pb-1">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div className="grid grid-cols-7 px-2 pb-2 gap-y-0.5">
+        {days.map((d, i) =>
+          d === null ? (
+            <div key={i} />
+          ) : (
+            <button
+              key={i}
+              onClick={() => {
+                onSelectDate(new Date(year, month, d));
+                onClose();
+              }}
+              className={`
+                relative w-full aspect-square flex items-center justify-center rounded-full
+                text-[11px] font-medium transition-colors
+                ${isToday(d)
+                  ? "bg-blue-600 text-white font-bold"
+                  : "text-slate-700 hover:bg-blue-50 hover:text-blue-700"}
+              `}
+            >
+              {d}
+              {hasEvent(d) && !isToday(d) && (
+                <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-green-500" />
+              )}
+            </button>
+          )
+        )}
+      </div>
+
+      {/* Today button */}
+      <div className="px-3 pb-2.5">
+        <button
+          onClick={() => {
+            const t = new Date();
+            setCalMonth(new Date(t.getFullYear(), t.getMonth(), 1));
+            onSelectDate(t);
+            onClose();
+          }}
+          className="w-full text-center text-[11px] font-semibold text-blue-600 py-1.5 rounded-lg hover:bg-blue-50 transition-colors border border-blue-100"
+        >
+          Today
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 function EventItem({
   event,
@@ -123,9 +265,7 @@ function EventItem({
   isMobileView?: boolean;
 }) {
   const isLoading = loadingBin === event.bin;
-  const borderColor = isMulti
-    ? MULTI_COLORS[colorIndex % MULTI_COLORS.length]
-    : "#cbd5e1"; // slate-300
+  const borderColor = isMulti ? MULTI_COLORS[colorIndex % MULTI_COLORS.length] : "#cbd5e1";
 
   return (
     <button
@@ -136,16 +276,16 @@ function EventItem({
         w-full text-left bg-white border border-slate-100 border-l-4
         rounded-lg flex items-center justify-between gap-1.5
         hover:bg-slate-50 active:scale-95 transition-all duration-150 shadow-sm
-        ${isMobileView ? 'px-2 py-1' : 'px-2.5 py-1.5'}
+        ${isMobileView ? "px-2 py-1" : "px-2.5 py-1.5"}
         ${loadingBin && !isLoading ? "opacity-40" : ""}
       `}
     >
       <div className="min-w-0 flex-1">
-        <p className={`font-semibold text-slate-700 truncate leading-tight ${isMobileView ? 'text-[10px]' : 'text-xs'}`}>
+        <p className={`font-semibold text-slate-700 truncate leading-tight ${isMobileView ? "text-[10px]" : "text-xs"}`}>
           {event.title}
         </p>
         {event.time && (
-          <p className={`text-slate-400 font-medium mt-0.5 ${isMobileView ? 'text-[9px]' : 'text-[10px]'}`}>
+          <p className={`text-slate-400 font-medium mt-0.5 ${isMobileView ? "text-[9px]" : "text-[10px]"}`}>
             {event.time}
           </p>
         )}
@@ -160,14 +300,7 @@ function EventItem({
 }
 
 function ScheduleRow({
-  day,
-  date,
-  events,
-  isToday,
-  isMobileView,
-  todayRef,
-  loadingBin,
-  onOpenReview,
+  day, date, events, isToday, isMobileView, todayRef, loadingBin, onOpenReview, isHighlighted, highlightRef,
 }: {
   day: number;
   date: Date;
@@ -177,29 +310,36 @@ function ScheduleRow({
   todayRef: React.RefObject<HTMLDivElement | null>;
   loadingBin: string | null;
   onOpenReview: (bin: string) => void;
+  isHighlighted?: boolean;
+  highlightRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const now = new Date();
   const isPast = date < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dayLabel = date.toLocaleDateString('default', { weekday: 'short' });
+  const dayLabel = date.toLocaleDateString("default", { weekday: "short" });
 
   return (
     <div
-      ref={isToday ? todayRef : undefined}
-      className={`flex ${isMobileView ? 'px-3 py-1.5 gap-2' : 'px-5 py-3 gap-4'} ${isPast && !isToday ? 'opacity-40' : ''}`}
+      ref={isToday ? todayRef : isHighlighted ? highlightRef : undefined}
+      className={`
+        flex ${isMobileView ? "px-3 py-1.5 gap-2" : "px-5 py-3 gap-4"}
+        ${isPast && !isToday ? "opacity-40" : ""}
+        ${isHighlighted && !isToday ? "bg-blue-50/50" : ""}
+      `}
     >
-      {/* Day column */}
-      <div className={`${isMobileView ? 'w-9' : 'w-14'} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
-        <span className={`font-semibold uppercase tracking-wide ${isMobileView ? 'text-[8px]' : 'text-xs'} ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+      <div className={`${isMobileView ? "w-9" : "w-14"} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
+        <span className={`font-semibold uppercase tracking-wide ${isMobileView ? "text-[8px]" : "text-xs"} ${isToday || isHighlighted ? "text-blue-600" : "text-slate-400"}`}>
           {dayLabel}
         </span>
-        <div className={`${isMobileView ? 'w-6 h-6 mt-0.5' : 'w-8 h-8 mt-1'} rounded-full flex items-center justify-center ${isToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
-          <span className={`font-bold ${isMobileView ? 'text-[10px]' : 'text-sm'} ${isToday ? 'text-white' : 'text-slate-700'}`}>
+        <div className={`
+          ${isMobileView ? "w-6 h-6 mt-0.5" : "w-8 h-8 mt-1"} rounded-full flex items-center justify-center
+          ${isToday ? "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md" : isHighlighted ? "ring-2 ring-blue-400 ring-offset-1" : ""}
+        `}>
+          <span className={`font-bold ${isMobileView ? "text-[10px]" : "text-sm"} ${isToday ? "text-white" : isHighlighted ? "text-blue-600" : "text-slate-700"}`}>
             {day}
           </span>
         </div>
       </div>
 
-      {/* Events list */}
       <div className="flex-1 space-y-1 min-w-0">
         {events.length > 0 ? (
           events.map((event: any, i: number) => (
@@ -214,7 +354,7 @@ function ScheduleRow({
             />
           ))
         ) : (
-          <div className={`flex items-center ${isMobileView ? 'h-5' : 'h-8'}`}>
+          <div className={`flex items-center ${isMobileView ? "h-5" : "h-8"}`}>
             <div className="flex-1 border-t border-dashed border-slate-100" />
           </div>
         )}
@@ -230,7 +370,15 @@ function DashboardPageContent() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
   const [scheduleMonth, setScheduleMonth] = useState(new Date());
-  const [noticeRange, setNoticeRange] = useState<NoticeRange>('7d');
+  const [noticeRange, setNoticeRange] = useState<NoticeRange>("7d");
+
+  // ── Mini calendar ─────────────────────────────────────────────────────────
+  const [showMiniCal, setShowMiniCal] = useState(false);
+  const [highlightedDate, setHighlightedDate] = useState<Date | null>(null);
+  const desktopCalBtnRef = useRef<HTMLButtonElement>(null);
+  const mobileCalBtnRef  = useRef<HTMLButtonElement>(null);
+  const desktopHighlightRef = useRef<HTMLDivElement>(null);
+  const mobileHighlightRef  = useRef<HTMLDivElement>(null);
 
   const [compliantCount, setCompliantCount] = useState(0);
   const [nonCompliantCount, setNonCompliantCount] = useState(0);
@@ -260,41 +408,49 @@ function DashboardPageContent() {
   const mobileTodayRef   = useRef<HTMLDivElement>(null);
 
   const today = new Date();
+  const eventDateSet = new Set(Object.keys(mockEventsByDate));
 
   const rangeOptions: { value: NoticeRange; label: string }[] = [
-    { value: '7d', label: 'Last 7 Days' },
-    { value: '1m', label: 'Last 1 Month' },
-    { value: '3m', label: 'Last 3 Months' },
-    { value: '6m', label: 'Last 6 Months' },
-    { value: '1yr', label: 'Last 1 Year' },
+    { value: "7d",  label: "Last 7 Days" },
+    { value: "1m",  label: "Last 1 Month" },
+    { value: "3m",  label: "Last 3 Months" },
+    { value: "6m",  label: "Last 6 Months" },
+    { value: "1yr", label: "Last 1 Year" },
   ];
-  const selectedLabel = rangeOptions.find(r => r.value === noticeRange)?.label ?? 'Last 7 Days';
+  const selectedLabel = rangeOptions.find((r) => r.value === noticeRange)?.label ?? "Last 7 Days";
+
+  // ── Calendar date select → scroll to row ─────────────────────────────────
+  const handleCalendarSelect = useCallback((date: Date) => {
+    setHighlightedDate(date);
+    setScheduleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    setTimeout(() => {
+      const scrollTo = (scrollEl: HTMLDivElement | null, rowEl: HTMLDivElement | null) => {
+        if (!scrollEl || !rowEl) return;
+        const rowTop = rowEl.getBoundingClientRect().top;
+        const containerTop = scrollEl.getBoundingClientRect().top;
+        scrollEl.scrollTop = scrollEl.scrollTop + (rowTop - containerTop) - 4;
+      };
+      scrollTo(desktopScrollRef.current, desktopHighlightRef.current);
+      scrollTo(mobileScrollRef.current,  mobileHighlightRef.current);
+    }, 160);
+  }, []);
 
   // ── Scroll to today ───────────────────────────────────────────────────────
   useEffect(() => {
     const isCurrentMonth =
       scheduleMonth.getMonth() === today.getMonth() &&
       scheduleMonth.getFullYear() === today.getFullYear();
-
     if (!isCurrentMonth) return;
-
     const t = setTimeout(() => {
-      if (desktopTodayRef.current && desktopScrollRef.current) {
-        const container = desktopScrollRef.current;
-        const row = desktopTodayRef.current;
-        const rowTop = row.getBoundingClientRect().top;
-        const containerTop = container.getBoundingClientRect().top;
-        container.scrollTop = container.scrollTop + (rowTop - containerTop) - 4;
-      }
-      if (mobileTodayRef.current && mobileScrollRef.current) {
-        const container = mobileScrollRef.current;
-        const row = mobileTodayRef.current;
-        const rowTop = row.getBoundingClientRect().top;
-        const containerTop = container.getBoundingClientRect().top;
-        container.scrollTop = container.scrollTop + (rowTop - containerTop) - 4;
-      }
+      const scrollTo = (scrollEl: HTMLDivElement | null, rowEl: HTMLDivElement | null) => {
+        if (!scrollEl || !rowEl) return;
+        const rowTop = rowEl.getBoundingClientRect().top;
+        const containerTop = scrollEl.getBoundingClientRect().top;
+        scrollEl.scrollTop = scrollEl.scrollTop + (rowTop - containerTop) - 4;
+      };
+      scrollTo(desktopScrollRef.current, desktopTodayRef.current);
+      scrollTo(mobileScrollRef.current,  mobileTodayRef.current);
     }, 150);
-
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scheduleMonth, mockEventsByDate]);
@@ -318,17 +474,17 @@ function DashboardPageContent() {
           { count: forInspection },
           { count: active },
         ] = await Promise.all([
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'compliant'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'non_compliant'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'for_inspection'),
-          supabase.from('business_records').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "compliant"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "non_compliant"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "for_inspection"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "active"),
         ]);
         setCompliantCount(compliant ?? 0);
         setNonCompliantCount(nonCompliant ?? 0);
         setForInspectionCount(forInspection ?? 0);
         setActiveCount(active ?? 0);
       } catch (err) {
-        console.error('fetchStatusCounts error:', err);
+        console.error("fetchStatusCounts error:", err);
       }
     };
     fetchStatusCounts();
@@ -340,26 +496,21 @@ function DashboardPageContent() {
         const now = new Date();
         const nowISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
         const start = new Date(now);
-
         switch (noticeRange) {
-          case "7d": start.setDate(start.getDate() - 7); break;
-          case "1m": start.setMonth(start.getMonth() - 1); break;
-          case "3m": start.setMonth(start.getMonth() - 3); break;
-          case "6m": start.setMonth(start.getMonth() - 6); break;
+          case "7d":  start.setDate(start.getDate() - 7); break;
+          case "1m":  start.setMonth(start.getMonth() - 1); break;
+          case "3m":  start.setMonth(start.getMonth() - 3); break;
+          case "6m":  start.setMonth(start.getMonth() - 6); break;
           case "1yr": start.setFullYear(start.getFullYear() - 1); break;
         }
-
         const startISO = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString();
-
         const { data, error } = await supabase
           .from("business_violations")
           .select("notice_level, resolved, cease_flag, last_sent_time")
           .not("last_sent_time", "is", null)
           .gte("last_sent_time", startISO)
           .lte("last_sent_time", nowISO);
-
         if (error) { console.error("fetchViolationCounts error:", error); return; }
-
         const violations = data ?? [];
         setNotice1Count(violations.filter((v) => v.notice_level === 1).length);
         setNotice2Count(violations.filter((v) => v.notice_level === 2).length);
@@ -373,31 +524,22 @@ function DashboardPageContent() {
     fetchViolationCounts();
   }, [noticeRange]);
 
-  // ── Fetch schedules ───────────────────────────────────────────────────────
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
         .from("business_records")
         .select('scheduled_date, schedule_time, "Business Identification Number", "Business Name"')
         .not("scheduled_date", "is", null);
-
       if (error) { console.error("Schedule fetch error:", error); return; }
-
       const rows = data ?? [];
       const byDate: Record<string, any[]> = {};
       const byDay: Record<number, any[]> = {};
-
       rows.forEach((r) => {
         const dateOnly = r.scheduled_date.split("T")[0];
         const [y, m, d] = dateOnly.split("-").map(Number);
-
         const formattedTime = r.schedule_time
-          ? new Date(`1970-01-01T${r.schedule_time}`).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+          ? new Date(`1970-01-01T${r.schedule_time}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
           : null;
-
         const event = {
           title: r["Business Name"] ?? r["Business Identification Number"],
           bin: r["Business Identification Number"],
@@ -405,16 +547,13 @@ function DashboardPageContent() {
           color: "",
           colorDot: "",
         };
-
         if (!byDate[dateOnly]) byDate[dateOnly] = [];
         byDate[dateOnly].push(event);
-
         if (y === currentMonth.getFullYear() && m - 1 === currentMonth.getMonth()) {
           if (!byDay[d]) byDay[d] = [];
           byDay[d].push(event);
         }
       });
-
       setMockEventsByDate(byDate);
       setDesktopMockEvents(byDay);
     };
@@ -424,14 +563,14 @@ function DashboardPageContent() {
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
-      const portalEl = document.getElementById('range-dropdown-portal');
+      const portalEl = document.getElementById("range-dropdown-portal");
       const clickedDesktop = desktopDropdownButtonRef.current?.contains(target);
       const clickedMobile  = mobileDropdownButtonRef.current?.contains(target);
       const clickedPortal  = portalEl?.contains(target);
       if (!clickedDesktop && !clickedMobile && !clickedPortal) setDropdownOpen(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleDropdownToggle = (ref: React.RefObject<HTMLButtonElement | null>) => {
@@ -439,7 +578,7 @@ function DashboardPageContent() {
       const rect = ref.current.getBoundingClientRect();
       setDropdownPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
     }
-    setDropdownOpen(prev => !prev);
+    setDropdownOpen((prev) => !prev);
   };
 
   const handleOpenReview = useCallback(async (bin: string) => {
@@ -492,7 +631,7 @@ function DashboardPageContent() {
     return createPortal(
       <div
         id="range-dropdown-portal"
-        style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, zIndex: 9999 }}
+        style={{ position: "fixed", top: dropdownPos.top, right: dropdownPos.right, zIndex: 9999 }}
         className="w-44 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden"
       >
         {rangeOptions.map((option) => (
@@ -500,7 +639,7 @@ function DashboardPageContent() {
             key={option.value}
             onClick={() => { setNoticeRange(option.value); setDropdownOpen(false); }}
             className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors
-              ${noticeRange === option.value ? 'bg-blue-50 text-blue-600 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+              ${noticeRange === option.value ? "bg-blue-50 text-blue-600 font-semibold" : "text-slate-600 hover:bg-slate-50"}`}
           >
             {option.label}
           </button>
@@ -525,30 +664,18 @@ function DashboardPageContent() {
     { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   iconColor: "text-red-400" },
   ];
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    return { firstDay, daysInMonth };
-  };
-
-  const prevMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)); setSelectedDay(null); };
-  const nextMonth = () => { setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)); setSelectedDay(null); };
-  const { firstDay, daysInMonth } = getDaysInMonth(currentMonth);
-
   const getScheduleDaysForMonth = (month: Date) => {
     const year = month.getFullYear();
     const m = month.getMonth();
     const daysCount = new Date(year, m + 1, 0).getDate();
     return Array.from({ length: daysCount }, (_, i) => {
       const day = i + 1;
-      const key = `${year}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const key = `${year}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       return { day, date: new Date(year, m, day), events: mockEventsByDate[key] ?? [] };
     });
   };
 
-  const scheduleMonthLabel = scheduleMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const scheduleMonthLabel = scheduleMonth.toLocaleString("default", { month: "long", year: "numeric" });
   const prevScheduleMonth  = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() - 1, 1));
   const nextScheduleMonth  = () => setScheduleMonth(new Date(scheduleMonth.getFullYear(), scheduleMonth.getMonth() + 1, 1));
   const scheduleDays       = getScheduleDaysForMonth(scheduleMonth);
@@ -557,6 +684,60 @@ function DashboardPageContent() {
     day === today.getDate() &&
     scheduleMonth.getMonth() === today.getMonth() &&
     scheduleMonth.getFullYear() === today.getFullYear();
+
+  const isHighlightedRow = (day: number) => {
+    if (!highlightedDate) return false;
+    return (
+      day === highlightedDate.getDate() &&
+      scheduleMonth.getMonth() === highlightedDate.getMonth() &&
+      scheduleMonth.getFullYear() === highlightedDate.getFullYear()
+    );
+  };
+
+  // ── Shared Schedule Header ────────────────────────────────────────────────
+  const ScheduleHeader = ({ isMobileView }: { isMobileView: boolean }) => (
+    <div className={`flex items-center justify-between ${isMobileView ? "px-3 py-2 bg-slate-50/50" : "px-5 py-4"} border-b border-slate-100 shrink-0`}>
+      {/* Left: "Schedule" label + blue calendar toggle button right beside it */}
+      <div className="flex items-center gap-1.5">
+        <span className={`font-bold text-slate-800 tracking-tight ${isMobileView ? "text-xs" : "text-sm"}`}>
+          Schedule
+        </span>
+        <button
+          ref={isMobileView ? mobileCalBtnRef : desktopCalBtnRef}
+          onClick={() => setShowMiniCal((prev) => !prev)}
+          title="Jump to date"
+          className={`
+            flex items-center justify-center rounded-lg border transition-colors
+            ${showMiniCal
+              ? "bg-green-900 border-green-900 text-white"
+              : "bg-green-900 border-green-900 text-white hover:bg-green-800 hover:border-green-800"}
+            ${isMobileView ? "w-6 h-6" : "w-7 h-7"}
+          `}
+        >
+          <ChevronDown size={isMobileView ? 11 : 13} />
+        </button>
+      </div>
+
+      {/* Right: month navigation */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={prevScheduleMonth}
+          className={`${isMobileView ? "p-1 rounded-full" : "w-7 h-7 flex items-center justify-center rounded-lg"} hover:bg-slate-100 transition-colors`}
+        >
+          <ChevronLeft size={isMobileView ? 13 : 15} className="text-slate-600" />
+        </button>
+        <span className={`font-semibold text-slate-600 text-center ${isMobileView ? "text-[10px] font-bold text-slate-700 uppercase tracking-wider min-w-[80px]" : "text-xs min-w-[110px]"}`}>
+          {scheduleMonthLabel}
+        </span>
+        <button
+          onClick={nextScheduleMonth}
+          className={`${isMobileView ? "p-1 rounded-full" : "w-7 h-7 flex items-center justify-center rounded-lg"} hover:bg-slate-100 transition-colors`}
+        >
+          <ChevronRight size={isMobileView ? 13 : 15} className="text-slate-600" />
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -569,6 +750,18 @@ function DashboardPageContent() {
       />
 
       <PortalDropdown />
+
+      {/* ── Mini Calendar Dropdown Portal ── */}
+      {showMiniCal && (
+        <MiniCalendarDropdown
+          currentMonth={scheduleMonth}
+          eventDates={eventDateSet}
+          onSelectDate={handleCalendarSelect}
+          onClose={() => setShowMiniCal(false)}
+          anchorRef={isMobile ? mobileCalBtnRef : desktopCalBtnRef}
+          isMobileView={isMobile}
+        />
+      )}
 
       {reviewRecord && (
         <ReviewModal
@@ -585,15 +778,11 @@ function DashboardPageContent() {
       {/* ── MOBILE ── */}
       {isMobile && (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-          {/* ↓ reduced py-3 → py-2 and gap-2 → gap-1.5 */}
           <div className="px-3 py-2 pb-28 flex flex-col gap-1.5">
 
-            {/* Header — tightened */}
             <div className="flex items-center justify-between">
               <div>
-                {/* text-xl → text-base */}
                 <h1 className="text-base font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Overview</h1>
-                {/* text-xs → text-[10px], mt-0.5 → mt-0 */}
                 <p className="text-slate-500 text-[10px] mt-0">Real-time inspection and notice monitoring</p>
               </div>
               <div className="flex items-center space-x-1.5">
@@ -602,28 +791,20 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {/* KPI cards — more compact */}
             <div className="grid grid-cols-4 gap-1.5">
               {kpiData.map((kpi, index) => (
-                // p-3 → p-2, rounded-2xl → rounded-xl
                 <div key={index} className="bg-white/80 backdrop-blur-sm rounded-xl shadow border border-white/20 p-2">
-                  {/* mb-2 → mb-1 */}
                   <div className="flex items-center gap-1 mb-1">
-                    {/* size 12 → 10 */}
                     <kpi.icon size={10} className={`${kpi.iconColor} shrink-0`} />
                   </div>
-                  {/* text-xs → text-[9px], mb-1 → mb-0.5 */}
-                  <p className="text-slate-500 text-[9px] font-medium mb-0.5 leading-tight h-6">{kpi.title}</p>
-                  {/* text-xl → text-lg */}
-                  <h3 className="text-lg font-bold text-slate-800 leading-none">{kpi.value}</h3>
+                  <p className="text-slate-500 text-[9px] font-medium leading-tight h-6">{kpi.title}</p>
+                  <h3 className="text-lg font-bold text-slate-800 leading-none mb-0.5">{kpi.value}</h3>
                 </div>
               ))}
             </div>
 
-            {/* Notice Statistics — tightened */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 shadow border border-white/20">
               <div className="flex items-center justify-between mb-2">
-                {/* text-base → text-sm */}
                 <h2 className="text-sm font-bold text-slate-800">Notice Statistics</h2>
                 <button
                   ref={mobileDropdownButtonRef}
@@ -631,7 +812,7 @@ function DashboardPageContent() {
                   className="flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded-lg shadow-sm text-[10px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   {selectedLabel}
-                  <ChevronDown size={10} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={10} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
                 </button>
               </div>
               <div className="grid grid-cols-5 gap-1">
@@ -640,40 +821,20 @@ function DashboardPageContent() {
                     <div className="flex items-center gap-0.5 mb-1">
                       <stat.icon size={10} className={`${stat.iconColor} shrink-0`} />
                     </div>
-                    {/* text-lg → text-base */}
                     <p className="text-base font-bold text-slate-800 leading-none">{stat.value}</p>
-                    <p className="text-slate-500 mt-0.5 leading-tight" style={{ fontSize: '8px' }}>{stat.title}</p>
+                    <p className="text-slate-500 mt-0.5 leading-tight" style={{ fontSize: "8px" }}>{stat.title}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── Mobile Schedule — Compact ── */}
+            {/* Mobile Schedule */}
             <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50/50">
-                <div className="flex items-center gap-1.5">
-                  <CalendarDays size={13} className="text-blue-600" />
-                  <span className="text-xs font-bold text-slate-800 tracking-tight">Schedule</span>
-                </div>
-                <div className="flex items-center space-x-0.5">
-                  <button onClick={prevScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
-                    <ChevronLeft size={13} className="text-slate-600" />
-                  </button>
-                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider min-w-[80px] text-center">
-                    {scheduleMonthLabel}
-                  </span>
-                  <button onClick={nextScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
-                    <ChevronRight size={13} className="text-slate-600" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Scroll area */}
+              <ScheduleHeader isMobileView={true} />
               <div
                 ref={mobileScrollRef}
                 className="divide-y divide-slate-50 overflow-y-auto scroll-smooth"
-                style={{ maxHeight: '240px' }}
+                style={{ maxHeight: "240px" }}
               >
                 {scheduleDays.map(({ day, date, events }) => (
                   <ScheduleRow
@@ -686,6 +847,8 @@ function DashboardPageContent() {
                     todayRef={mobileTodayRef}
                     loadingBin={loadingBin}
                     onOpenReview={handleOpenReview}
+                    isHighlighted={isHighlightedRow(day)}
+                    highlightRef={mobileHighlightRef}
                   />
                 ))}
               </div>
@@ -699,7 +862,7 @@ function DashboardPageContent() {
         </div>
       )}
 
-      {/* ── DESKTOP ── (unchanged) */}
+      {/* ── DESKTOP ── */}
       {!isMobile && (
         <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
           <div className="px-8 py-6 h-full flex flex-col">
@@ -741,7 +904,7 @@ function DashboardPageContent() {
                   className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700 hover:bg-white hover:shadow-md transition-all duration-200"
                 >
                   {selectedLabel}
-                  <ChevronDown size={15} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={15} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} />
                 </button>
               </div>
               <div className="grid grid-cols-5 gap-5">
@@ -759,29 +922,14 @@ function DashboardPageContent() {
 
             <div className="flex gap-5 flex-1 min-h-0 overflow-hidden">
 
-              {/* ── Desktop Schedule ── */}
+              {/* Desktop Schedule */}
               <div className="w-1/2 flex flex-col">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 flex flex-col overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
-                    <div className="flex items-center gap-2">
-                      <CalendarDays size={18} className="text-slate-500" />
-                      <span className="text-sm font-bold text-slate-800">Schedule</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={prevScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-                        <ChevronLeft size={15} className="text-slate-600" />
-                      </button>
-                      <span className="text-xs font-semibold text-slate-600 min-w-[110px] text-center">{scheduleMonthLabel}</span>
-                      <button onClick={nextScheduleMonth} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors">
-                        <ChevronRight size={15} className="text-slate-600" />
-                      </button>
-                    </div>
-                  </div>
-
+                  <ScheduleHeader isMobileView={false} />
                   <div
                     ref={desktopScrollRef}
                     className="overflow-y-auto divide-y divide-slate-100"
-                    style={{ maxHeight: '460px' }}
+                    style={{ maxHeight: "460px" }}
                   >
                     {scheduleDays.map(({ day, date, events }) => (
                       <ScheduleRow
@@ -794,6 +942,8 @@ function DashboardPageContent() {
                         todayRef={desktopTodayRef}
                         loadingBin={loadingBin}
                         onOpenReview={handleOpenReview}
+                        isHighlighted={isHighlightedRow(day)}
+                        highlightRef={desktopHighlightRef}
                       />
                     ))}
                   </div>
@@ -806,19 +956,16 @@ function DashboardPageContent() {
 
             </div>
           </div>
-          
-{!isMobile && (
-  <>
-    {/* Main Button (Manual Add) */}
-    <Link
-      href="/Admin/Inspection/management/manual_add"
-      title="Manual Add Record"
-      className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
-    >
-      <FiPlus className="w-6 h-6" />
-    </Link>
-  </>
-)}
+
+          {!isMobile && (
+            <Link
+              href="/Admin/Inspection/management/manual_add"
+              title="Manual Add Record"
+              className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+            >
+              <FiPlus className="w-6 h-6" />
+            </Link>
+          )}
         </div>
       )}
     </>
