@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-
+import { useRouter } from "next/navigation";
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface BusinessRecord {
   "Business Identification Number": string;
@@ -231,7 +231,8 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
   const [showSuccess, setShowSuccess] = useState(false);
   const [checkingBin, setCheckingBin] = useState(false);
 const [binExists, setBinExists] = useState(false);
-
+const [showChoice, setShowChoice] = useState(false);
+const router = useRouter(); // import from next/navigation
 useEffect(() => {
   const bin = form["Business Identification Number"];
 
@@ -342,11 +343,13 @@ const validate = () => {
       }
 
       // ── Show success toast then close ─────────────────────────────────────
-      setShowSuccess(true);
-      setTimeout(() => {
-        onSaved(data as BusinessRecord);
-        handleClose();
-      }, 1500);
+     setShowSuccess(true);
+
+// after success toast → show choice modal
+setTimeout(() => {
+  onSaved(data as BusinessRecord);
+  setShowChoice(true);
+}, 1200);
 
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
@@ -354,6 +357,18 @@ const validate = () => {
       setSaving(false);
     }
   };
+
+  const handleAddMore = () => {
+  setForm(emptyRecord());
+  setShowChoice(false);
+  setShowSuccess(false);
+};
+
+const handleSchedule = () => {
+  setShowChoice(false);
+  handleClose();
+  router.push("/Admin/Inspection/management/review");
+};
 
   const handleClose = () => {
     setVisible(false);
@@ -378,7 +393,40 @@ const validate = () => {
           </div>
         </div>
       </div>
+{showChoice && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+    <div className="bg-white rounded-2xl p-6 w-[90%] max-w-sm shadow-2xl text-center space-y-4">
+      
+      <h2 className="text-lg font-bold text-slate-800">
+        What do you want to do next?
+      </h2>
 
+      <p className="text-sm text-slate-500">
+        You successfully saved a record.
+      </p>
+
+      <div className="flex gap-3">
+        
+        {/* Add More */}
+        <button
+          onClick={handleAddMore}
+          className="flex-1 py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition"
+        >
+          Add More
+        </button>
+
+        {/* Schedule */}
+        <button
+          onClick={handleSchedule}
+          className="flex-1 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
+        >
+          Schedule
+        </button>
+
+      </div>
+    </div>
+  </div>
+)}
       {/* ── Saving Overlay ── */}
       {saving && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center">
