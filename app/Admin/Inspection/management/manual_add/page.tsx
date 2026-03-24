@@ -54,29 +54,43 @@ function ManualAddBusinessContent() {
     const [toasts, setToasts] = useState<ToastItem[]>([]);
 
     /* ---------- LOAD ADMIN USERS FOR INSPECTOR DROPDOWN ---------- */
-    useEffect(() => {
-        const loadAdminUsers = async () => {
+useEffect(() => {
+    const loadAdminUsers = async () => {
+        try {
+            // Fetch users with role = 'admin'
             const { data, error } = await supabase
                 .from("users")
                 .select("full_name, role")
-                .eq("role", "admin")
                 .order("full_name", { ascending: true });
 
+            // Log for debugging
+            console.log("Supabase fetch error:", error);
+            console.log("Fetched admin users:", data);
+
             if (error) {
-                console.error("Failed to load admin users:", error.message);
+                throw new Error(error.message);
+            }
+
+            if (!data || data.length === 0) {
+                console.warn("No admin users found.");
+                setAdminUsers([]);
                 return;
             }
 
-            const names =
-                data
-                    ?.map((item) => String(item.full_name ?? "").trim())
-                    .filter((name) => name.length > 0) ?? [];
+            // Filter out empty names and trim spaces
+            const names = data
+                .map((item) => String(item.full_name ?? "").trim())
+                .filter((name) => name.length > 0);
 
             setAdminUsers(names);
-        };
+        } catch (err: any) {
+            console.error("Failed to load admin users:", err.message || err);
+            setAdminUsers([]);
+        }
+    };
 
-        loadAdminUsers();
-    }, []);
+    loadAdminUsers();
+}, []);
 
     /* ---------- TOASTS ---------- */
     const addToast = (type: ToastType, message: string) => {

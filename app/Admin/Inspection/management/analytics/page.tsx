@@ -113,12 +113,14 @@ function EventItem({
   onOpenReview,
   colorIndex = 0,
   isMulti = false,
+  isMobileView = false,
 }: {
   event: any;
   loadingBin: string | null;
   onOpenReview: (bin: string) => void;
   colorIndex?: number;
   isMulti?: boolean;
+  isMobileView?: boolean;
 }) {
   const isLoading = loadingBin === event.bin;
   const borderColor = isMulti
@@ -132,17 +134,18 @@ function EventItem({
       style={{ borderLeftColor: borderColor }}
       className={`
         w-full text-left bg-white border border-slate-100 border-l-4
-        rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2
+        rounded-lg flex items-center justify-between gap-1.5
         hover:bg-slate-50 active:scale-95 transition-all duration-150 shadow-sm
+        ${isMobileView ? 'px-2 py-1' : 'px-2.5 py-1.5'}
         ${loadingBin && !isLoading ? "opacity-40" : ""}
       `}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-slate-700 truncate leading-tight">
+        <p className={`font-semibold text-slate-700 truncate leading-tight ${isMobileView ? 'text-[10px]' : 'text-xs'}`}>
           {event.title}
         </p>
         {event.time && (
-          <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+          <p className={`text-slate-400 font-medium mt-0.5 ${isMobileView ? 'text-[9px]' : 'text-[10px]'}`}>
             {event.time}
           </p>
         )}
@@ -150,7 +153,7 @@ function EventItem({
       {isLoading ? (
         <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin shrink-0" />
       ) : (
-        <ListChecks size={11} className="text-slate-300 shrink-0" />
+        <ListChecks size={isMobileView ? 10 : 11} className="text-slate-300 shrink-0" />
       )}
     </button>
   );
@@ -182,21 +185,22 @@ function ScheduleRow({
   return (
     <div
       ref={isToday ? todayRef : undefined}
-      className={`flex ${isMobileView ? 'px-4 py-2.5 gap-3' : 'px-5 py-3 gap-4'} ${isPast && !isToday ? isMobileView ? 'opacity-50' : 'opacity-40' : ''}`}
+      className={`flex ${isMobileView ? 'px-3 py-1.5 gap-2' : 'px-5 py-3 gap-4'} ${isPast && !isToday ? 'opacity-40' : ''}`}
     >
-      <div className={`${isMobileView ? 'w-12' : 'w-14'} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
-        <span className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
+      {/* Day column */}
+      <div className={`${isMobileView ? 'w-9' : 'w-14'} shrink-0 flex flex-col items-center justify-start pt-0.5`}>
+        <span className={`font-semibold uppercase tracking-wide ${isMobileView ? 'text-[8px]' : 'text-xs'} ${isToday ? 'text-blue-600' : 'text-slate-400'}`}>
           {dayLabel}
         </span>
-        <div className={`${isMobileView ? 'w-7 h-7 mt-0.5' : 'w-8 h-8 mt-1'} rounded-full flex items-center justify-center ${isToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
-          <span className={`${isMobileView ? 'text-xs' : 'text-sm'} font-bold ${isToday ? 'text-white' : 'text-slate-700'}`}>
+        <div className={`${isMobileView ? 'w-6 h-6 mt-0.5' : 'w-8 h-8 mt-1'} rounded-full flex items-center justify-center ${isToday ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md' : ''}`}>
+          <span className={`font-bold ${isMobileView ? 'text-[10px]' : 'text-sm'} ${isToday ? 'text-white' : 'text-slate-700'}`}>
             {day}
           </span>
         </div>
       </div>
 
-      {/* ── Events list ── */}
-      <div className="flex-1 space-y-1.5 min-w-0">
+      {/* Events list */}
+      <div className="flex-1 space-y-1 min-w-0">
         {events.length > 0 ? (
           events.map((event: any, i: number) => (
             <EventItem
@@ -206,10 +210,11 @@ function ScheduleRow({
               onOpenReview={onOpenReview}
               colorIndex={i}
               isMulti={events.length > 1}
+              isMobileView={isMobileView}
             />
           ))
         ) : (
-          <div className="flex items-center h-8">
+          <div className={`flex items-center ${isMobileView ? 'h-5' : 'h-8'}`}>
             <div className="flex-1 border-t border-dashed border-slate-100" />
           </div>
         )}
@@ -368,7 +373,7 @@ function DashboardPageContent() {
     fetchViolationCounts();
   }, [noticeRange]);
 
-  // ── Fetch schedules — includes schedule_time ──────────────────────────────
+  // ── Fetch schedules ───────────────────────────────────────────────────────
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
@@ -580,94 +585,113 @@ function DashboardPageContent() {
       {/* ── MOBILE ── */}
       {isMobile && (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-          <div className="px-3 py-3 pb-28 flex flex-col gap-2">
+          {/* ↓ reduced py-3 → py-2 and gap-2 → gap-1.5 */}
+          <div className="px-3 py-2 pb-28 flex flex-col gap-1.5">
+
+            {/* Header — tightened */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Overview</h1>
-                <p className="text-slate-500 text-xs mt-0.5">Real-time inspection and notice monitoring</p>
+                {/* text-xl → text-base */}
+                <h1 className="text-base font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Overview</h1>
+                {/* text-xs → text-[10px], mt-0.5 → mt-0 */}
+                <p className="text-slate-500 text-[10px] mt-0">Real-time inspection and notice monitoring</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2.5 h-2.5 bg-green-900 rounded-full animate-pulse" />
-                <span className="text-sm text-slate-500">Live</span>
+              <div className="flex items-center space-x-1.5">
+                <div className="w-2 h-2 bg-green-900 rounded-full animate-pulse" />
+                <span className="text-xs text-slate-500">Live</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            {/* KPI cards — more compact */}
+            <div className="grid grid-cols-4 gap-1.5">
               {kpiData.map((kpi, index) => (
-                <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 p-3">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <kpi.icon size={12} className={`${kpi.iconColor} shrink-0`} />
+                // p-3 → p-2, rounded-2xl → rounded-xl
+                <div key={index} className="bg-white/80 backdrop-blur-sm rounded-xl shadow border border-white/20 p-2">
+                  {/* mb-2 → mb-1 */}
+                  <div className="flex items-center gap-1 mb-1">
+                    {/* size 12 → 10 */}
+                    <kpi.icon size={10} className={`${kpi.iconColor} shrink-0`} />
                   </div>
-                  <p className="text-slate-500 text-xs font-medium mb-1 leading-tight">{kpi.title}</p>
-                  <h3 className="text-xl font-bold text-slate-800 leading-none">{kpi.value}</h3>
+                  {/* text-xs → text-[9px], mb-1 → mb-0.5 */}
+                  <p className="text-slate-500 text-[9px] font-medium mb-0.5 leading-tight h-6">{kpi.title}</p>
+                  {/* text-xl → text-lg */}
+                  <h3 className="text-lg font-bold text-slate-800 leading-none">{kpi.value}</h3>
                 </div>
               ))}
             </div>
 
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-white/20">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-bold text-slate-800">Notice Statistics</h2>
+            {/* Notice Statistics — tightened */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 shadow border border-white/20">
+              <div className="flex items-center justify-between mb-2">
+                {/* text-base → text-sm */}
+                <h2 className="text-sm font-bold text-slate-800">Notice Statistics</h2>
                 <button
                   ref={mobileDropdownButtonRef}
                   onClick={() => handleDropdownToggle(mobileDropdownButtonRef)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 rounded-lg shadow-sm text-[10px] font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   {selectedLabel}
-                  <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={10} className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
               </div>
               <div className="grid grid-cols-5 gap-1">
                 {noticeStats.map((stat, index) => (
-                  <div key={index} className="flex flex-col p-2 rounded-xl bg-white border border-slate-100">
-                    <div className="flex items-center gap-1 mb-1.5">
-                      <stat.icon size={11} className={`${stat.iconColor} shrink-0`} />
+                  <div key={index} className="flex flex-col p-1.5 rounded-lg bg-white border border-slate-100">
+                    <div className="flex items-center gap-0.5 mb-1">
+                      <stat.icon size={10} className={`${stat.iconColor} shrink-0`} />
                     </div>
-                    <p className="text-lg font-bold text-slate-800 leading-none">{stat.value}</p>
-                    <p className="text-slate-500 mt-1 leading-tight" style={{ fontSize: '8.5px' }}>{stat.title}</p>
+                    {/* text-lg → text-base */}
+                    <p className="text-base font-bold text-slate-800 leading-none">{stat.value}</p>
+                    <p className="text-slate-500 mt-0.5 leading-tight" style={{ fontSize: '8px' }}>{stat.title}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── Mobile Schedule (Compact Google Calendar Style) ── */}
-<div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-    <div className="flex items-center gap-2">
-      <CalendarDays size={16} className="text-blue-600" />
-      <span className="text-sm font-bold text-slate-800 tracking-tight">Schedule</span>
-    </div>
-    <div className="flex items-center space-x-1">
-      <button onClick={prevScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
-        <ChevronLeft size={16} className="text-slate-600" />
-      </button>
-      <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider min-w-[90px] text-center">
-        {scheduleMonthLabel}
-      </span>
-      <button onClick={nextScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
-        <ChevronRight size={16} className="text-slate-600" />
-      </button>
-    </div>
-  </div>
+            {/* ── Mobile Schedule — Compact ── */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-1.5">
+                  <CalendarDays size={13} className="text-blue-600" />
+                  <span className="text-xs font-bold text-slate-800 tracking-tight">Schedule</span>
+                </div>
+                <div className="flex items-center space-x-0.5">
+                  <button onClick={prevScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+                    <ChevronLeft size={13} className="text-slate-600" />
+                  </button>
+                  <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider min-w-[80px] text-center">
+                    {scheduleMonthLabel}
+                  </span>
+                  <button onClick={nextScheduleMonth} className="p-1 rounded-full hover:bg-slate-200 transition-colors">
+                    <ChevronRight size={13} className="text-slate-600" />
+                  </button>
+                </div>
+              </div>
 
-  {/* Height restricted to show ~4-5 rows, similar to a mobile peek view */}
-  <div ref={mobileScrollRef} className="divide-y divide-slate-50 max-h-[320px] overflow-y-auto scroll-smooth">
-    {scheduleDays.map(({ day, date, events }) => (
-      <ScheduleRow
-        key={day}
-        day={day}
-        date={date}
-        events={events}
-        isToday={isTodayRow(day)}
-        isMobileView={true}
-        todayRef={mobileTodayRef}
-        loadingBin={loadingBin}
-        onOpenReview={handleOpenReview}
-      />
-    ))}
-  </div>
-</div>
+              {/* Scroll area */}
+              <div
+                ref={mobileScrollRef}
+                className="divide-y divide-slate-50 overflow-y-auto scroll-smooth"
+                style={{ maxHeight: '240px' }}
+              >
+                {scheduleDays.map(({ day, date, events }) => (
+                  <ScheduleRow
+                    key={day}
+                    day={day}
+                    date={date}
+                    events={events}
+                    isToday={isTodayRow(day)}
+                    isMobileView={true}
+                    todayRef={mobileTodayRef}
+                    loadingBin={loadingBin}
+                    onOpenReview={handleOpenReview}
+                  />
+                ))}
+              </div>
+            </div>
 
-            <div className="mt-4">
+            <div className="mt-2">
               <InspectorSummary />
             </div>
           </div>
@@ -675,7 +699,7 @@ function DashboardPageContent() {
         </div>
       )}
 
-      {/* ── DESKTOP ── */}
+      {/* ── DESKTOP ── (unchanged) */}
       {!isMobile && (
         <div className="h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
           <div className="px-8 py-6 h-full flex flex-col">
@@ -775,7 +799,6 @@ function DashboardPageContent() {
                   </div>
                 </div>
               </div>
-              
 
               <div className="w-1/2 min-h-0 overflow-y-auto rounded-2xl">
                 <InspectorSummary />
@@ -783,28 +806,26 @@ function DashboardPageContent() {
 
             </div>
           </div>
-          
-{!isMobile && (
-  <>
-    {/* Small Button (Scheduling / Review) */}
-    <Link
-      href="/Admin/Inspection/management/review"
-      title="Scheduling / Review"
-      className="fixed bottom-24 right-8 z-50 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center transition-all duration-200 hover:scale-105"
-    >
-      <CalendarDays className="w-5 h-5" />
-    </Link>
 
-    {/* Main Button (Manual Add) */}
-    <Link
-      href="/Admin/Inspection/management/manual_add"
-      title="Manual Add Record"
-      className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
-    >
-      <FiPlus className="w-6 h-6" />
-    </Link>
-  </>
-)}
+          {!isMobile && (
+            <>
+              <Link
+                href="/Admin/Inspection/management/review"
+                title="Scheduling / Review"
+                className="fixed bottom-24 right-8 z-50 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center transition-all duration-200 hover:scale-105"
+              >
+                <CalendarDays className="w-5 h-5" />
+              </Link>
+
+              <Link
+                href="/Admin/Inspection/management/manual_add"
+                title="Manual Add Record"
+                className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
+              >
+                <FiPlus className="w-6 h-6" />
+              </Link>
+            </>
+          )}
         </div>
       )}
     </>
