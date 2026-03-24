@@ -10,6 +10,7 @@ type RecordType = {
   "Business Identification Number": string | null;
   "Business Name": string | null;
   scheduled_date: string | null;
+  schedule_time: string | null;
   updated_at?: string | null;
 };
 
@@ -52,6 +53,23 @@ function formatDate(dateValue: string | number | null) {
     year: "numeric",
     month: "short",
     day: "numeric",
+  });
+}
+
+function formatTime(timeValue: string | null) {
+  if (!timeValue) return "-";
+
+  const normalized = timeValue.trim();
+  if (!normalized) return "-";
+
+  const today = new Date();
+  const timeDate = new Date(`1970-01-01T${normalized}`);
+
+  if (Number.isNaN(timeDate.getTime())) return normalized;
+
+  return timeDate.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -123,6 +141,7 @@ export default function InspectorSummary() {
         "Business Identification Number",
         "Business Name",
         scheduled_date,
+        schedule_time,
         updated_at
       `);
 
@@ -365,6 +384,7 @@ export default function InspectorSummary() {
                     <th className="p-3 text-left font-medium text-slate-600">BIN</th>
                     <th className="p-3 text-left font-medium text-slate-600">Business Name</th>
                     <th className="p-3 text-left font-medium text-slate-600">Scheduled Date</th>
+                    <th className="p-3 text-left font-medium text-slate-600">Scheduled Time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -376,12 +396,13 @@ export default function InspectorSummary() {
                       <td className="p-3">{row["Business Identification Number"] || "-"}</td>
                       <td className="p-3">{row["Business Name"] || "-"}</td>
                       <td className="p-3">{formatDate(row.scheduled_date)}</td>
+                      <td className="p-3">{formatTime(row.schedule_time)}</td>
                     </tr>
                   ))}
 
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="p-6 text-center text-slate-400">
+                      <td colSpan={4} className="p-6 text-center text-slate-400">
                         No records found
                       </td>
                     </tr>
