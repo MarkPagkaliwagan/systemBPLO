@@ -100,7 +100,7 @@ export const generateWelcomeEmailTemplate = (userName: string, userEmail: string
         </div>
         
         <div style="text-align: center; margin: 25px 0;">
-          <a href="${resetUrl}" class="reset-button">
+          <a href="${resetUrl}" class="reset-button" style="background-color: #059669 !important; color: white !important; text-decoration: none !important; display: inline-block; padding: 12px 25px; border-radius: 5px; font-weight: bold;">
             Reset Your Password
           </a>
         </div>

@@ -26,12 +26,13 @@ export default function LoginPage() {
   const [showInvalidModal, setShowInvalidModal] = useState(false);
   const [invalidMessage, setInvalidMessage] = useState("");
 
-  // ── OTP modal ──────────────────────────────────────────────────────────
+  // ── OTP modal ────────────────────────────────────────────────────
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpUser, setOtpUser] = useState<any>(null);
   const [otpError, setOtpError] = useState("");
   const [otpSuccess, setOtpSuccess] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   // ── Email-verification modal ───────────────────────────────────────────
   const [showEmailVerificationModal, setShowEmailVerificationModal] =
@@ -39,6 +40,7 @@ export default function LoginPage() {
   const [verificationUser, setVerificationUser] = useState<any>(null);
   const [verificationError, setVerificationError] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
+  const [isVerificationResending, setIsVerificationResending] = useState(false);
 
   // ── Page loader: show for at least 2 s on initial load ────────────────
   useEffect(() => {
@@ -164,7 +166,7 @@ export default function LoginPage() {
               }),
             });
             const otpData = await otpRes.json();
-            
+
             if (otpData.loginSuccess) {
               // Existing OTP found, direct login successful
               handleSuccessfulLogin(otpData);
@@ -209,8 +211,7 @@ export default function LoginPage() {
     }
   };
 
-  // ── OTP Verification ────────────────────────────────────────────────────────
-
+  // ── OTP Verification ───────────────────────────────────────────────────
   const handleOtpVerify = async (otp: string) => {
     setOtpLoading(true);
     setOtpError("");
@@ -244,25 +245,28 @@ export default function LoginPage() {
   };
 
   const handleOtpResend = async () => {
-    setOtpLoading(true);
+    setIsResending(true);
     try {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: otpUser.email,
-          password: form.password, // Need to send password again for validation
+          password: form.password,
+          isResend: true,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         setOtpError(data.error || "Failed to resend OTP");
+      } else {
+        setOtpSuccess("New OTP sent successfully");
       }
     } catch (err) {
       console.error("Resend OTP error:", err);
       setOtpError("Failed to resend OTP. Please try again.");
     } finally {
-      setOtpLoading(false);
+      setIsResending(false);
     }
   };
 
@@ -312,8 +316,6 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Close the modal first, then give React one tick to process
-        // before showing the page loader and navigating
         setShowEmailVerificationModal(false);
         setVerificationUser(null);
         setTimeout(() => {
@@ -336,13 +338,20 @@ export default function LoginPage() {
     }
   };
 
+  // ── Email verification resend ──────────────────────────────────────────
   const handleEmailVerificationResend = async () => {
+    if (!verificationUser) return;
+    setIsVerificationResending(true);
     setVerificationError("");
-    setVerificationLoading(true);
     try {
       await sendVerificationEmail(verificationUser.email, verificationUser.id);
+    } catch (err) {
+      console.error("Resend verification email error:", err);
+      setVerificationError(
+        "Failed to resend verification email. Please try again."
+      );
     } finally {
-      setVerificationLoading(false);
+      setIsVerificationResending(false);
     }
   };
 
@@ -354,7 +363,6 @@ export default function LoginPage() {
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <>
       {/* PageLoader covers both initial page load and post-login redirect */}
@@ -445,6 +453,7 @@ export default function LoginPage() {
         onVerify={handleOtpVerify}
         onResend={handleOtpResend}
         isLoading={otpLoading}
+        isResending={isResending}
         error={otpError}
         success={otpSuccess}
       />
@@ -456,6 +465,7 @@ export default function LoginPage() {
         onVerify={handleEmailVerification}
         onResend={handleEmailVerificationResend}
         isLoading={verificationLoading}
+        isResending={isVerificationResending}
         error={verificationError}
       />
     </>

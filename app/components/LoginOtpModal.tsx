@@ -11,6 +11,7 @@ interface LoginOtpModalProps {
   onVerify: (otp: string) => Promise<void>;
   onResend: () => Promise<void>;
   isLoading?: boolean;
+  isResending?: boolean;
   error?: string;
   success?: string;
 }
@@ -22,6 +23,7 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
   onVerify,
   onResend,
   isLoading = false,
+  isResending = false,
   error,
   success,
 }) => {
@@ -141,7 +143,7 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
         onClick={!isLoading ? onClose : undefined}
       />
 
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all scale-100 opacity-100">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 sm:mx-auto transform transition-all scale-100 opacity-100">
         {/* Close button */}
         <button
           onClick={!isLoading ? onClose : undefined}
@@ -161,12 +163,12 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
           </div>
         </div>
 
-        <div className="px-6 py-6">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
           <div className="text-center mb-6">
-            <p className="text-gray-600 mb-2">
+            <p className="text-sm sm:text-base text-gray-600 mb-2">
               Enter the 6-digit code sent to:
             </p>
-            <p className="font-semibold text-gray-800">{email}</p>
+            <p className="font-semibold text-sm sm:text-base text-gray-800">{email}</p>
           </div>
 
           {/* Error */}
@@ -199,7 +201,7 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex justify-center space-x-2 mb-6">
+            <div className="flex justify-center space-x-1 sm:space-x-2 mb-6">
               {otp.map((digit, index) => (
                 <input
                   key={index}
@@ -210,7 +212,7 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
                   onChange={(e) => handleInputChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  className="w-12 h-12 text-center text-lg text-gray-800 font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="w-10 sm:w-12 h-10 sm:h-12 text-center text-lg sm:text-xl text-gray-800 font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
                   disabled={isLoading || !!success}
                 />
               ))}
@@ -218,9 +220,9 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
 
             <button
               type="submit"
-              disabled={isLoading || otp.join("").length !== 6 || !!success}
-              className={`w-full py-3 font-medium rounded-xl transition-colors duration-200 ${
-                isLoading || otp.join("").length !== 6 || !!success
+              disabled={isLoading || isResending || otp.join("").length !== 6 || !!success}
+              className={`w-full py-2 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-colors duration-200 ${
+                isLoading || isResending || otp.join("").length !== 6 || !!success
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-green-800 hover:bg-green-900 text-white"
               }`}
@@ -229,8 +231,8 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 mb-2">
+          <div className="mt-4 sm:mt-6 text-center">
+            <p className="text-xs sm:text-sm text-gray-600 mb-2">
               {canResend
                 ? "Didn't receive the code?"
                 : `Code expires in ${formatTime(timeLeft)}`}
@@ -239,25 +241,25 @@ const LoginOtpModal: React.FC<LoginOtpModalProps> = ({
             {canResend && !success && (
               <button
                 onClick={handleResend}
-                disabled={isLoading}
-                className={`inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                disabled={isResending}
+                className={`inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors text-xs sm:text-sm ${
+                  isResending ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
                 <FiRefreshCw
-                  className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+                  className={`w-3 h-3 sm:w-4 sm:h-4 ${isResending ? "animate-spin" : ""}`}
                 />
-                <span>{isLoading ? "Sending..." : "Resend Code"}</span>
+                <span>{isResending ? "Sending..." : "Resend Code"}</span>
               </button>
             )}
           </div>
         </div>
 
-        <div className="px-6 pb-4">
+        <div className="px-4 sm:px-6 pb-4">
           <button
             onClick={!isLoading ? onClose : undefined}
             disabled={isLoading || !!success}
-            className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             Cancel
           </button>
