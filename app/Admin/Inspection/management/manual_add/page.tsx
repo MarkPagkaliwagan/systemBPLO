@@ -15,6 +15,7 @@ import {
     FiCheckCircle,
     FiChevronDown
 } from "react-icons/fi";
+import ProtectedRoute from "../../../../../components/ProtectedRoute";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,7 +33,7 @@ interface ToastItem {
     message: string;
 }
 
-export default function ManualAddBusiness() {
+function ManualAddBusinessContent() {
     const router = useRouter();
 
     const [loading, setLoading] = useState(false);
@@ -766,5 +767,13 @@ function Input({
             {helperText && !error && <p className="text-xs text-gray-500 mt-1">{helperText}</p>}
             {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
         </div>
+    );
+}
+
+export default function ManualAddBusiness() {
+    return (
+        <ProtectedRoute requiredRole="staff">
+            <ManualAddBusinessContent />
+        </ProtectedRoute>
     );
 }

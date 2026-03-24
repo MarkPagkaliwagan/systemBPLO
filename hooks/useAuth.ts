@@ -25,10 +25,35 @@ export const useAuth = () => {
   });
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
-        const userData = localStorage.getItem('user');
-        const sessionExpiry = localStorage.getItem('sessionExpiry');
+        // First, try to validate session via server-side cookie check
+        try {
+          const response = await fetch('/api/auth/validate-session', {
+            method: 'GET',
+            credentials: 'include', // Important: include cookies
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.valid && data.user) {
+              setAuthState({
+                user: data.user,
+                isLoading: false,
+                isAuthenticated: true,
+                isAdmin: data.user.role === 'admin',
+                isStaff: data.user.role === 'staff',
+              });
+              return;
+            }
+          }
+        } catch (serverError) {
+          console.log('Server session check failed, falling back to localStorage');
+        }
+
+        // Fallback to localStorage/sessionStorage check
+        const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+        const sessionExpiry = localStorage.getItem('sessionExpiry') || sessionStorage.getItem('sessionExpiry');
 
         if (!userData || !sessionExpiry) {
           setAuthState({
@@ -45,6 +70,8 @@ export const useAuth = () => {
         if (Date.now() > Number(sessionExpiry)) {
           localStorage.removeItem('user');
           localStorage.removeItem('sessionExpiry');
+          sessionStorage.removeItem('user');
+          sessionStorage.removeItem('sessionExpiry');
           setAuthState({
             user: null,
             isLoading: false,
@@ -116,8 +143,11 @@ export const useAuth = () => {
       console.error('Logout API error:', error);
     }
 
+    // Clear all storage
     localStorage.removeItem('user');
     localStorage.removeItem('sessionExpiry');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('sessionExpiry');
     window.location.href = '/';
   };
 

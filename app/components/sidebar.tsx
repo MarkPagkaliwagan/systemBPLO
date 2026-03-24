@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -147,6 +147,7 @@ export default function Sidebar({
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
@@ -166,6 +167,12 @@ export default function Sidebar({
   useEffect(() => {
     setCurrentPageLabel(getCurrentPageLabel(pathname, sidebarItems));
     setIsPageLoading(false);
+    
+    // Clear loading timeout when pathname changes (successful navigation)
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = null;
+    }
   }, [pathname, userRole]);
 
   useEffect(() => {
@@ -181,6 +188,14 @@ export default function Sidebar({
       setExpandedItems((prev) => [...prev, "scheduling"]);
     }
   }, [pathname, sidebarItems]);
+
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleExpanded = (itemId: string) => {
     setExpandedItems((prev) =>
@@ -224,6 +239,16 @@ export default function Sidebar({
 
     if (href !== pathname) {
       setIsPageLoading(true);
+      
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+      
+      // Set a timeout to hide loading modal after 3 seconds (fallback)
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsPageLoading(false);
+      }, 3000);
     }
 
     if (isMobile) {
