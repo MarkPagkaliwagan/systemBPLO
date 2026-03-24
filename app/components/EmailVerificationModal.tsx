@@ -11,9 +11,9 @@ interface OtpModalProps {
   onVerify: (otp: string) => Promise<void>;
   onResend: () => Promise<void>;
   isLoading?: boolean;
+  isResending?: boolean;
   error?: string;
-  // success prop removed — modal closes immediately on success,
-  // so the success banner is never needed
+  success?: string;
 }
 
 const EmailVerificationModal: React.FC<OtpModalProps> = ({
@@ -23,16 +23,18 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
   onVerify,
   onResend,
   isLoading = false,
+  isResending = false,
   error,
+  success,
 }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [timeLeft, setTimeLeft] = useState(120);
+  const [timeLeft, setTimeLeft] = useState(180);
   const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setOtp(["", "", "", "", "", ""]);
-      setTimeLeft(120);
+      setTimeLeft(180);
       setCanResend(false);
       return;
     }
@@ -102,7 +104,7 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
   const handleResend = async () => {
     try {
       await onResend();
-      setTimeLeft(120);
+      setTimeLeft(180);
       setCanResend(false);
       setOtp(["", "", "", "", "", ""]);
     } catch (err) {
@@ -125,7 +127,7 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
         onClick={!isLoading ? onClose : undefined}
       />
 
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all scale-100 opacity-100">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 sm:mx-auto transform transition-all scale-100 opacity-100">
         {/* Header */}
         <div className="bg-green-900 px-6 py-4 rounded-t-2xl">
           <div className="flex items-center justify-center space-x-3">
@@ -136,10 +138,10 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
           </div>
         </div>
 
-        <div className="px-6 py-6">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
           <div className="text-center mb-6">
-            <p className="text-gray-600 mb-2">We've sent a 6-digit code to:</p>
-            <p className="font-semibold text-gray-800">{email}</p>
+            <p className="text-sm sm:text-base text-gray-600 mb-2">We've sent a 6-digit code to:</p>
+            <p className="font-semibold text-sm sm:text-base text-gray-800">{email}</p>
           </div>
 
           {/* Error */}
@@ -149,8 +151,15 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
             </div>
           )}
 
+          {/* Success */}
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 text-sm">
+              {success}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex justify-center space-x-2 mb-6">
+            <div className="flex justify-center space-x-1 sm:space-x-2 mb-6">
               {otp.map((digit, index) => (
                 <input
                   key={index}
@@ -161,7 +170,7 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
                   onChange={(e) => handleInputChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  className="w-12 h-12 text-center text-lg text-gray-800 font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="w-10 sm:w-12 h-10 sm:h-12 text-center text-lg sm:text-xl text-gray-800 font-semibold border-2 border-gray-300 rounded-lg focus:border-green-600 focus:ring-2 focus:ring-green-100 outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
                   disabled={isLoading}
                 />
               ))}
@@ -169,9 +178,9 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
 
             <button
               type="submit"
-              disabled={isLoading || otp.join("").length !== 6}
-              className={`w-full py-3 font-medium rounded-xl transition-colors duration-200 ${
-                isLoading || otp.join("").length !== 6
+              disabled={isLoading || isResending || otp.join("").length !== 6}
+              className={`w-full py-2 sm:py-3 text-sm sm:text-base font-medium rounded-xl transition-colors duration-200 ${
+                isLoading || isResending || otp.join("").length !== 6
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-green-800 hover:bg-green-900 text-white"
               }`}
@@ -180,8 +189,8 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 mb-2">
+          <div className="mt-4 sm:mt-6 text-center">
+            <p className="text-xs sm:text-sm text-gray-600 mb-2">
               {canResend
                 ? "Didn't receive the code?"
                 : `Code expires in ${formatTime(timeLeft)}`}
@@ -190,25 +199,25 @@ const EmailVerificationModal: React.FC<OtpModalProps> = ({
             {canResend && (
               <button
                 onClick={handleResend}
-                disabled={isLoading}
-                className={`inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors ${
-                  isLoading ? "opacity-50 cursor-not-allowed" : ""
+                disabled={isResending}
+                className={`inline-flex items-center space-x-2 text-green-600 hover:text-green-700 font-medium transition-colors text-xs sm:text-sm ${
+                  isResending ? "opacity-50 cursor-not-allowed" : ""
                 }`}
               >
                 <FiRefreshCw
-                  className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+                  className={`w-3 h-3 sm:w-4 sm:h-4 ${isResending ? "animate-spin" : ""}`}
                 />
-                <span>{isLoading ? "Sending..." : "Resend Code"}</span>
+                <span>{isResending ? "Sending..." : "Resend Code"}</span>
               </button>
             )}
           </div>
         </div>
 
-        <div className="px-6 pb-4">
+        <div className="px-4 sm:px-6 pb-4">
           <button
             onClick={!isLoading ? onClose : undefined}
             disabled={isLoading}
-            className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             Cancel
           </button>

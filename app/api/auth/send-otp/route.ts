@@ -7,7 +7,7 @@ import { createSessionToken } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const { email, password, isResend = false } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       .gt('expires_at', new Date().toISOString())
       .single();
 
-    if (existingOtp && !existingOtpError) {
+    if (existingOtp && !existingOtpError && !isResend) {
       console.log('Found existing valid OTP, creating session and logging in');
       
       // Create session token for direct login
