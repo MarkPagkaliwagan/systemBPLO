@@ -1,10 +1,8 @@
-// app/module-2-inspection/Review Modal/AddBusinessRecordModal.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import ConfirmScheduleModal from "./Confirmschedulemodal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface BusinessRecord {
@@ -78,13 +76,13 @@ export interface BusinessRecord {
   assigned_inspector: string | null;
   scheduled_date: string | null;
   file_id: string | null;
+  
 }
 
 interface AddBusinessRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: (record: BusinessRecord) => void;
-  onSchedule?: (record: BusinessRecord) => void;
 }
 
 // ── Section Component ─────────────────────────────────────────────────────────
@@ -224,15 +222,13 @@ const emptyRecord = () => ({
 });
 
 // ── Main Component ────────────────────────────────────────────────────────────
-const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBusinessRecordModalProps) => {
+const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordModalProps) => {
   const [form, setForm] = useState(emptyRecord());
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showScheduleConfirm, setShowScheduleConfirm] = useState(false);
-  const [savedRecord, setSavedRecord] = useState<BusinessRecord | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -240,8 +236,6 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
       setErrors({});
       setSaveError(null);
       setShowSuccess(false);
-      setShowScheduleConfirm(false);
-      setSavedRecord(null);
       setTimeout(() => setVisible(true), 10);
     } else {
       setVisible(false);
@@ -289,12 +283,11 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
         return;
       }
 
-      // ── Show success toast then ask about scheduling ───────────────────────
-      setSavedRecord(data as BusinessRecord);
+      // ── Show success toast then close ─────────────────────────────────────
       setShowSuccess(true);
       setTimeout(() => {
-        setShowSuccess(false);
-        setShowScheduleConfirm(true);
+        onSaved(data as BusinessRecord);
+        handleClose();
       }, 1500);
 
     } catch (err: any) {
@@ -307,24 +300,6 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
   const handleClose = () => {
     setVisible(false);
     setTimeout(onClose, 300);
-  };
-
-  // ── Schedule confirm handlers ─────────────────────────────────────────────
-  const handleConfirmSchedule = () => {
-    setShowScheduleConfirm(false);
-    if (savedRecord) {
-      onSaved(savedRecord);       // notify parent record was saved
-      onSchedule?.(savedRecord);  // open ReviewModal with this record
-    }
-    handleClose();
-  };
-
-  const handleSkipSchedule = () => {
-    setShowScheduleConfirm(false);
-    if (savedRecord) {
-      onSaved(savedRecord);
-    }
-    handleClose();
   };
 
   if (!isOpen) return null;
@@ -779,14 +754,6 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
           <div className="h-8" />
         </div>
       </div>
-
-      {/* ── Confirm Schedule Modal ── */}
-      <ConfirmScheduleModal
-        isOpen={showScheduleConfirm}
-        businessName={savedRecord?.["Business Name"] ?? ""}
-        onConfirm={handleConfirmSchedule}
-        onSkip={handleSkipSchedule}
-      />
     </>
   );
 };
