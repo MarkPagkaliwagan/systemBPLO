@@ -2,7 +2,7 @@
 
 import { useEffect, useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 import {
     FiArrowLeft,
     FiBriefcase,
@@ -17,10 +17,7 @@ import {
 } from "react-icons/fi";
 import ProtectedRoute from "../../../../../components/ProtectedRoute";
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+
 
 const BIN_FIELD = "Business Identification Number";
 const BUSINESS_NAME_FIELD = "Business Name";

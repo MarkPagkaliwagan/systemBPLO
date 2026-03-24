@@ -11,15 +11,11 @@ import {
   FiCheckCircle,
   FiInfo,
 } from "react-icons/fi";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 import Sidebar from "../../../components/sidebar";
 import ProtectedRoute from "../../../../components/ProtectedRoute";
 import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
 import DetailsForBusinessFormModal from "./DetailsForBusinessFormModal";
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
 
 type Violation = {
   id: number;
