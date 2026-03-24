@@ -65,14 +65,14 @@ useEffect(() => {
 
             // Log for debugging
             console.log("Supabase fetch error:", error);
-            console.log("Fetched admin users:", data);
+            console.log("Fetched users:", data);
 
             if (error) {
                 throw new Error(error.message);
             }
 
             if (!data || data.length === 0) {
-                console.warn("No admin users found.");
+                console.warn("No users found.");
                 setAdminUsers([]);
                 return;
             }
@@ -84,7 +84,7 @@ useEffect(() => {
 
             setAdminUsers(names);
         } catch (err: any) {
-            console.error("Failed to load admin users:", err.message || err);
+            console.error("Failed to load users:", err.message || err);
             setAdminUsers([]);
         }
     };
@@ -486,7 +486,7 @@ helperText={
                                     }}
                                     className="border rounded-lg px-3 py-2 text-black outline-none w-full sm:w-[260px] transition border-green-100 focus:ring-2 focus:ring-green-900"
                                 >
-                                    <option value="">Select admin name</option>
+                                    <option value="">Select users name</option>
                                     {adminUsers.map((name) => (
                                         <option key={name} value={name}>
                                             {name}
