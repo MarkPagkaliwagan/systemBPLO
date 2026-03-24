@@ -163,11 +163,11 @@ function MiniCalendarDropdown({
     ? {
         position: "fixed",
         top: rect.bottom + 6,
-        right: isMobileView ? 12 : window.innerWidth - rect.right,
+        right: isMobileView ? 12 : window.innerWidth - rect.left,
         zIndex: 9999,
         width: 240,
       }
-    : { position: "fixed", top: 60, right: 16, zIndex: 9999, width: 240 };
+    : { position: "fixed", top: 60, left: 16, zIndex: 9999, width: 240 };
 
   return createPortal(
     <div
