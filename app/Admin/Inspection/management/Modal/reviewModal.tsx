@@ -12,6 +12,7 @@ import DeleteConfirmModal from "./DeleteConfirmModal";
 import ActivityLogModal from "./Activitylogmodal";
 import { useRouter } from "next/navigation";
 
+
 interface BusinessRecord {
   id: string;
   "Business Identification Number": string;
@@ -145,6 +146,8 @@ export default function ReviewModal({
     }, 300); // delay para sure rendered na
   }
 }, [showReviewModal, isMobile]);
+
+
 
   // ── Fetch current user's full_name from localStorage → users table ────────
   useEffect(() => {
