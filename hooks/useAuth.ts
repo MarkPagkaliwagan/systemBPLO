@@ -45,6 +45,20 @@ export const useAuth = () => {
                 isStaff: data.user.role === 'staff',
               });
               return;
+            } else if (data.requiresEmailVerification) {
+              // Session invalid due to unverified email - clear storage and let login handle it
+              localStorage.removeItem('user');
+              localStorage.removeItem('sessionExpiry');
+              sessionStorage.removeItem('user');
+              sessionStorage.removeItem('sessionExpiry');
+              setAuthState({
+                user: null,
+                isLoading: false,
+                isAuthenticated: false,
+                isAdmin: false,
+                isStaff: false,
+              });
+              return;
             }
           }
         } catch (serverError) {

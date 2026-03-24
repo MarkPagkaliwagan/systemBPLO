@@ -153,9 +153,48 @@ export default function LoginPage() {
           setShowEmailVerificationModal(true);
           await sendVerificationEmail(data.user.email, data.user.id);
         } else if (data.requiresOTP) {
-          setOtpUser(data.user);
-          setShowOtpModal(true);
-          await sendOtp(data.user.email, data.user.id);
+          // Check for existing valid OTP before showing modal
+          try {
+            const otpRes = await fetch("/api/auth/send-otp", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: form.username.trim(),
+                password: form.password,
+              }),
+            });
+            const otpData = await otpRes.json();
+            
+            if (otpData.loginSuccess) {
+              // Existing OTP found, direct login successful
+              handleSuccessfulLogin(otpData);
+            } else {
+              // No existing OTP, show modal and send new one
+              setOtpUser(data.user);
+              setShowOtpModal(true);
+              // Only send OTP if we need to show modal
+              try {
+                const sendRes = await fetch("/api/auth/send-otp", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    email: form.username.trim(),
+                    password: form.password,
+                  }),
+                });
+                const sendData = await sendRes.json();
+                if (!sendRes.ok) {
+                  setOtpError(sendData.error || "Failed to send OTP");
+                }
+              } catch (err) {
+                console.error("Send OTP error:", err);
+                setOtpError("Failed to send OTP. Please try again.");
+              }
+            }
+          } catch (err) {
+            console.error("OTP check error:", err);
+            showError("An error occurred during OTP check. Please try again.");
+          }
         } else {
           handleSuccessfulLogin(data);
         }
@@ -170,24 +209,7 @@ export default function LoginPage() {
     }
   };
 
-  // ── OTP ────────────────────────────────────────────────────────────────
-  const sendOtp = async (email: string, userId: string) => {
-    try {
-      const res = await fetch("/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: form.username.trim(),
-          password: form.password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to send OTP");
-    } catch (err) {
-      console.error("Send OTP error:", err);
-      setOtpError("Failed to send OTP. Please try again.");
-    }
-  };
+  // ── OTP Verification ────────────────────────────────────────────────────────
 
   const handleOtpVerify = async (otp: string) => {
     setOtpLoading(true);
@@ -224,7 +246,21 @@ export default function LoginPage() {
   const handleOtpResend = async () => {
     setOtpLoading(true);
     try {
-      await sendOtp(otpUser.email, otpUser.id);
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: otpUser.email,
+          password: form.password, // Need to send password again for validation
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setOtpError(data.error || "Failed to resend OTP");
+      }
+    } catch (err) {
+      console.error("Resend OTP error:", err);
+      setOtpError("Failed to resend OTP. Please try again.");
     } finally {
       setOtpLoading(false);
     }
