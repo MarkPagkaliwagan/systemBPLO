@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import Spinner from "./components/Spinner";
@@ -17,8 +17,10 @@ export default function LoginPage() {
 
   // ── Loaders ────────────────────────────────────────────────────────────
   const [pageLoading, setPageLoading] = useState(true);
-  // redirecting: true shows the PageLoader overlay while we navigate away
   const [redirecting, setRedirecting] = useState(false);
+
+  // Ref to prevent session guard from firing after we've started redirecting
+  const isRedirectingRef = useRef(false);
 
   // ── Invalid-credentials modal ──────────────────────────────────────────
   const [showInvalidModal, setShowInvalidModal] = useState(false);
@@ -36,7 +38,6 @@ export default function LoginPage() {
     useState(false);
   const [verificationUser, setVerificationUser] = useState<any>(null);
   const [verificationError, setVerificationError] = useState("");
-  const [verificationSuccess, setVerificationSuccess] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
 
   // ── Page loader: show for at least 2 s on initial load ────────────────
@@ -60,6 +61,9 @@ export default function LoginPage() {
 
   // ── Single-session guard ───────────────────────────────────────────────
   useEffect(() => {
+    // Don't interfere if we're already mid-redirect
+    if (isRedirectingRef.current) return;
+
     const userData = localStorage.getItem("user");
     const sessionExpiry = localStorage.getItem("sessionExpiry");
 
@@ -71,9 +75,7 @@ export default function LoginPage() {
       }
       try {
         const user = JSON.parse(userData);
-        // admin → /SuperAdmin/...
-        // staff → /Admin/...
-        const destination = 
+        const destination =
           user.role === "admin"
             ? "/SuperAdmin/Inspection/management/analytics"
             : "/Admin/Inspection/management/analytics";
@@ -93,6 +95,35 @@ export default function LoginPage() {
   const showError = (message: string) => {
     setInvalidMessage(message);
     setShowInvalidModal(true);
+  };
+
+  // ── Successful login ───────────────────────────────────────────────────
+  const handleSuccessfulLogin = (data: any) => {
+    const expiresIn =
+      typeof data.expiresIn === "number"
+        ? data.expiresIn
+        : 24 * 60 * 60 * 1000;
+    const expiry = String(Date.now() + expiresIn);
+    const userJson = JSON.stringify(data.user);
+
+    // Write to storage first
+    localStorage.setItem("user", userJson);
+    localStorage.setItem("sessionExpiry", expiry);
+    sessionStorage.setItem("user", userJson);
+    sessionStorage.setItem("sessionExpiry", expiry);
+
+    const destination =
+      data.user.role === "admin"
+        ? "/SuperAdmin/Inspection/management/analytics"
+        : "/Admin/Inspection/management/analytics";
+
+    // Mark as redirecting so the session guard doesn't interfere
+    isRedirectingRef.current = true;
+
+    // Show the PageLoader overlay and navigate — never set redirecting
+    // back to false; the page unload will handle cleanup
+    setRedirecting(true);
+    window.location.href = destination;
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────
@@ -176,7 +207,6 @@ export default function LoginPage() {
 
       if (res.ok) {
         setOtpSuccess("Login verification successful!");
-        // Close the OTP modal, show the full-page loader, then navigate
         setShowOtpModal(false);
         handleSuccessfulLogin(data);
       } else {
@@ -245,13 +275,16 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setVerificationSuccess("Your email has been verified successfully!");
+        // Close the modal first, then give React one tick to process
+        // before showing the page loader and navigating
         setShowEmailVerificationModal(false);
         setVerificationUser(null);
-        handleSuccessfulLogin({
-          user: data.user,
-          expiresIn: 24 * 60 * 60 * 1000,
-        });
+        setTimeout(() => {
+          handleSuccessfulLogin({
+            user: data.user,
+            expiresIn: 24 * 60 * 60 * 1000,
+          });
+        }, 50);
       } else {
         setVerificationError(
           data.error || "Invalid verification code. Please try again."
@@ -281,40 +314,6 @@ export default function LoginPage() {
       setVerificationUser(null);
       setVerificationError("");
     }
-  };
-
-  // ── Successful login ───────────────────────────────────────────────────
-  const handleSuccessfulLogin = (data: any) => {
-    const expiresIn =
-      typeof data.expiresIn === "number" ? data.expiresIn : 24 * 60 * 60 * 1000;
-    const expiry = String(Date.now() + expiresIn);
-    const userJson = JSON.stringify(data.user);
-
-    // Write to storage first
-    localStorage.setItem("user", userJson);
-    localStorage.setItem("sessionExpiry", expiry);
-    sessionStorage.setItem("user", userJson);
-    sessionStorage.setItem("sessionExpiry", expiry);
-
-    // Show the PageLoader overlay immediately
-    setRedirecting(true);
-
-    const destination =
-      data.user.role === "admin"
-        ? "/SuperAdmin/Inspection/management/analytics"
-        : "/Admin/Inspection/management/analytics";
-
-    // Small delay so PageLoader renders visibly before the browser navigates
-    setTimeout(() => {
-      // Force redirect and ensure PageLoader is hidden
-      setRedirecting(false);
-      window.location.href = destination;
-    }, 500);
-
-    // Fallback redirect in case setTimeout doesn't work
-    setTimeout(() => {
-      window.location.replace(destination);
-    }, 2000);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -420,7 +419,6 @@ export default function LoginPage() {
         onResend={handleEmailVerificationResend}
         isLoading={verificationLoading}
         error={verificationError}
-        success={verificationSuccess}
       />
     </>
   );

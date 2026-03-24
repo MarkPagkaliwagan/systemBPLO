@@ -94,7 +94,6 @@ export default function ForgotPasswordPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Email */}
           <div>
             <input
               type="email"
@@ -105,8 +104,6 @@ export default function ForgotPasswordPage() {
               required
             />
           </div>
-
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
@@ -115,8 +112,6 @@ export default function ForgotPasswordPage() {
             {loading ? 'Sending...' : 'Send Reset Link'}
           </button>
         </form>
-
-        {/* Back to Login */}
         <div className="mt-8 text-center">
           <Link 
             href="/" 

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { FiUpload, FiFile, FiClock, FiDownload, FiTrash2, FiChevronLeft, FiChevronRight, FiAlertCircle, FiFilter, FiPlus } from "react-icons/fi";
 import Papa from "papaparse";
 import Sidebar from "../../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import Link from "next/link";
+import ProtectedRoute from "../../../../../components/ProtectedRoute";
 
 interface CSVFile {
   id: string;
@@ -23,10 +23,8 @@ interface CSVFile {
   errors?: string[];
 }
 
-export default function CSVManager() {
-  const router = useRouter();
+function CSVManagerContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  // FIX 1: Start as null to prevent wrong-layout flash
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [csvFiles, setCSVFiles] = useState<CSVFile[]>([]);
@@ -194,10 +192,6 @@ export default function CSVManager() {
     });
   };
 
-  const handleRowClick = (file: CSVFile) => {
-    router.push(`/Admin/management/review?fileId=${file.id}`);
-  };
-
   const handleDeleteConfirm = async () => {
     if (!fileToDelete) return;
     setIsDeleting(true);
@@ -269,19 +263,15 @@ export default function CSVManager() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedFiles = filteredFiles.slice(startIndex, endIndex);
 
-  // FIX 2: Show skeleton while we don't know the screen size yet
   if (isMobile === null) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          {/* Skeleton header */}
           <div className="mb-5">
             <div className="h-8 w-52 bg-gray-200 rounded-lg animate-pulse mb-2" />
             <div className="h-4 w-64 bg-gray-100 rounded animate-pulse" />
           </div>
-          {/* Skeleton upload area */}
           <div className="mb-5 h-32 bg-gray-100 rounded-xl border-2 border-dashed border-gray-200 animate-pulse" />
-          {/* Skeleton file list */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
               <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
@@ -310,7 +300,7 @@ export default function CSVManager() {
       <div className="min-h-screen bg-gray-50 pt-1" style={{ paddingBottom: isMobile ? 80 : 0 }}>
         <div className={`${isMobile ? 'px-3 py-5' : 'max-w-7xl mx-auto px-4 py-6'}`}>
 
-          {/* ── Header ── */}
+          {/* Header */}
           <div className="mb-5">
             <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 mb-1`}>
               CSV File Manager
@@ -318,8 +308,7 @@ export default function CSVManager() {
             <p className="text-sm text-gray-500">Upload and manage your CSV data files</p>
           </div>
 
-          {/* ── Upload Progress Banner ── */}
-          {/* FIX 3: Reserve space so banner appearing doesn't shift content */}
+          {/* Upload Progress Banner */}
           <div className={`transition-all duration-300 overflow-hidden ${uploadProgress ? 'mb-4 max-h-24 opacity-100' : 'mb-0 max-h-0 opacity-0'}`}>
             {uploadProgress && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
@@ -341,7 +330,7 @@ export default function CSVManager() {
             )}
           </div>
 
-          {/* ── Upload Area ── */}
+          {/* Upload Area */}
           <div className="mb-5">
             <div
               className={`relative border-2 border-dashed rounded-xl p-5 text-center transition-colors ${
@@ -378,7 +367,7 @@ export default function CSVManager() {
             </div>
           </div>
 
-          {/* ── Files Section ── */}
+          {/* Files Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
             {/* Header + Filter */}
@@ -399,7 +388,6 @@ export default function CSVManager() {
                       <option value="completed">Completed</option>
                     </select>
                   </div>
-                  {/* FIX 4: Reserve width so count appearing doesn't shift filter bar */}
                   <span className="text-xs text-gray-400 shrink-0 min-w-[48px] text-right">
                     {filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''}
                   </span>
@@ -407,10 +395,9 @@ export default function CSVManager() {
               </div>
             </div>
 
-            {/* FIX 5: Wrap content in relative container with minHeight so loading doesn't collapse it */}
             <div className="relative" style={{ minHeight: isMobile ? '200px' : '200px' }}>
 
-              {/* ── Mobile Cards ── */}
+              {/* Mobile Cards */}
               {isMobile ? (
                 <div className="divide-y divide-gray-100">
                   {paginatedFiles.length === 0 ? (
@@ -420,11 +407,9 @@ export default function CSVManager() {
                   ) : (
                     paginatedFiles.map((file) => (
                       <div key={file.id}>
-                        <div
-                          className="p-4 cursor-pointer active:bg-gray-50 transition-colors"
-                          onClick={() => handleRowClick(file)}
-                        >
-                          {/* Top row: filename + status */}
+                        {/* ── No onClick on card anymore ── */}
+                        <div className="p-4 transition-colors">
+
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <FiFile className="w-4 h-4 text-green-600 shrink-0" />
@@ -439,13 +424,11 @@ export default function CSVManager() {
                             )}
                           </div>
 
-                          {/* Upload date */}
                           <p className="text-xs text-gray-400 flex items-center gap-1 mb-2">
                             <FiClock className="w-3 h-3" />
                             {file.uploadDate}
                           </p>
 
-                          {/* Results pills */}
                           <div className="flex flex-wrap gap-1.5 mb-3">
                             {file.status === 'processing' && !file.successCount ? (
                               <span className="text-xs text-gray-400 flex items-center gap-1">
@@ -472,7 +455,6 @@ export default function CSVManager() {
                             )}
                           </div>
 
-                          {/* Action buttons */}
                           <div className="flex items-center gap-2">
                             <button
                               onClick={(e) => handleDownload(e, file)}
@@ -491,7 +473,6 @@ export default function CSVManager() {
                           </div>
                         </div>
 
-                        {/* Error details */}
                         {file.errors && file.errors.length > 0 && (
                           <div className="mx-4 mb-3 p-3 bg-red-50 rounded-xl border border-red-100">
                             <div className="flex items-start gap-2">
@@ -513,7 +494,7 @@ export default function CSVManager() {
                 </div>
 
               ) : (
-                /* ── Desktop Table ── */
+                /* Desktop Table */
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-gray-200">
@@ -536,10 +517,8 @@ export default function CSVManager() {
                       ) : (
                         paginatedFiles.map((file) => (
                           <React.Fragment key={file.id}>
-                            <tr
-                              className="hover:bg-gray-50 cursor-pointer"
-                              onClick={() => handleRowClick(file)}
-                            >
+                            {/* ── No onClick on row anymore ── */}
+                            <tr className="hover:bg-gray-50">
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <FiFile className="w-4 h-4 text-green-600 mr-2 flex-shrink-0" />
@@ -617,7 +596,7 @@ export default function CSVManager() {
               )}
             </div>
 
-            {/* ── Pagination ── */}
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="px-[1.5vw] py-[1vh] border-t border-gray-200 bg-gray-50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-center" style={{ fontSize: 'clamp(10px, 1vw, 14px)', color: '#6b7280' }}>
@@ -672,16 +651,14 @@ export default function CSVManager() {
         onCancel={() => setFileToDelete(null)}
       />
 
-      {/* Floating Add Button (Desktop Only) */}
-      {!isMobile && (
-        <Link
-          href="/Admin/Inspection/management/manual_add"
-          title="Manual Add Record"
-          className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
-        >
-          <FiPlus className="w-6 h-6" />
-        </Link>
-      )}
     </>
+  );
+}
+
+export default function CSVManager() {
+  return (
+    <ProtectedRoute requiredRole="admin">
+      <CSVManagerContent />
+    </ProtectedRoute>
   );
 }
