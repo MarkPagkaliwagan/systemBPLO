@@ -229,6 +229,37 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [checkingBin, setCheckingBin] = useState(false);
+const [binExists, setBinExists] = useState(false);
+
+useEffect(() => {
+  const bin = form["Business Identification Number"];
+
+  if (!bin || bin.length < 9) {
+    setBinExists(false);
+    return;
+  }
+
+  const timeout = setTimeout(async () => {
+    setCheckingBin(true);
+
+    const { data, error } = await supabase
+      .from("business_records")
+      .select("Business Identification Number")
+      .eq("Business Identification Number", bin)
+      .maybeSingle();
+
+    if (data) {
+      setBinExists(true);
+    } else {
+      setBinExists(false);
+    }
+
+    setCheckingBin(false);
+  }, 500); // debounce 500ms
+
+  return () => clearTimeout(timeout);
+}, [form["Business Identification Number"]]);
 
   useEffect(() => {
     if (isOpen) {
@@ -248,27 +279,54 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
   const num = (v: string) => (v === "" ? null : parseFloat(v));
 
   // ── Validate ──────────────────────────────────────────────────────────────
-  const validate = () => {
-    const e: Partial<Record<string, string>> = {};
-    const bin = form["Business Identification Number"].trim();
-    if (!bin) {
-      e["bin"] = "BIN is required.";
-    } else if (!/^[0-9-]+$/.test(bin)) {
-      e["bin"] = "BIN must contain numbers only (e.g. 2024-00123).";
-    }
-    if (!form["Business Name"].trim()) e["name"] = "Business Name is required.";
-    return e;
-  };
+const validate = () => {
+  const e: Partial<Record<string, string>> = {};
+  const bin = form["Business Identification Number"].trim();
+
+  if (!bin) {
+    e["bin"] = "BIN is required.";
+  } else if (!/^\d+$/.test(bin)) {
+    e["bin"] = "BIN must be numbers only.";
+  } else if (bin.length < 9 || bin.length > 12) {
+    e["bin"] = "BIN must be 9 to 12 digits.";
+  }
+
+  if (!form["Business Name"].trim()) {
+    e["name"] = "Business Name is required.";
+  }
+
+  return e;
+};
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    const e = validate();
-    if (Object.keys(e).length > 0) { setErrors(e); return; }
+  const e = validate();
 
-    setSaving(true);
-    setSaveError(null);
+  if (Object.keys(e).length > 0) {
+    setErrors(e);
+    return;
+  }
 
-    try {
+  if (checkingBin) {
+    setErrors(prev => ({
+      ...prev,
+      bin: "Please wait, checking BIN...",
+    }));
+    return;
+  }
+
+  if (binExists) {
+    setErrors(prev => ({
+      ...prev,
+      bin: "BIN already exists.",
+    }));
+    return;
+  }
+
+  setSaving(true);
+  setSaveError(null);
+
+  try {
       const { file_id, ...recordWithoutFileId } = form as any;
 
       const { data, error } = await supabase
@@ -400,20 +458,34 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
             defaultOpen
           >
             <Field label="Business Identification Number (BIN)" required error={errors["bin"]}>
-              <input
-                type="text"
-                placeholder="e.g. 2024-00123"
-                value={form["Business Identification Number"]}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (/^[0-9-]*$/.test(val)) {
-                    setForm(p => ({ ...p, "Business Identification Number": val }));
-                    if (errors["bin"]) setErrors(prev => ({ ...prev, bin: undefined }));
-                  }
-                }}
-                className={inputCls(!!errors["bin"])}
-              />
+<input
+  type="text"
+  placeholder="Enter 9–12 digit BIN"
+  value={form["Business Identification Number"]}
+  onChange={e => {
+    const val = e.target.value;
+
+    // allow numbers only
+    if (/^\d*$/.test(val)) {
+      setForm(p => ({ ...p, "Business Identification Number": val }));
+
+      if (errors["bin"]) {
+        setErrors(prev => ({ ...prev, bin: undefined }));
+      }
+    }
+  }}
+  className={inputCls(!!errors["bin"] || binExists)}
+/>
             </Field>
+            {checkingBin && (
+  <p className="text-xs text-slate-400 mt-1">Checking BIN...</p>
+)}
+
+{binExists && (
+  <p className="text-xs text-red-500 mt-1">
+    ⚠ BIN already exists.
+  </p>
+)}
             <Field label="Business Name" required error={errors["name"]}>
               <input
                 type="text"
