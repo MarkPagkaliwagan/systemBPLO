@@ -1320,21 +1320,22 @@ const handleSave = async () => {
       </div>
     </div>
 
-    {/* ✅ SCHEDULE DATE */}
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Scheduled Date
-      </label>
-      <div className="relative">
-        <input
-          type="date"
-          value={scheduledDate}
-          onChange={(e) => setScheduledDate(e.target.value)}
-          className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
-        />
-        <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-      </div>
-    </div>
+{/* ✅ SCHEDULE DATE */}
+<div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Scheduled Date
+  </label>
+  <div className="relative">
+    <input
+      type="date"
+      value={scheduledDate}
+      onChange={(e) => setScheduledDate(e.target.value)}
+      min={new Date().toISOString().split("T")[0]} // ✅ only current & future dates
+      className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
+    />
+    <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+  </div>
+</div>
 
     {/* ✅ SCHEDULE TIME */}
     <div>
