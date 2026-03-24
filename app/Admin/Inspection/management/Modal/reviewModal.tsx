@@ -1,4 +1,3 @@
-// app/module-2-inspection/Review Modal/ReviewModal.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -133,21 +132,18 @@ export default function ReviewModal({
   const [showEditToast, setShowEditToast]     = useState(false);
   const [reviewedByName, setReviewedByName]   = useState<string>("");
   const [showLog, setShowLog]                 = useState(false);
-  const reviewFormRef = useRef<HTMLDivElement>(null);
+  const reviewFormRef = useRef<HTMLDivElement | null>(null);
 
-  // ── Mobile scroll effect ───────────────────────────────────────────────
   useEffect(() => {
-    if (!isMobile) return;
-
-    const timer = setTimeout(() => {
+  if (showReviewModal && isMobile) {
+    setTimeout(() => {
       reviewFormRef.current?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
-    }, 200);
-
-    return () => clearTimeout(timer);
-  }, [isMobile]);
+    }, 300); // delay para sure rendered na
+  }
+}, [showReviewModal, isMobile]);
 
   // ── Fetch current user's full_name from localStorage → users table ────────
   useEffect(() => {
@@ -366,7 +362,13 @@ export default function ReviewModal({
             </div>
           </div>
 
-          <div className={`${isMobile ? "p-3" : "p-6 lg:h-[calc(90vh-7rem)]"}`}>
+          <div
+  className={`${
+    isMobile
+      ? "p-3 pb-28" // 👈 dagdag space sa ilalim
+      : "p-6 lg:h-[calc(90vh-7rem)]"
+  }`}
+>
             <div className={`${isMobile ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch h-full"}`}>
 
               {/* Left: Business Information */}
@@ -578,8 +580,8 @@ export default function ReviewModal({
                 </div>
               </div>
 
-             {/* Right: Review Form */}
-<div
+              {/* Right: Review Form */}
+              <div
   ref={reviewFormRef}
   className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}
 >
