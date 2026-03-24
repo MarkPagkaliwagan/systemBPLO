@@ -362,7 +362,13 @@ export default function ReviewModal({
             </div>
           </div>
 
-          <div className={`${isMobile ? "p-3" : "p-6 lg:h-[calc(90vh-7rem)]"}`}>
+          <div
+  className={`${
+    isMobile
+      ? "p-3 pb-28" // 👈 dagdag space sa ilalim
+      : "p-6 lg:h-[calc(90vh-7rem)]"
+  }`}
+>
             <div className={`${isMobile ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch h-full"}`}>
 
               {/* Left: Business Information */}
