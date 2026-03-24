@@ -1,10 +1,9 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-
+import { useRouter } from "next/navigation";
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface BusinessRecord {
   "Business Identification Number": string;
@@ -232,8 +231,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
   const [showSuccess, setShowSuccess] = useState(false);
   const [checkingBin, setCheckingBin] = useState(false);
 const [binExists, setBinExists] = useState(false);
-const [showConfirm, setShowConfirm] = useState(false);
-
+  const router = useRouter();
 useEffect(() => {
   const bin = form["Business Identification Number"];
 
@@ -263,18 +261,17 @@ useEffect(() => {
   return () => clearTimeout(timeout);
 }, [form["Business Identification Number"]]);
 
-useEffect(() => {
-  if (isOpen) {
-    setForm(emptyRecord());
-    setErrors({});
-    setSaveError(null);
-    setShowSuccess(false);
-    setShowConfirm(false); // 🔥 ADD THIS
-    setTimeout(() => setVisible(true), 10);
-  } else {
-    setVisible(false);
-  }
-}, [isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      setForm(emptyRecord());
+      setErrors({});
+      setSaveError(null);
+      setShowSuccess(false);
+      setTimeout(() => setVisible(true), 10);
+    } else {
+      setVisible(false);
+    }
+  }, [isOpen]);
 
   const set = (key: string, value: string | number | null) =>
     setForm(prev => ({ ...prev, [key]: value === "" ? null : value }));
@@ -299,19 +296,6 @@ const validate = () => {
   }
 
   return e;
-};
-
-const handleAddMore = () => {
-  onSaved(form as BusinessRecord); // 🔥 SAVE RECORD DITO
-  setForm(emptyRecord());
-  setErrors({});
-  setShowConfirm(false);
-  setShowSuccess(false);
-};
-
-const handleSchedule = () => {
-  onSaved(form as BusinessRecord); // 🔥 SAVE RECORD DITO
-  window.location.href = "/Admin/Inspection/management/review";
 };
 
   // ── Save ──────────────────────────────────────────────────────────────────
@@ -358,15 +342,16 @@ const handleSchedule = () => {
       }
 
       // ── Show success toast then close ─────────────────────────────────────
+     // ── Show success toast then close ─────────────────────────────────────
 setShowSuccess(true);
-
-// instead of closing → show confirmation popup
 setTimeout(() => {
-  setShowConfirm(true);
-  setShowSuccess(false); // para mawala toast pag lumabas modal
-}, 800);
+  onSaved(data as BusinessRecord);
 
-// ✅ REMOVE onSaved dito, ilalagay sa buttons
+  // Redirect to /Admin/Inspection/management/review
+  router.push("/Admin/Inspection/management/review");
+
+  handleClose();
+}, 1500);
 
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
@@ -398,43 +383,6 @@ setTimeout(() => {
           </div>
         </div>
       </div>
-
-      {showConfirm && (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-    <div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm text-center">
-
-      <CheckCircle size={40} className="text-green-500 mx-auto mb-3" />
-
-      <h3 className="text-lg font-bold text-slate-800">
-        Record Saved Successfully!
-      </h3>
-
-      <p className="text-sm text-slate-500 mt-1">
-        Do you want to add more or schedule inspection?
-      </p>
-
-      <div className="flex gap-3 mt-5">
-        
-        {/* Add More */}
-        <button
-          onClick={handleAddMore}
-          className="flex-1 py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition"
-        >
-          Add More
-        </button>
-
-        {/* Schedule */}
-        <button
-          onClick={handleSchedule}
-          className="flex-1 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
-        >
-          Schedule
-        </button>
-
-      </div>
-    </div>
-  </div>
-)}
 
       {/* ── Saving Overlay ── */}
       {saving && (
