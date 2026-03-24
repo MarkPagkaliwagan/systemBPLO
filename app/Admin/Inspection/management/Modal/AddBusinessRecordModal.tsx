@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-
+import { useRouter } from "next/navigation";
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface BusinessRecord {
   "Business Identification Number": string;
@@ -231,7 +231,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
   const [showSuccess, setShowSuccess] = useState(false);
   const [checkingBin, setCheckingBin] = useState(false);
 const [binExists, setBinExists] = useState(false);
-
+  const router = useRouter();
 useEffect(() => {
   const bin = form["Business Identification Number"];
 
@@ -342,11 +342,16 @@ const validate = () => {
       }
 
       // ── Show success toast then close ─────────────────────────────────────
-      setShowSuccess(true);
-      setTimeout(() => {
-        onSaved(data as BusinessRecord);
-        handleClose();
-      }, 1500);
+     // ── Show success toast then close ─────────────────────────────────────
+setShowSuccess(true);
+setTimeout(() => {
+  onSaved(data as BusinessRecord);
+
+  // Redirect to /Admin/Inspection/management/review
+  router.push("/Admin/Inspection/management/review");
+
+  handleClose();
+}, 1500);
 
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
