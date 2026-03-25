@@ -1302,6 +1302,10 @@ function ViolationsPageContent() {
 
                       <StatusBadge v={v} />
                     </div>
+                    {/* Violation (ADD THIS) */}
+<div className="text-sm text-gray-800 font-medium">
+  {v.violation}
+</div>
 
                     {/* Violation Text */}
                     <div
