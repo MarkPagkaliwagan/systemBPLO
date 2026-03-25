@@ -478,7 +478,7 @@ function DashboardPageContent() {
           { count: active },
         ] = await Promise.all([
           supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "compliant"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "non_compliant"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "non-compliant"),
           supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "for_inspection"),
           supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "active"),
         ]);
