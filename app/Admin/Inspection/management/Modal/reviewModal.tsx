@@ -552,17 +552,20 @@ export default function ReviewModal({
 
               {/* Right: Review Form */}
               <div ref={reviewFormRef} className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}>
-                <ReviewForm
-                  initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map((a) => a.trim()) : []}
-                  initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
-                  initialInspector={selectedRow.assigned_inspector ?? undefined}
-                  initialScheduledDate={selectedRow.scheduled_date ?? undefined}
-                  initialScheduledTime={selectedRow.schedule_time ?? undefined}
-                  onSave={handleSaveWithToast}
-                  onCancel={onClose}
-                  onUploadPhoto={onUploadPhoto}
-                  isMobile={isMobile}
-                />
+<ReviewForm
+  initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map((a) => a.trim()) : []}
+  initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
+  initialInspector={selectedRow.assigned_inspector ?? undefined}
+  initialScheduledDate={selectedRow.scheduled_date ?? undefined}
+  initialScheduledTime={selectedRow.schedule_time ?? undefined}
+  requestorEmail={selectedRow["Requestor Email"]}
+  businessName={selectedRow["Business Name"]}
+  bin={selectedRow["Business Identification Number"]}
+  onSave={handleSaveWithToast}
+  onCancel={onClose}
+  onUploadPhoto={onUploadPhoto}
+  isMobile={isMobile}
+/>
               </div>
             </div>
           </div>
@@ -801,12 +804,18 @@ function MapPickerModal({
 function ReviewForm({
   initialActions, initialViolations, initialInspector, initialScheduledDate,
   initialScheduledTime, onSave, onCancel, onUploadPhoto, isMobile = false,
+  requestorEmail,
+  businessName,
+  bin,
 }: {
   initialActions: string[];
   initialViolations: string[];
   initialInspector?: string;
   initialScheduledDate?: string;
   initialScheduledTime?: string;
+  requestorEmail?: string | null;
+  businessName?: string;
+  bin?: string;
   onSave: (data: {
     reviewActions: string[];
     violations: string[];
@@ -824,6 +833,46 @@ function ReviewForm({
   const [reviewActions, setReviewActions] = useState<string[]>(initialActions);
   const [violations, setViolations] = useState<string[]>(initialViolations);
   const [violationText, setViolationText] = useState(initialViolations.join(", "));
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<string | null>(null);
+
+  const showEmailButton = reviewActions.includes("Non-Compliant");
+
+  const handleSendNonCompliantEmail = async () => {
+    if (!requestorEmail) {
+      setEmailStatus("Walang Requestor Email sa record na ito.");
+      return;
+    }
+
+    setIsSendingEmail(true);
+    setEmailStatus(null);
+
+    try {
+      const res = await fetch("/api/send-notification-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: requestorEmail,
+          businessName,
+          bin,
+          violations,
+          reviewActions,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to send email.");
+      }
+
+      setEmailStatus("Email notification sent successfully.");
+    } catch (err: any) {
+      setEmailStatus(err.message || "Failed to send email.");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
   const [assignedInspectors, setAssignedInspectors] = useState<string[]>(
     initialInspector ? [initialInspector] : []
   );
@@ -864,6 +913,7 @@ function ReviewForm({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [inspectors, setInspectors] = useState<string[]>([]);
+  const isNonCompliant = reviewActions.includes("Non-Compliant");
 
 useEffect(() => {
   const fetchInspectors = async () => {
@@ -1044,6 +1094,37 @@ useEffect(() => {
             </div>
           </div>
         </div>
+        {showEmailButton && (
+  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <h4 className="text-sm font-semibold text-red-800">
+          Non-Compliant Notification
+        </h4>
+        <p className="text-xs text-red-700 mt-1 break-all">
+          {requestorEmail ? `Send to: ${requestorEmail}` : "No Requestor Email found"}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleSendNonCompliantEmail}
+        disabled={isSendingEmail || !requestorEmail}
+        className={`px-4 py-2 rounded-lg text-sm font-semibold text-white transition-colors ${
+          isSendingEmail || !requestorEmail
+            ? "bg-red-300 cursor-not-allowed"
+            : "bg-red-600 hover:bg-red-700"
+        }`}
+      >
+        {isSendingEmail ? "Sending..." : "Send Email Notification"}
+      </button>
+    </div>
+
+    {emailStatus && (
+      <p className="mt-2 text-xs text-gray-600">{emailStatus}</p>
+    )}
+  </div>
+)}
 
         {/* Violations */}
         <div className="bg-white rounded-xl p-4 border border-gray-200">
@@ -1329,7 +1410,9 @@ useEffect(() => {
             Cancel
           </button>
         </div>
+        
       </div>
+      
     </>
   );
 }
