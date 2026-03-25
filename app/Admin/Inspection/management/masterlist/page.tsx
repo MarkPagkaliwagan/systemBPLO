@@ -140,10 +140,14 @@ function CSVManagerContent() {
       skipEmptyLines: true,
       beforeFirstChunk: (chunk) => {
         const lines = chunk.split('\n');
+        const firstLine = lines[0].trim().replace(/\r/g, '');
+        if (firstLine.startsWith('Business Identification Number')) {
+          return chunk;
+        }
         return lines.slice(5).join('\n');
       },
       transformHeader: (header: string) => {
-        return header.trim().replace(/\s+/g, ' ');
+        return header.trim().replace(/\r/g, '').replace(/\s+/g, ' ');
       },
       complete: async (results) => {
         const rows = results.data as Record<string, any>[];
@@ -615,8 +619,8 @@ function CSVManagerContent() {
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
                       className={`flex items-center justify-center rounded-lg font-medium transition-colors ${currentPage === pageNum
-                          ? 'bg-green-600 text-white'
-                          : 'border border-gray-200 hover:bg-gray-100 text-gray-700'
+                        ? 'bg-green-600 text-white'
+                        : 'border border-gray-200 hover:bg-gray-100 text-gray-700'
                         }`}
                       style={{
                         width: 'clamp(26px, 2.2vw, 40px)',
