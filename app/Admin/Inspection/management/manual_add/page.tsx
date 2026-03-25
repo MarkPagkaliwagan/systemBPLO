@@ -352,7 +352,7 @@ function ManualAddBusinessContent() {
 
         // ✅ After review is saved, close the manual add page entirely
         setTimeout(() => {
-            router.back();
+             router.replace("/Admin/Inspection/management/analytics");
         }, 800); // small delay so the toast is visible before leaving
     };
 
