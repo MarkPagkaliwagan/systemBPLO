@@ -401,6 +401,7 @@ export default function LoginPage() {
               </button>
             </form>
           </div>
+          <p className="text-center text-xs text-gray-400 mt-4">v1.0.0</p>
         </div>
       </div>
 

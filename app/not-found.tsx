@@ -21,122 +21,130 @@ export default function SessionExpiredPage() {
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+        html, body { height: 100%; overflow: hidden; }
+
         .page {
           font-family: Arial, sans-serif;
-          background: #ffffff;
-          min-height: 100vh;
+          background: #166534;
+          height: 100vh;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 40px 24px;
           text-align: center;
+          padding: 0 24px;
+          gap: 0;
         }
 
         .logo-wrap {
-          width: 88px;
-          height: 88px;
+          width: 120px;
+          height: 120px;
           border-radius: 50%;
           overflow: hidden;
-          border: 1px solid #e5e7eb;
+          border: 3px solid rgba(255,255,255,0.3);
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f9fafb;
-          margin-bottom: 20px;
+          background: rgba(255,255,255,0.1);
+          margin-bottom: 16px;
+          flex-shrink: 0;
         }
 
         .office-name {
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 700;
-          color: #166534;
+          color: #ffffff;
           letter-spacing: 0.05em;
           text-transform: uppercase;
-          line-height: 1.4;
-          margin-bottom: 4px;
+          line-height: 1.45;
+          margin-bottom: 5px;
         }
 
         .office-sub {
-          font-size: 0.75rem;
-          color: #9ca3af;
-          letter-spacing: 0.04em;
+          font-size: 0.72rem;
+          color: rgba(255,255,255,0.55);
+          letter-spacing: 0.06em;
           text-transform: uppercase;
-          margin-bottom: 48px;
+          margin-bottom: 28px;
         }
 
-        .icon-wrap {
-          width: 56px;
-          height: 56px;
-          background: #f0fdf4;
-          border: 1px solid #bbf7d0;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 20px;
+        .divider {
+          width: 1px;
+          height: 32px;
+          background: rgba(255,255,255,0.2);
+          margin: 0 auto 28px;
         }
 
-        .badge {
-          display: inline-block;
-          background: #fef9c3;
-          color: #854d0e;
-          font-size: 0.68rem;
+        .code-404 {
+          font-size: clamp(3.5rem, 10vw, 5.5rem);
           font-weight: 700;
-          letter-spacing: 0.09em;
-          text-transform: uppercase;
-          padding: 4px 12px;
-          border-radius: 6px;
-          margin-bottom: 14px;
+          color: rgba(255,255,255,0.1);
+          line-height: 1;
+          letter-spacing: -2px;
+          margin-bottom: 12px;
+          user-select: none;
         }
 
         h1 {
-          font-size: 1.75rem;
+          font-size: clamp(1.3rem, 3.5vw, 1.75rem);
           font-weight: 700;
-          color: #111827;
-          margin-bottom: 12px;
+          color: #ffffff;
+          margin-bottom: 10px;
+          letter-spacing: -0.01em;
         }
 
-        p {
-          font-size: 0.9rem;
-          color: #6b7280;
+        .sub-msg {
+          font-size: 0.85rem;
+          color: rgba(255,255,255,0.6);
           line-height: 1.7;
-          max-width: 340px;
-          margin: 0 auto 36px;
+          max-width: 300px;
+          margin: 0 auto 28px;
         }
 
         .btn {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          background: #166534;
-          color: #ffffff;
+          gap: 9px;
+          background: #ffffff;
+          color: #166534;
           font-family: Arial, sans-serif;
           font-size: 0.9rem;
-          font-weight: 600;
-          padding: 14px 40px;
+          font-weight: 700;
+          padding: 13px 36px;
           border: none;
           border-radius: 10px;
           cursor: pointer;
-          transition: background 0.15s;
+          transition: background 0.15s, transform 0.1s;
           min-width: 180px;
+          flex-shrink: 0;
         }
 
-        .btn:hover { background: #14532d; }
-        .btn:active { background: #052e16; }
+        .btn:hover { background: #f0fdf4; }
+        .btn:active { transform: scale(0.98); background: #dcfce7; }
 
         .footer-note {
-          margin-top: 28px;
-          font-size: 0.72rem;
-          color: #d1d5db;
-          letter-spacing: 0.02em;
+          margin-top: 20px;
+          font-size: 0.68rem;
+          color: rgba(255,255,255,0.25);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
         }
 
         @media (max-width: 480px) {
-          .logo-wrap { width: 72px; height: 72px; }
-          h1 { font-size: 1.4rem; }
-          p { font-size: 0.85rem; }
-          .btn { width: 100%; max-width: 320px; }
+          .logo-wrap { width: 96px; height: 96px; }
+          .office-name { font-size: 0.82rem; }
+          .sub-msg { font-size: 0.8rem; }
+          .btn { width: 100%; max-width: 280px; }
+        }
+
+        @media (max-height: 640px) {
+          .logo-wrap { width: 80px; height: 80px; margin-bottom: 12px; }
+          .divider { height: 20px; margin-bottom: 20px; }
+          .office-sub { margin-bottom: 20px; }
+          .code-404 { font-size: 3rem; margin-bottom: 8px; }
+          h1 { font-size: 1.2rem; }
+          .sub-msg { font-size: 0.78rem; margin-bottom: 20px; }
         }
       `}</style>
 
@@ -144,8 +152,8 @@ export default function SessionExpiredPage() {
         <Image
           src="/bplo-logo.png"
           alt="BPLO Logo"
-          width={72}
-          height={72}
+          width={104}
+          height={104}
           style={{ objectFit: "contain" }}
           priority
         />
@@ -156,22 +164,10 @@ export default function SessionExpiredPage() {
       </div>
       <div className="office-sub">City of San Pablo · Official Portal</div>
 
-      <div className="icon-wrap">
-        <svg
-          width={24} height={24}
-          fill="none" stroke="#16a34a"
-          strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-          viewBox="0 0 24 24"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-      </div>
-
-      <div className="badge">Session Ended</div>
+      <div className="code-404">404</div>
 
       <h1>Session Expired</h1>
-      <p>
+      <p className="sub-msg">
         Your session has timed out due to inactivity.
         Please log in again to continue using the
         Business Permit &amp; Licensing System.
@@ -179,9 +175,9 @@ export default function SessionExpiredPage() {
 
       <button className="btn" onClick={handleLogin}>
         <svg
-          width={16} height={16}
+          width={15} height={15}
           fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
           viewBox="0 0 24 24"
         >
           <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
@@ -191,7 +187,7 @@ export default function SessionExpiredPage() {
         Back to Login
       </button>
 
-      <div className="footer-note">Access has expired or been revoked.</div>
+      <div className="footer-note">Access has expired or been revoked</div>
     </div>
   );
 }
