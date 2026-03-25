@@ -6,6 +6,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// ── Allow large CSV payloads & longer execution time ──────────────────────────
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 function v(val: any): string | null {
   if (val === undefined || val === null || String(val).trim() === '') return null;
   return String(val).trim();
@@ -28,7 +32,14 @@ function vDate(val: any): string | null {
 
 export async function POST(req: NextRequest) {
   try {
-    const { rows, fileName } = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Request body is too large or not valid JSON. Try a smaller file or split the CSV.' }, { status: 413 });
+    }
+
+    const { rows, fileName } = body;
     if (!rows || !Array.isArray(rows)) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
@@ -58,13 +69,21 @@ export async function POST(req: NextRequest) {
     let errorCount = 0;
     const errors: string[] = [];
 
-    for (const row of rows) {
+    // ── Batch insert in chunks of 100 for performance ─────────────────────────
+    const BATCH_SIZE = 100;
+    const newRows = rows.filter((row: any) => {
       const bin = v(row['Business Identification Number']);
-      if (!bin) { skippedCount++; continue; }
-      if (existingBINs.has(bin)) { skippedCount++; continue; }
+      return bin && !existingBINs.has(bin);
+    });
 
-      const { error } = await supabase.from('business_records').insert({
-        "Business Identification Number": bin,
+    // Count skipped upfront
+    skippedCount = rows.length - newRows.length;
+
+    for (let i = 0; i < newRows.length; i += BATCH_SIZE) {
+      const batch = newRows.slice(i, i + BATCH_SIZE);
+
+      const records = batch.map((row: any) => ({
+        "Business Identification Number": v(row['Business Identification Number']),
         "Business Name": v(row['Business Name']),
         "Trade Name": v(row['Trade Name']),
         "Business Nature": v(row['Business Nature']),
@@ -128,23 +147,28 @@ export async function POST(req: NextRequest) {
         "Source Type": v(row['Source Type']),
         "status": 'not reviewed',
         "file_id": fileId,
-      });
+      }));
+
+      const { error } = await supabase.from('business_records').insert(records);
 
       if (error) {
-        errorCount++;
-        if (errors.length < 10) errors.push(`BIN ${bin}: ${error.message}`);
+        errorCount += batch.length;
+        if (errors.length < 10) errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
       } else {
-        successCount++;
-        existingBINs.add(bin);
+        successCount += batch.length;
+        batch.forEach((row: any) => {
+          const bin = v(row['Business Identification Number']);
+          if (bin) existingBINs.add(bin);
+        });
       }
     }
 
-    // 3. Update csv_uploads with final counts and status
+    // 3. Update csv_uploads with final counts
     await supabase
       .from('csv_uploads')
       .update({
         row_count: successCount,
-        status: errorCount === 0 ? 'completed' : 'completed',
+        status: 'completed',
       })
       .eq('id', fileId);
 
