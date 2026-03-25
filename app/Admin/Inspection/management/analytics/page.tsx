@@ -20,7 +20,6 @@ import { FiPlus } from "react-icons/fi";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
 interface BusinessRecord {
-  id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
