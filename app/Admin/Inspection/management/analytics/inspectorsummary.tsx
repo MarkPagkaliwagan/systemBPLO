@@ -20,27 +20,66 @@ type InspectorCount = {
   latest: number | null;
 };
 
-function parseAssignedInspectors(value: string | null | undefined): string[] {
-  if (!value) return [];
+function cleanInspectorName(value: string): string {
+  return value
+    .replace(/\uFEFF/g, "")
+    .replace(/^[\s,;:•·\-–—"'[\]{}()<>/\\|]+/gu, "")
+    .replace(/[\s,;:•·\-–—"'[\]{}()<>/\\|]+$/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  const trimmed = value.trim();
-  if (!trimmed) return [];
+function extractInspectorNames(value: string): string[] {
+  const raw = value.trim();
+  if (!raw) return [];
 
+  // Try JSON parsing first for values like:
+  // ["Maria Redjeanna M. Chozas", "Leonides C. Amante"]
   try {
-    const parsed = JSON.parse(trimmed);
+    const parsed = JSON.parse(raw);
 
     if (Array.isArray(parsed)) {
-      return parsed
-        .map((item) => String(item).trim())
-        .filter((item) => item.length > 0);
+      return Array.from(
+        new Set(
+          parsed
+            .flatMap((item) => extractInspectorNames(String(item)))
+            .map(cleanInspectorName)
+            .filter((item) => item.length > 0)
+        )
+      );
     }
 
     if (typeof parsed === "string") {
-      return parsed.trim() ? [parsed.trim()] : [];
+      return extractInspectorNames(parsed);
     }
-  } catch {}
+  } catch {
+    // ignore and continue with manual parsing
+  }
 
-  return [trimmed];
+  const pieces = raw
+    .replace(/\r/g, "\n")
+    .split(/[\n,;]+/g)
+    .map(cleanInspectorName)
+    .filter((item) => item.length > 0);
+
+  return Array.from(new Set(pieces));
+}
+
+function parseAssignedInspectors(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return extractInspectorNames(value);
+}
+
+function normalizeAssignedInspectorValue(
+  value: string | string[] | null | undefined
+): string | null {
+  if (value === null || value === undefined) return null;
+
+  const names = Array.isArray(value)
+    ? value.flatMap((item) => parseAssignedInspectors(item))
+    : parseAssignedInspectors(value);
+
+  return names.length > 0 ? names.join("\n") : null;
 }
 
 function formatDate(dateValue: string | number | null) {
@@ -186,7 +225,7 @@ export default function InspectorSummary() {
   const handleReviewSave = async (reviewData: {
     reviewActions: string[];
     violations: string[];
-    assignedInspector?: string;
+    assignedInspector?: string | string[];
     scheduledDate?: string;
     scheduledTime?: string;
     location?: { lat: number; lng: number; accuracy: number };
@@ -199,10 +238,13 @@ export default function InspectorSummary() {
     const updates: Record<string, any> = {
       review_action: reviewData.reviewActions.join(", ") || null,
       violation: reviewData.violations.join(", ") || null,
-      status: reviewData.reviewActions[reviewData.reviewActions.length - 1]?.toLowerCase().replace(/ /g, "_") ?? null,
+      status:
+        reviewData.reviewActions[reviewData.reviewActions.length - 1]
+          ?.toLowerCase()
+          .replace(/ /g, "_") ?? null,
       review_date: new Date().toISOString(),
       reviewed_by: reviewData.reviewedBy ?? null,
-      assigned_inspector: reviewData.assignedInspector ?? null,
+      assigned_inspector: normalizeAssignedInspectorValue(reviewData.assignedInspector),
       scheduled_date: reviewData.scheduledDate ?? null,
       schedule_time: reviewData.scheduledTime ?? null,
       latitude: reviewData.location?.lat?.toString() ?? null,
@@ -298,11 +340,9 @@ export default function InspectorSummary() {
     <>
       {/* Main Panel */}
       <div className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-
         {/* Header — compact */}
         <div className="border-b border-slate-200 bg-white px-3 py-2.5 shrink-0">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-
             {/* Left side — tighter */}
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 shrink-0">
