@@ -10,23 +10,18 @@ import PageLoader from "./components/Pageloader";
 import InvalidCredentialsModal from "./components/Invalidcredentialsmodal";
 
 export default function LoginPage() {
-  // ── Form state ─────────────────────────────────────────────────────────
   const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // ── Loaders ────────────────────────────────────────────────────────────
   const [pageLoading, setPageLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
 
-  // Ref to prevent session guard from firing after we've started redirecting
   const isRedirectingRef = useRef(false);
 
-  // ── Invalid-credentials modal ──────────────────────────────────────────
   const [showInvalidModal, setShowInvalidModal] = useState(false);
   const [invalidMessage, setInvalidMessage] = useState("");
 
-  // ── OTP modal ────────────────────────────────────────────────────
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpUser, setOtpUser] = useState<any>(null);
   const [otpError, setOtpError] = useState("");
@@ -34,7 +29,6 @@ export default function LoginPage() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
-  // ── Email-verification modal ───────────────────────────────────────────
   const [showEmailVerificationModal, setShowEmailVerificationModal] =
     useState(false);
   const [verificationUser, setVerificationUser] = useState<any>(null);
@@ -42,10 +36,10 @@ export default function LoginPage() {
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [isVerificationResending, setIsVerificationResending] = useState(false);
 
-  // ── Page loader: show for at least 2 s on initial load ────────────────
+  // ── Page loader: show for at least 3 s on initial load ────────────────
   useEffect(() => {
     const start = Date.now();
-    const MIN = 2000;
+    const MIN = 3000;
 
     const finish = () => {
       const remaining = Math.max(0, MIN - (Date.now() - start));
@@ -63,7 +57,6 @@ export default function LoginPage() {
 
   // ── Single-session guard ───────────────────────────────────────────────
   useEffect(() => {
-    // Don't interfere if we're already mid-redirect
     if (isRedirectingRef.current) return;
 
     const userData = localStorage.getItem("user");
@@ -89,7 +82,6 @@ export default function LoginPage() {
     }
   }, []);
 
-  // ── Helpers ────────────────────────────────────────────────────────────
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -99,7 +91,6 @@ export default function LoginPage() {
     setShowInvalidModal(true);
   };
 
-  // ── Successful login ───────────────────────────────────────────────────
   const handleSuccessfulLogin = (data: any) => {
     const expiresIn =
       typeof data.expiresIn === "number"
@@ -108,8 +99,6 @@ export default function LoginPage() {
     const expiry = String(Date.now() + expiresIn);
     const userJson = JSON.stringify(data.user);
 
-    // Store in localStorage/sessionStorage for backup/fallback
-    // but primary authentication will rely on HTTP-only cookies
     localStorage.setItem("user", userJson);
     localStorage.setItem("sessionExpiry", expiry);
     sessionStorage.setItem("user", userJson);
@@ -120,16 +109,15 @@ export default function LoginPage() {
         ? "/SuperAdmin/Inspection/management/analytics"
         : "/Admin/Inspection/management/analytics";
 
-    // Mark as redirecting so the session guard doesn't interfere
     isRedirectingRef.current = true;
-
-    // Show the PageLoader overlay and navigate — never set redirecting
-    // back to false; the page unload will handle cleanup
     setRedirecting(true);
-    window.location.href = destination;
+
+    // ── 3 s minimum before navigating away ────────────────────────────
+    setTimeout(() => {
+      window.location.href = destination;
+    }, 2500);
   };
 
-  // ── Submit ─────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -155,7 +143,6 @@ export default function LoginPage() {
           setShowEmailVerificationModal(true);
           await sendVerificationEmail(data.user.email, data.user.id);
         } else if (data.requiresOTP) {
-          // Check for existing valid OTP before showing modal
           try {
             const otpRes = await fetch("/api/auth/send-otp", {
               method: "POST",
@@ -168,13 +155,10 @@ export default function LoginPage() {
             const otpData = await otpRes.json();
 
             if (otpData.loginSuccess) {
-              // Existing OTP found, direct login successful
               handleSuccessfulLogin(otpData);
             } else {
-              // No existing OTP, show modal and send new one
               setOtpUser(data.user);
               setShowOtpModal(true);
-              // Only send OTP if we need to show modal
               try {
                 const sendRes = await fetch("/api/auth/send-otp", {
                   method: "POST",
@@ -211,7 +195,6 @@ export default function LoginPage() {
     }
   };
 
-  // ── OTP Verification ───────────────────────────────────────────────────
   const handleOtpVerify = async (otp: string) => {
     setOtpLoading(true);
     setOtpError("");
@@ -278,7 +261,6 @@ export default function LoginPage() {
     }
   };
 
-  // ── Email verification ─────────────────────────────────────────────────
   const sendVerificationEmail = async (email: string, userId: string) => {
     setVerificationError("");
     try {
@@ -338,7 +320,6 @@ export default function LoginPage() {
     }
   };
 
-  // ── Email verification resend ──────────────────────────────────────────
   const handleEmailVerificationResend = async () => {
     if (!verificationUser) return;
     setIsVerificationResending(true);
@@ -365,13 +346,11 @@ export default function LoginPage() {
 
   return (
     <>
-      {/* PageLoader covers both initial page load and post-login redirect */}
       <PageLoader isVisible={pageLoading || redirecting} />
 
       <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] p-4 sm:p-6 font-sans text-gray-900">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-sm min-h-[600px] flex flex-col justify-between">
           <div>
-            {/* Logo */}
             <div className="flex justify-center mb-6">
               <img
                 src="/bplo-logo.png"
@@ -380,7 +359,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Headings */}
             <h2 className="text-md font-bold text-gray-800 text-center mb-2">
               Business Permit and Licensing Office
             </h2>
@@ -388,7 +366,6 @@ export default function LoginPage() {
               Inspection Management System
             </p>
 
-            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               <input
                 type="text"
@@ -437,8 +414,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* ── Modals ─────────────────────────────────────────────────────────── */}
 
       <InvalidCredentialsModal
         isOpen={showInvalidModal}

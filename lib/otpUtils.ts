@@ -98,7 +98,7 @@ export const generateOTPEmailTemplate = (code: string, userEmail: string): strin
       </div>
       
       <div class="footer">
-        <p>© 2024 Business Permit and Licensing Office</p>
+        <p>© 2026 Business Permit and Licensing Office</p>
         <p>This is an automated message. Please do not reply to this email.</p>
       </div>
     </body>
