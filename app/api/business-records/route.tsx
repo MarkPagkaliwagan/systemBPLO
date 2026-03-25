@@ -6,34 +6,90 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// ── Allow large CSV payloads & longer execution time ──────────────────────────
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
+/* ================= HELPERS ================= */
+
 function v(val: any): string | null {
   if (val === undefined || val === null || String(val).trim() === '') return null;
   return String(val).trim();
 }
+
 function vNum(val: any): number | null {
   const n = parseFloat(String(val).replace(/,/g, ''));
   return isNaN(n) ? null : n;
 }
+
 function vInt(val: any): number | null {
   const n = parseInt(String(val));
   return isNaN(n) ? null : n;
 }
+
 function vDate(val: any): string | null {
   if (!val || String(val).trim() === '') return null;
-  const s = String(val).trim();
-  const d = new Date(s);
-  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-  return null;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
 }
+
+// ✅ Clean header spaces
+function cleanRows(rows: any[]) {
+  return rows.map((row) => {
+    const clean: any = {};
+    Object.keys(row).forEach((key) => {
+      clean[key.trim()] = row[key];
+    });
+    return clean;
+  });
+}
+
+// ✅ Detect if header is NOT on first row (ref.csv case)
+function detectAndFixRows(rows: any[]) {
+  if (!rows.length) return rows;
+
+  // Find the row index where header exists
+  const headerIndex = rows.findIndex((row) => {
+    const keys = Object.keys(row).map(k => k.toLowerCase());
+
+    return keys.includes("business identification number") ||
+           keys.includes("business name");
+  });
+
+  // If no header found → return as-is
+  if (headerIndex === -1) {
+    return cleanRows(rows);
+  }
+
+  // Slice starting from detected header
+  const processed = rows.slice(headerIndex);
+
+  return cleanRows(processed);
+}
+/* ================= API ================= */
 
 export async function POST(req: NextRequest) {
   try {
-    const { rows, fileName } = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Request body is too large or not valid JSON.' },
+        { status: 413 }
+      );
+    }
+
+    let { rows, fileName } = body;
+
     if (!rows || !Array.isArray(rows)) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    // 1. Create a csv_uploads record and get back the file_id
+    // ✅ FIX CSV STRUCTURE HERE
+    const cleanedRows = detectAndFixRows(rows);
+
+    // 1. Create upload record
     const { data: uploadRecord, error: uploadError } = await supabase
       .from('csv_uploads')
       .insert({ file_name: fileName ?? 'unknown.csv', status: 'processing' })
@@ -46,25 +102,35 @@ export async function POST(req: NextRequest) {
 
     const fileId = uploadRecord.id;
 
-    // 2. Get existing BINs to skip duplicates
+    // 2. Get existing BINs
     const { data: existing } = await supabase
       .from('business_records')
       .select('"Business Identification Number"');
 
-    const existingBINs = new Set((existing ?? []).map((r: any) => r['Business Identification Number']));
+    const existingBINs = new Set(
+      (existing ?? []).map((r: any) => r['Business Identification Number'])
+    );
 
     let successCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
 
-    for (const row of rows) {
-      const bin = v(row['Business Identification Number']);
-      if (!bin) { skippedCount++; continue; }
-      if (existingBINs.has(bin)) { skippedCount++; continue; }
+    const BATCH_SIZE = 100;
 
-      const { error } = await supabase.from('business_records').insert({
-        "Business Identification Number": bin,
+    // ✅ USE cleanedRows HERE
+    const newRows = cleanedRows.filter((row: any) => {
+      const bin = v(row['Business Identification Number']);
+      return bin && !existingBINs.has(bin);
+    });
+
+    skippedCount = cleanedRows.length - newRows.length;
+
+    for (let i = 0; i < newRows.length; i += BATCH_SIZE) {
+      const batch = newRows.slice(i, i + BATCH_SIZE);
+
+      const records = batch.map((row: any) => ({
+        "Business Identification Number": v(row['Business Identification Number']),
         "Business Name": v(row['Business Name']),
         "Trade Name": v(row['Trade Name']),
         "Business Nature": v(row['Business Nature']),
@@ -128,27 +194,41 @@ export async function POST(req: NextRequest) {
         "Source Type": v(row['Source Type']),
         "status": 'not reviewed',
         "file_id": fileId,
-      });
+      }));
+
+      const { error } = await supabase.from('business_records').insert(records);
 
       if (error) {
-        errorCount++;
-        if (errors.length < 10) errors.push(`BIN ${bin}: ${error.message}`);
+        errorCount += batch.length;
+        if (errors.length < 10) {
+          errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
+        }
       } else {
-        successCount++;
-        existingBINs.add(bin);
+        successCount += batch.length;
+
+        batch.forEach((row: any) => {
+          const bin = v(row['Business Identification Number']);
+          if (bin) existingBINs.add(bin);
+        });
       }
     }
 
-    // 3. Update csv_uploads with final counts and status
+    // 3. Update upload record
     await supabase
       .from('csv_uploads')
       .update({
         row_count: successCount,
-        status: errorCount === 0 ? 'completed' : 'completed',
+        status: 'completed',
       })
       .eq('id', fileId);
 
-    return NextResponse.json({ fileId, successCount, skippedCount, errorCount, errors });
+    return NextResponse.json({
+      fileId,
+      successCount,
+      skippedCount,
+      errorCount,
+      errors,
+    });
 
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
