@@ -245,12 +245,12 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
     }
   };
 
-  // ── Confirm "Yes, Schedule Now" ───────────────────────────────────────────
   const handleConfirmYes = () => {
     setShowConfirm(false);
-    setShowReview(true);   // open review modal with the saved record
+    setShowReview(true);   // Open review modal
+    onSaved(savedRecord!); // ✅ Use non-null assertion (since we know it exists)
+    setTimeout(() => setVisible(true), 10);
   };
-
   // ── Confirm "No, Skip" ────────────────────────────────────────────────────
   const handleConfirmSkip = () => {
     setShowConfirm(false);
@@ -337,7 +337,6 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
         onSkip={handleConfirmSkip}
       />
 
-     
       {/* ── ReviewModal (opened after confirming "Yes") ── */}
       {showReview && savedRecord && (
         <ReviewModal
@@ -347,9 +346,13 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
           onClose={() => { setShowReview(false); onClose(); }}
           onSave={handleReviewSave}
           onRecordUpdated={(updated) => setSavedRecord(updated)}
-          onRecordDeleted={(bin) => {  // ✅ Updated: changed from '_bin' to 'bin'
+          onRecordDeleted={(bin) => {
             setShowReview(false);
             onClose();
+          }}
+          onShowConfirm={() => {  // ✅ Add this new callback
+            setShowReview(false);
+            setShowConfirm(true);
           }}
         />
       )}
