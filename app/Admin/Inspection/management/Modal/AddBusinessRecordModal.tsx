@@ -246,16 +246,16 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
   };
 
   const handleConfirmYes = () => {
-  setShowConfirm(false);
-  setShowReview(true);
-  
-  // ✅ Pass the savedRecord to ReviewModal like analytics does
-  if (savedRecord) {
-    onSaved(savedRecord);  // This sets the selectedRow for ReviewModal
-  }
-  
-  setTimeout(() => setVisible(true), 10);
-};
+    setShowConfirm(false);
+    setShowReview(true);
+
+    // ✅ Pass the savedRecord to ReviewModal like analytics does
+    if (savedRecord) {
+      onSaved(savedRecord);  // This sets the selectedRow for ReviewModal
+    }
+
+    setTimeout(() => setVisible(true), 10);
+  };
   // ── Confirm "No, Skip" ────────────────────────────────────────────────────
   const handleConfirmSkip = () => {
     setShowConfirm(false);
@@ -346,7 +346,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
       {showReview && savedRecord && (
         <ReviewModal
           selectedRow={savedRecord}
-          showReviewModal={showReview}  
+          showReviewModal={showReview ? true : false}
           isMobile={isMobile}
           onClose={() => { setShowReview(false); onClose(); }}
           onSave={handleReviewSave}
@@ -355,7 +355,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
             setShowReview(false);
             onClose();
           }}
-          onShowConfirm={() => {  // ✅ Add this new callback
+          onShowConfirm={() => {
             setShowReview(false);
             setShowConfirm(true);
           }}
