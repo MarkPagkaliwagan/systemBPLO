@@ -140,25 +140,14 @@ function CSVManagerContent() {
       skipEmptyLines: true,
       beforeFirstChunk: (chunk) => {
         const lines = chunk.split('\n');
-
-        // check if first row already looks like a header
-        const firstLine = lines[0].toLowerCase();
-
-        const isMasterList =
-          firstLine.includes("Business") ||
-          firstLine.includes("Name") ||
-          firstLine.includes("Address");
-
-        if (isMasterList) {
-          // ✅ DO NOT SKIP
+        const firstLine = lines[0].trim().replace(/\r/g, '');
+        if (firstLine.startsWith('Business Identification Number')) {
           return chunk;
         }
-
-        // ✅ skip first 4 rows ONLY for ref file
-        return lines.slice(4).join('\n');
+        return lines.slice(5).join('\n');
       },
       transformHeader: (header: string) => {
-        return header.trim().replace(/\s+/g, ' ');
+        return header.trim().replace(/\r/g, '').replace(/\s+/g, ' ');
       },
       complete: async (results) => {
         const rows = results.data as Record<string, any>[];
