@@ -268,6 +268,12 @@ export default function ReviewModal({
   onRecordUpdated?.(updatedRecord);
 
   setShowSavedToast(true);
+
+  // ❌ REMOVE: Don't show confirm modal after save
+  setTimeout(() => {
+    setShowSavedToast(false);
+    onClose(); // Just close the review modal
+  }, 1500);
 };
 
   const onUploadPhoto = async (
