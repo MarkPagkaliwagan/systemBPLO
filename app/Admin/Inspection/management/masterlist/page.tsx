@@ -140,22 +140,7 @@ function CSVManagerContent() {
       skipEmptyLines: true,
       beforeFirstChunk: (chunk) => {
         const lines = chunk.split('\n');
-
-        // check if first row already looks like a header
-        const firstLine = lines[0].toLowerCase();
-
-        const isMasterList =
-          firstLine.includes("Business") ||
-          firstLine.includes("Name") ||
-          firstLine.includes("Address");
-
-        if (isMasterList) {
-          // ✅ DO NOT SKIP
-          return chunk;
-        }
-
-        // ✅ skip first 4 rows ONLY for ref file
-        return lines.slice(4).join('\n');
+        return lines.slice(5).join('\n');
       },
       transformHeader: (header: string) => {
         return header.trim().replace(/\s+/g, ' ');
@@ -630,8 +615,8 @@ function CSVManagerContent() {
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
                       className={`flex items-center justify-center rounded-lg font-medium transition-colors ${currentPage === pageNum
-                        ? 'bg-green-600 text-white'
-                        : 'border border-gray-200 hover:bg-gray-100 text-gray-700'
+                          ? 'bg-green-600 text-white'
+                          : 'border border-gray-200 hover:bg-gray-100 text-gray-700'
                         }`}
                       style={{
                         width: 'clamp(26px, 2.2vw, 40px)',
