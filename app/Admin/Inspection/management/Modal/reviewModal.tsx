@@ -108,7 +108,7 @@ interface ReviewModalProps {
   onRecordUpdated?: (updated: BusinessRecord) => void;
   onRecordDeleted?: (bin: string) => void;
   isMobile: boolean;
-  onShowConfirm?: () => void;  // ✅ Add this new prop
+  onShowConfirm?: () => void;
 }
 
 const NUMERIC_KEYS: (keyof BusinessRecord)[] = [
@@ -136,7 +136,6 @@ export default function ReviewModal({
   const [showLog, setShowLog] = useState(false);
   const reviewFormRef = useRef<HTMLDivElement | null>(null);
 
-  // ── Fixed: Single useEffect for mobile scroll ───────────────────────────────
   useEffect(() => {
     if (showReviewModal && isMobile) {
       setTimeout(() => {
@@ -144,11 +143,10 @@ export default function ReviewModal({
           behavior: "smooth",
           block: "start",
         });
-      }, 300); // delay para sure rendered na
+      }, 300);
     }
   }, [showReviewModal, isMobile]);
 
-  // ── Fetch current user's full_name ────────────────────────────────────────
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -222,39 +220,38 @@ export default function ReviewModal({
   const display = isEditing && editForm ? editForm : selectedRow;
 
   const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
-  onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
+    onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
 
-  const actionDetails: string[] = [];
-  if (reviewData.reviewActions?.length)
-    actionDetails.push(`Status: ${reviewData.reviewActions.join(", ")}`);
-  if (reviewData.violations?.length)
-    actionDetails.push(`Violations: ${reviewData.violations.join(", ")}`);
-  if (reviewData.assignedInspector)
-    actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
-  if (reviewData.scheduledDate)
-    actionDetails.push(`Scheduled: ${reviewData.scheduledDate}${reviewData.scheduledTime ? " " + reviewData.scheduledTime : ""}`);
-  if (reviewData.photoUrl)
-    actionDetails.push("Photo uploaded");
-  if (reviewData.location)
-    actionDetails.push("Location captured");
+    const actionDetails: string[] = [];
+    if (reviewData.reviewActions?.length)
+      actionDetails.push(`Status: ${reviewData.reviewActions.join(", ")}`);
+    if (reviewData.violations?.length)
+      actionDetails.push(`Violations: ${reviewData.violations.join(", ")}`);
+    if (reviewData.assignedInspector)
+      actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
+    if (reviewData.scheduledDate)
+      actionDetails.push(`Scheduled: ${reviewData.scheduledDate}${reviewData.scheduledTime ? " " + reviewData.scheduledTime : ""}`);
+    if (reviewData.photoUrl)
+      actionDetails.push("Photo uploaded");
+    if (reviewData.location)
+      actionDetails.push("Location captured");
 
-  supabase.from("activity_log").insert({
-    bin: selectedRow["Business Identification Number"],
-    action: "review",
-    performed_by: reviewedByName || "Unknown",
-    details: actionDetails.join(" · ") || "Review saved",
-  }).then(({ error: logErr }) => {
-    if (logErr) console.error("❌ activity log error:", logErr);
-  });
+    supabase.from("activity_log").insert({
+      bin: selectedRow["Business Identification Number"],
+      action: "review",
+      performed_by: reviewedByName || "Unknown",
+      details: actionDetails.join(" · ") || "Review saved",
+    }).then(({ error: logErr }) => {
+      if (logErr) console.error("❌ activity log error:", logErr);
+    });
 
-  setShowSavedToast(true);
+    setShowSavedToast(true);
 
-  // ❌ REMOVE: Don't show confirm modal after save
-  setTimeout(() => {
-    setShowSavedToast(false);
-    onClose(); // Just close the review modal
-  }, 1500);
-};
+    setTimeout(() => {
+      setShowSavedToast(false);
+      onClose();
+    }, 1500);
+  };
 
   const onUploadPhoto = async (
     file: File,
@@ -393,7 +390,6 @@ export default function ReviewModal({
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
                           <FiEdit2 className="w-3.5 h-3.5" />{!isMobile && " Edit"}
                         </button>
-                        {/* Delete button — always available since BIN is the PK */}
                         <button onClick={() => setShowDelete(true)}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
                           <FiTrash2 className="w-3.5 h-3.5" />{!isMobile && " Delete"}
@@ -602,8 +598,8 @@ export default function ReviewModal({
           bin={selectedRow["Business Identification Number"]}
           isMobile={isMobile}
           onClose={() => setShowDelete(false)}
-          onDeleted={(bin) => {  // ✅ Updated: changed from 'id' to 'bin'
-            onRecordDeleted?.(bin);  // ✅ Passes BIN to parent
+          onDeleted={(bin) => {
+            onRecordDeleted?.(bin);
             setShowDelete(false);
             onClose();
           }}
@@ -965,7 +961,6 @@ function ReviewForm({
         photoUrl,
       });
 
-      // ✅ REDIRECT HERE
       router.push("/Admin/Inspection/management/analytics");
 
     } finally {
@@ -987,6 +982,7 @@ function ReviewForm({
       )}
 
       <div className="space-y-4">
+        {/* Camera input — only used on mobile */}
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden"
           onChange={(e) => { if (e.target.files?.[0]) handlePhotoFile(e.target.files[0]); e.target.value = ""; }} />
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden"
@@ -1050,21 +1046,27 @@ function ReviewForm({
           <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
             <FiCamera className="w-4 h-4 mr-2 text-green-600" /> Inspection Photo
           </h3>
-          {cameraPermission === "denied" && (
+
+          {/* Camera denied warning — only relevant on mobile */}
+          {isMobile && cameraPermission === "denied" && (
             <div className="mb-3 flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
               <FiAlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-red-700">Camera access was denied. You can still upload a photo using the Upload File button.</p>
             </div>
           )}
+
           {photoPreview && (
             <div className="mb-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
               <div className="relative">
                 <img src={photoPreview} alt="Inspection photo" className="w-full max-h-[400px] object-contain" />
                 <div className="absolute top-2 right-2 flex gap-2">
-                  <button type="button" onClick={openCamera}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium rounded-lg border border-gray-200 hover:bg-white shadow-sm transition-colors">
-                    <FiCamera className="w-3 h-3" /> Retake
-                  </button>
+                  {/* Retake button — only on mobile */}
+                  {isMobile && (
+                    <button type="button" onClick={openCamera}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-medium rounded-lg border border-gray-200 hover:bg-white shadow-sm transition-colors">
+                      <FiCamera className="w-3 h-3" /> Retake
+                    </button>
+                  )}
                   <button type="button" onClick={clearPhoto}
                     className="flex items-center gap-1 px-3 py-1.5 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-lg hover:bg-red-600 shadow-sm transition-colors">
                     <FiTrash2 className="w-3 h-3" /> Remove
@@ -1080,6 +1082,7 @@ function ReviewForm({
               </div>
             </div>
           )}
+
           {!photoPreview && (
             <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}
               className={`w-full rounded-xl border-2 border-dashed transition-all duration-200 ${isDragging ? "border-green-400 bg-green-50 scale-[1.01]" : "border-gray-300 bg-gray-50 hover:border-green-400 hover:bg-green-50"}`}>
@@ -1088,14 +1091,18 @@ function ReviewForm({
                   <FiCamera className="w-7 h-7 text-green-600" />
                 </div>
                 <p className="text-sm font-medium text-gray-700 mb-1">
-                  {isMobile ? "Tap to take a photo or upload" : "Drag & drop a photo here, or use the buttons below"}
+                  {isMobile ? "Tap to take a photo or upload" : "Drag & drop a photo here, or click Upload File"}
                 </p>
                 <p className="text-xs text-gray-400 mb-5">JPG, PNG, WEBP • Max 10 MB</p>
                 <div className={`flex ${isMobile ? "flex-col w-full" : "flex-row"} gap-3`}>
-                  <button type="button" onClick={openCamera}
-                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
-                    <FiCamera className="w-4 h-4" /> Open Camera
-                  </button>
+                  {/* Open Camera — mobile only */}
+                  {isMobile && (
+                    <button type="button" onClick={openCamera}
+                      className="flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
+                      <FiCamera className="w-4 h-4" /> Open Camera
+                    </button>
+                  )}
+                  {/* Upload File — always visible */}
                   <button type="button" onClick={() => fileInputRef.current?.click()}
                     className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
                     <FiUpload className="w-4 h-4" /> Upload File
@@ -1186,7 +1193,7 @@ function ReviewForm({
               <FiUser className="w-4 h-4 mr-2 text-blue-600" /> Inspection Assignment
             </h3>
 
-            {/* OPTION 1: Dropdown from users */}
+            {/* Dropdown from users */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Inspector
@@ -1207,7 +1214,7 @@ function ReviewForm({
               </select>
             </div>
 
-            {/* OPTION 2: Manual input */}
+            {/* Manual input */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Add Manual Inspector
@@ -1235,7 +1242,6 @@ function ReviewForm({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Assigned Inspectors
               </label>
-
               <div className="min-h-[50px] p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                 {assignedInspectors.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -1260,7 +1266,7 @@ function ReviewForm({
               </div>
             </div>
 
-            {/* ✅ SCHEDULE DATE */}
+            {/* Schedule Date */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Scheduled Date
@@ -1270,14 +1276,14 @@ function ReviewForm({
                   type="date"
                   value={scheduledDate}
                   onChange={(e) => setScheduledDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]} // ✅ only current & future dates
+                  min={new Date().toISOString().split("T")[0]}
                   className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
                 />
                 <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
               </div>
             </div>
 
-            {/* ✅ SCHEDULE TIME */}
+            {/* Schedule Time */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Scheduled Time
@@ -1294,6 +1300,7 @@ function ReviewForm({
             </div>
           </div>
         )}
+
         {/* Action Buttons */}
         <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
           <button onClick={handleSave} disabled={isSaving}
