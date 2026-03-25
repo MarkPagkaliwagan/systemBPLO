@@ -222,40 +222,53 @@ export default function ReviewModal({
   const display = isEditing && editForm ? editForm : selectedRow;
 
   const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
-    onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
+  onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
 
-    const actionDetails: string[] = [];
-    if (reviewData.reviewActions?.length)
-      actionDetails.push(`Status: ${reviewData.reviewActions.join(", ")}`);
-    if (reviewData.violations?.length)
-      actionDetails.push(`Violations: ${reviewData.violations.join(", ")}`);
-    if (reviewData.assignedInspector)
-      actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
-    if (reviewData.scheduledDate)
-      actionDetails.push(`Scheduled: ${reviewData.scheduledDate}${reviewData.scheduledTime ? " " + reviewData.scheduledTime : ""}`);
-    if (reviewData.photoUrl)
-      actionDetails.push("Photo uploaded");
-    if (reviewData.location)
-      actionDetails.push("Location captured");
+  const actionDetails: string[] = [];
+  if (reviewData.reviewActions?.length)
+    actionDetails.push(`Status: ${reviewData.reviewActions.join(", ")}`);
+  if (reviewData.violations?.length)
+    actionDetails.push(`Violations: ${reviewData.violations.join(", ")}`);
+  if (reviewData.assignedInspector)
+    actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
+  if (reviewData.scheduledDate)
+    actionDetails.push(`Scheduled: ${reviewData.scheduledDate}${reviewData.scheduledTime ? " " + reviewData.scheduledTime : ""}`);
+  if (reviewData.photoUrl)
+    actionDetails.push("Photo uploaded");
+  if (reviewData.location)
+    actionDetails.push("Location captured");
 
-    supabase.from("activity_log").insert({
-      bin: selectedRow["Business Identification Number"],
-      action: "review",
-      performed_by: reviewedByName || "Unknown",
-      details: actionDetails.join(" · ") || "Review saved",
-    }).then(({ error: logErr }) => {
-      if (logErr) console.error("❌ activity log error:", logErr);
-    });
+  supabase.from("activity_log").insert({
+    bin: selectedRow["Business Identification Number"],
+    action: "review",
+    performed_by: reviewedByName || "Unknown",
+    details: actionDetails.join(" · ") || "Review saved",
+  }).then(({ error: logErr }) => {
+    if (logErr) console.error("❌ activity log error:", logErr);
+  });
 
-    setShowSavedToast(true);
-
-    // ✅ Show confirm modal after save
-    setTimeout(() => {
-      setShowSavedToast(false);
-      onClose(); // Close review modal first
-      onShowConfirm?.(); // Then show confirm modal
-    }, 1500);
+  // ✅ Create updated record to pass to parent
+  const updatedRecord = {
+    ...selectedRow,
+    review_action: reviewData.reviewActions.join(", ") || null,
+    violation: reviewData.violations.join(", ") || null,
+    status: reviewData.reviewActions[reviewData.reviewActions.length - 1]?.toLowerCase().replace(/ /g, "_") ?? null,
+    review_date: new Date().toISOString(),
+    reviewed_by: reviewData.reviewedBy ?? null,
+    assigned_inspector: reviewData.assignedInspector ?? null,
+    scheduled_date: reviewData.scheduledDate ?? null,
+    schedule_time: reviewData.scheduledTime ?? null,
+    latitude: reviewData.location?.lat?.toString() ?? null,
+    longitude: reviewData.location?.lng?.toString() ?? null,
+    accuracy: reviewData.location?.accuracy?.toString() ?? null,
+    photo: reviewData.photoUrl ?? null,
   };
+
+  // ✅ Update parent with the new record
+  onRecordUpdated?.(updatedRecord);
+
+  setShowSavedToast(true);
+};
 
   const onUploadPhoto = async (
     file: File,
@@ -1005,10 +1018,10 @@ function ReviewForm({
               return (
                 <button key={action} onClick={() => addAction(action)} disabled={isSelected}
                   className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${isSelected
-                      ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
-                        : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
-                      : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
+                      : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
+                    : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                     }`}>
                   {action}
                 </button>
@@ -1115,8 +1128,8 @@ function ReviewForm({
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button type="button" onClick={captureLocation} disabled={locationStatus === "loading"}
               className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg font-medium text-xs transition-all duration-200 ${locationStatus === "loading"
-                  ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
-                  : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"
+                ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
+                : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"
                 }`}>
               <FiMapPin className="w-3.5 h-3.5 flex-shrink-0" />
               {locationStatus === "loading" ? "Getting GPS..." : "Auto GPS"}
