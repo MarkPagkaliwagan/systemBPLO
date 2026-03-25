@@ -12,7 +12,7 @@ import ProtectedRoute from "../../../../../components/ProtectedRoute";
 const PAGE_SIZE = 50;
  
 interface BusinessRecord {
-  id: string;
+  // ❌ Removed: id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
@@ -686,8 +686,7 @@ function CSVReviewContent() {
           setSelectedRow(updated as BusinessRecord);
         }}
       />
-
-      {!isMobile && (
+{!isMobile && (
         <Link
           href="/Admin/Inspection/management/manual_add"
           title="Manual Add Record"
@@ -702,7 +701,7 @@ function CSVReviewContent() {
 
 export default function CSVReview() {
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="staff">
       <CSVReviewContent />
     </ProtectedRoute>
   );

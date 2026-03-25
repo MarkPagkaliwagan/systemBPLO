@@ -12,9 +12,8 @@ import DeleteConfirmModal from "./DeleteConfirmModal";
 import ActivityLogModal from "./Activitylogmodal";
 import { useRouter } from "next/navigation";
 
-
-interface BusinessRecord {
-  id: string;
+// ── BIN is the primary key — no separate id field needed ──
+export interface BusinessRecord {
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
@@ -107,8 +106,9 @@ interface ReviewModalProps {
     reviewedBy?: string;
   }) => void;
   onRecordUpdated?: (updated: BusinessRecord) => void;
-  onRecordDeleted?: (id: string) => void;
+  onRecordDeleted?: (bin: string) => void;
   isMobile: boolean;
+  onShowConfirm?: () => void;  // ✅ Add this new prop
 }
 
 const NUMERIC_KEYS: (keyof BusinessRecord)[] = [
@@ -117,39 +117,38 @@ const NUMERIC_KEYS: (keyof BusinessRecord)[] = [
 ];
 
 const READONLY_KEYS: (keyof BusinessRecord)[] = [
-  "id", "Business Identification Number", "Transaction ID",
+  "Business Identification Number", "Transaction ID",
 ];
 
 export default function ReviewModal({
   selectedRow, showReviewModal, onClose, onSave,
-  onRecordUpdated, onRecordDeleted, isMobile,
+  onRecordUpdated, onRecordDeleted, isMobile, onShowConfirm,
 }: ReviewModalProps) {
-  const [showSavedToast, setShowSavedToast]   = useState(false);
-  const [previewPhoto, setPreviewPhoto]       = useState<string | null>(null);
-  const [showDelete, setShowDelete]           = useState(false);
-  const [isEditing, setIsEditing]             = useState(false);
-  const [editForm, setEditForm]               = useState<BusinessRecord | null>(null);
-  const [isSavingEdit, setIsSavingEdit]       = useState(false);
-  const [editError, setEditError]             = useState<string | null>(null);
-  const [showEditToast, setShowEditToast]     = useState(false);
-  const [reviewedByName, setReviewedByName]   = useState<string>("");
-  const [showLog, setShowLog]                 = useState(false);
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+  const [showDelete, setShowDelete] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<BusinessRecord | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [showEditToast, setShowEditToast] = useState(false);
+  const [reviewedByName, setReviewedByName] = useState<string>("");
+  const [showLog, setShowLog] = useState(false);
   const reviewFormRef = useRef<HTMLDivElement | null>(null);
 
+  // ── Fixed: Single useEffect for mobile scroll ───────────────────────────────
   useEffect(() => {
-  if (showReviewModal && isMobile) {
-    setTimeout(() => {
-      reviewFormRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 300); // delay para sure rendered na
-  }
-}, [showReviewModal, isMobile]);
+    if (showReviewModal && isMobile) {
+      setTimeout(() => {
+        reviewFormRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 300); // delay para sure rendered na
+    }
+  }, [showReviewModal, isMobile]);
 
-
-
-  // ── Fetch current user's full_name from localStorage → users table ────────
+  // ── Fetch current user's full_name ────────────────────────────────────────
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -157,13 +156,11 @@ export default function ReviewModal({
         if (!userData) return;
         const user = JSON.parse(userData);
         if (!user?.id) return;
-
         const { data } = await supabase
           .from("users")
           .select("full_name")
           .eq("id", user.id)
           .single();
-
         if (data?.full_name) setReviewedByName(data.full_name);
       } catch (err) {
         console.error("Failed to fetch reviewer name:", err);
@@ -174,7 +171,7 @@ export default function ReviewModal({
 
   if (!showReviewModal || !selectedRow) return null;
 
-  const handleStartEdit  = () => { setEditForm({ ...selectedRow }); setEditError(null); setIsEditing(true); };
+  const handleStartEdit = () => { setEditForm({ ...selectedRow }); setEditError(null); setIsEditing(true); };
   const handleCancelEdit = () => { setIsEditing(false); setEditForm(null); setEditError(null); };
 
   const setField = (key: keyof BusinessRecord, raw: string) => {
@@ -190,7 +187,8 @@ export default function ReviewModal({
     setIsSavingEdit(true);
     setEditError(null);
     try {
-      const { id: _id, "Business Identification Number": _bin, ...rest } = editForm;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { "Business Identification Number": _bin, ...rest } = editForm;
       const { error } = await supabase
         .from("business_records")
         .update(rest)
@@ -201,7 +199,6 @@ export default function ReviewModal({
       setIsEditing(false);
       onRecordUpdated?.(editForm);
 
-      // ── Log the edit action ───────────────────────────────────────────────
       const changedFields = (Object.keys(rest) as (keyof typeof rest)[])
         .filter((k) => (rest as any)[k] !== (selectedRow as any)[k])
         .map((k) => String(k));
@@ -212,8 +209,8 @@ export default function ReviewModal({
         details: changedFields.length
           ? `Fields edited: ${changedFields.slice(0, 5).join(", ")}${changedFields.length > 5 ? ` (+${changedFields.length - 5} more)` : ""}`
           : "Record edited",
-      }).then(({ error }) => {
-        if (error) console.error("❌ activity log error:", error);
+      }).then(({ error: logErr }) => {
+        if (logErr) console.error("❌ activity log error:", logErr);
       });
     } catch (err: any) {
       setEditError(err.message ?? "Save failed.");
@@ -225,40 +222,39 @@ export default function ReviewModal({
   const display = isEditing && editForm ? editForm : selectedRow;
 
   const handleSaveWithToast = (reviewData: Parameters<typeof onSave>[0]) => {
-    // Inject the reviewer's name before passing up to page.tsx
-    onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
+  onSave({ ...reviewData, reviewedBy: reviewedByName || undefined });
 
-    // ── Log the review action ─────────────────────────────────────────────
-    const actionDetails: string[] = [];
-    if (reviewData.reviewActions?.length)
-      actionDetails.push(`Status: ${reviewData.reviewActions.join(", ")}`);
-    if (reviewData.violations?.length)
-      actionDetails.push(`Violations: ${reviewData.violations.join(", ")}`);
-    if (reviewData.assignedInspector)
-      actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
-    if (reviewData.scheduledDate)
-      actionDetails.push(`Scheduled: ${reviewData.scheduledDate}${reviewData.scheduledTime ? " " + reviewData.scheduledTime : ""}`);
-    if (reviewData.photoUrl)
-      actionDetails.push("Photo uploaded");
-    if (reviewData.location)
-      actionDetails.push("Location captured");
+  const actionDetails: string[] = [];
+  if (reviewData.reviewActions?.length)
+    actionDetails.push(`Status: ${reviewData.reviewActions.join(", ")}`);
+  if (reviewData.violations?.length)
+    actionDetails.push(`Violations: ${reviewData.violations.join(", ")}`);
+  if (reviewData.assignedInspector)
+    actionDetails.push(`Inspector: ${reviewData.assignedInspector}`);
+  if (reviewData.scheduledDate)
+    actionDetails.push(`Scheduled: ${reviewData.scheduledDate}${reviewData.scheduledTime ? " " + reviewData.scheduledTime : ""}`);
+  if (reviewData.photoUrl)
+    actionDetails.push("Photo uploaded");
+  if (reviewData.location)
+    actionDetails.push("Location captured");
 
-    supabase.from("activity_log").insert({
-      bin: selectedRow["Business Identification Number"],
-      action: "review",
-      performed_by: reviewedByName || "Unknown",
-      details: actionDetails.join(" · ") || "Review saved",
-    }).then(({ error }) => {
-      if (error) console.error("❌ activity log error:", error);
-    });
+  supabase.from("activity_log").insert({
+    bin: selectedRow["Business Identification Number"],
+    action: "review",
+    performed_by: reviewedByName || "Unknown",
+    details: actionDetails.join(" · ") || "Review saved",
+  }).then(({ error: logErr }) => {
+    if (logErr) console.error("❌ activity log error:", logErr);
+  });
 
-    setShowSavedToast(true);
-    if (isMobile) {
-      setTimeout(() => { setShowSavedToast(false); onClose(); }, 1800);
-    } else {
-      setTimeout(() => { setShowSavedToast(false); }, 2200);
-    }
-  };
+  setShowSavedToast(true);
+
+  // ❌ REMOVE: Don't show confirm modal after save
+  setTimeout(() => {
+    setShowSavedToast(false);
+    onClose(); // Just close the review modal
+  }, 1500);
+};
 
   const onUploadPhoto = async (
     file: File,
@@ -276,7 +272,7 @@ export default function ReviewModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-gray-900/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-gray-900/50 flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4" onClick={onClose}>
 
         {/* Mobile toast */}
         {isMobile && (
@@ -323,10 +319,8 @@ export default function ReviewModal({
           className={`${isMobile ? "w-full rounded-t-2xl max-h-[92vh]" : "max-w-5xl w-full mx-4 rounded-xl"} bg-white shadow-2xl overflow-y-auto`}
           onClick={(e) => e.stopPropagation()}
         >
-
           {/* ── Modal header ── */}
           <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-t-2xl">
-            {/* Drag handle — mobile only */}
             {isMobile && (
               <div className="flex justify-center mb-2">
                 <div className="w-10 h-1 bg-white/40 rounded-full" />
@@ -337,15 +331,11 @@ export default function ReviewModal({
                 <h2 className={`${isMobile ? "text-lg" : "text-2xl"} font-bold`}>Review Business</h2>
                 <p className="text-green-100 text-sm mt-1">{selectedRow["Business Name"]}</p>
               </div>
-
-              {/* Right side: reviewer pill + activity log + close button */}
               <div className="flex items-center gap-2 shrink-0 ml-3">
                 {reviewedByName && (
                   <div className="flex items-center gap-1.5 bg-white/15 rounded-lg px-3 py-1.5">
                     <FiUser className="w-3.5 h-3.5 text-green-100 shrink-0" />
-                    <span className="text-xs font-medium text-green-50 whitespace-nowrap">
-                      {reviewedByName}
-                    </span>
+                    <span className="text-xs font-medium text-green-50 whitespace-nowrap">{reviewedByName}</span>
                   </div>
                 )}
                 <button
@@ -356,29 +346,18 @@ export default function ReviewModal({
                   <FiActivity className="w-3.5 h-3.5" />
                   {!isMobile && <span>Log</span>}
                 </button>
-                <button
-                  onClick={onClose}
-                  className="text-white hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-white/20"
-                >
+                <button onClick={onClose} className="text-white hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-white/20">
                   <FiX className={`${isMobile ? "w-5 h-5" : "w-6 h-6"}`} />
                 </button>
               </div>
             </div>
           </div>
 
-          <div
-  className={`${
-    isMobile
-      ? "p-3 pb-28" // 👈 dagdag space sa ilalim
-      : "p-6 lg:h-[calc(90vh-7rem)]"
-  }`}
->
+          <div className={`${isMobile ? "p-3 pb-28" : "p-6 lg:h-[calc(90vh-7rem)]"}`}>
             <div className={`${isMobile ? "space-y-4" : "grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch h-full"}`}>
 
               {/* Left: Business Information */}
               <div className={`${isMobile ? "w-full" : "lg:col-span-2 lg:h-full lg:flex lg:flex-col lg:overflow-hidden"} bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-xl border ${isEditing ? "border-indigo-300 ring-2 ring-indigo-100" : "border-gray-200"} transition-all`}>
-
-                {/* Card header */}
                 <div className="flex items-center justify-between mb-3 shrink-0">
                   <div className="flex items-center">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center mr-3 shrink-0 ${isEditing ? "bg-indigo-600" : "bg-green-600"}`}>
@@ -388,9 +367,7 @@ export default function ReviewModal({
                       <h3 className="text-base font-semibold text-gray-900">
                         Business Information
                         {isEditing && (
-                          <span className="ml-2 text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                            Editing
-                          </span>
+                          <span className="ml-2 text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">Editing</span>
                         )}
                       </h3>
                       <p className="text-xs text-gray-500">Permit #{selectedRow["Permit No."]}</p>
@@ -416,6 +393,7 @@ export default function ReviewModal({
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors">
                           <FiEdit2 className="w-3.5 h-3.5" />{!isMobile && " Edit"}
                         </button>
+                        {/* Delete button — always available since BIN is the PK */}
                         <button onClick={() => setShowDelete(true)}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
                           <FiTrash2 className="w-3.5 h-3.5" />{!isMobile && " Delete"}
@@ -432,9 +410,7 @@ export default function ReviewModal({
                   </div>
                 )}
 
-                {/* Scrollable fields */}
                 <div className={`flex flex-col ${isMobile ? "" : "flex-1 min-h-0 overflow-y-auto pr-1"} space-y-3`}>
-
                   <Section title="Business Details">
                     <Field label="BIN" fieldKey="Business Identification Number" breakAll isEditing={isEditing} display={display} onChangeField={setField} />
                     <Field label="Business Name" fieldKey="Business Name" isEditing={isEditing} display={display} onChangeField={setField} />
@@ -517,7 +493,6 @@ export default function ReviewModal({
 
                   {/* Geo-Tagging — always read-only */}
                   <Section title="Geo-Tagging">
-                    {/* Photo */}
                     <div className="flex items-start text-sm gap-2">
                       <span className="font-bold text-gray-700 shrink-0 min-w-[90px]">Photo:</span>
                       {selectedRow["photo"] ? (
@@ -536,12 +511,10 @@ export default function ReviewModal({
                       ) : <span className="text-gray-600">-</span>}
                     </div>
 
-                    {/* Location coordinates */}
-                    <InfoRow label="Latitude"  value={selectedRow["latitude"]} />
+                    <InfoRow label="Latitude" value={selectedRow["latitude"]} />
                     <InfoRow label="Longitude" value={selectedRow["longitude"]} />
-                    <InfoRow label="Accuracy"  value={selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : null} />
+                    <InfoRow label="Accuracy" value={selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : null} />
 
-                    {/* Map preview — shown when coordinates exist */}
                     {selectedRow["latitude"] && selectedRow["longitude"] && (
                       <div className="mt-1 rounded-xl border border-blue-200 bg-blue-50 overflow-hidden">
                         <div className="w-full" style={{ height: "160px" }}>
@@ -558,15 +531,12 @@ export default function ReviewModal({
                               {Number(selectedRow["longitude"]).toFixed(6)}
                             </p>
                             <p className="text-xs text-blue-500 mt-0.5">
-                              {selectedRow["accuracy"]
-                                ? `GPS ±${selectedRow["accuracy"]}m`
-                                : "Manually pinned"}
+                              {selectedRow["accuracy"] ? `GPS ±${selectedRow["accuracy"]}m` : "Manually pinned"}
                             </p>
                           </div>
                           <a
                             href={`https://www.google.com/maps?q=${selectedRow["latitude"]},${selectedRow["longitude"]}`}
-                            target="_blank"
-                            rel="noreferrer"
+                            target="_blank" rel="noreferrer"
                             className="text-xs text-blue-600 underline px-2 py-1 rounded hover:bg-blue-100 transition-colors shrink-0"
                           >
                             Open in Maps ↗
@@ -585,12 +555,8 @@ export default function ReviewModal({
               </div>
 
               {/* Right: Review Form */}
-              <div
-  ref={reviewFormRef}
-  className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}
->
+              <div ref={reviewFormRef} className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}>
                 <ReviewForm
-                
                   initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map((a) => a.trim()) : []}
                   initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
                   initialInspector={selectedRow.assigned_inspector ?? undefined}
@@ -628,16 +594,16 @@ export default function ReviewModal({
         />
       )}
 
-      {/* Delete Confirm Modal */}
+      {/* Delete Confirm Modal — uses BIN as the record identifier */}
       {showDelete && (
         <DeleteConfirmModal
-          recordId={selectedRow.id}
+          recordId={selectedRow["Business Identification Number"]}
           businessName={selectedRow["Business Name"]}
           bin={selectedRow["Business Identification Number"]}
           isMobile={isMobile}
           onClose={() => setShowDelete(false)}
-          onDeleted={(id) => {
-            onRecordDeleted?.(id);
+          onDeleted={(bin) => {  // ✅ Updated: changed from 'id' to 'bin'
+            onRecordDeleted?.(bin);  // ✅ Passes BIN to parent
             setShowDelete(false);
             onClose();
           }}
@@ -712,9 +678,9 @@ function MapPickerModal({
   onConfirm: (lat: number, lng: number) => void;
   onClose: () => void;
 }) {
-  const mapRef      = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
-  const markerRef   = useRef<any>(null);
+  const markerRef = useRef<any>(null);
   const [pinned, setPinned] = useState<{ lat: number; lng: number } | null>(
     initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null
   );
@@ -729,40 +695,23 @@ function MapPickerModal({
       await import("leaflet/dist/leaflet.css" as any);
       if (!mapRef.current || !isMounted) return;
 
-      // Fix broken Leaflet icons in webpack/Next.js by using a custom icon
       const customIcon = L.divIcon({
         className: "",
-        html: `
-          <div style="
-            width: 28px;
-            height: 28px;
-            background: #2563eb;
-            border: 3px solid white;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-          "></div>
-        `,
+        html: `<div style="width:28px;height:28px;background:#2563eb;border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.35);"></div>`,
         iconSize: [28, 28],
         iconAnchor: [14, 28],
         popupAnchor: [0, -28],
       });
 
-      // Start with fallback center, then move to device location if no initial coords
       const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 15);
       mapInstance.current = map;
 
-      // If no initial pin, get device location, place pin + fly there
       if (!initialLat && !initialLng && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             if (!isMounted || !mapInstance.current) return;
             const { latitude: lat, longitude: lng } = pos.coords;
-
-            // Fly to device location
             mapInstance.current.flyTo([lat, lng], 16, { animate: true, duration: 1 });
-
-            // Place pin automatically at current location
             setPinned({ lat, lng });
             if (markerRef.current) {
               markerRef.current.setLatLng([lat, lng]);
@@ -774,7 +723,7 @@ function MapPickerModal({
               });
             }
           },
-          () => {}, // silently fail — keeps fallback center, no auto pin
+          () => { },
           { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
         );
       }
@@ -852,12 +801,10 @@ function MapPickerModal({
   );
 }
 
-
 // ── Review Form ───────────────────────────────────────────────────────────────
 function ReviewForm({
   initialActions, initialViolations, initialInspector, initialScheduledDate,
-  initialScheduledTime,
-  onSave, onCancel, onUploadPhoto, isMobile = false,
+  initialScheduledTime, onSave, onCancel, onUploadPhoto, isMobile = false,
 }: {
   initialActions: string[];
   initialViolations: string[];
@@ -875,76 +822,71 @@ function ReviewForm({
     photoUrl?: string;
   }) => void;
   onCancel: () => void;
-  onUploadPhoto: (
-    file: File,
-    location?: { lat: number; lng: number; accuracy: number }
-  ) => Promise<string | null>;
+  onUploadPhoto: (file: File, location?: { lat: number; lng: number; accuracy: number }) => Promise<string | null>;
   isMobile?: boolean;
 }) {
-  const [reviewActions, setReviewActions]         = useState<string[]>(initialActions);
-  const [violations, setViolations]               = useState<string[]>(initialViolations);
-  const [violationText, setViolationText]         = useState(initialViolations.join(", "));
+  const [reviewActions, setReviewActions] = useState<string[]>(initialActions);
+  const [violations, setViolations] = useState<string[]>(initialViolations);
+  const [violationText, setViolationText] = useState(initialViolations.join(", "));
   const [assignedInspectors, setAssignedInspectors] = useState<string[]>(
-  initialInspector ? [initialInspector] : []
-);
-
-const addInspector = (name: string) => {
-  setAssignedInspectors((prev) =>
-    prev.includes(name) ? prev : [...prev, name]
+    initialInspector ? [initialInspector] : []
   );
-};
-const router = useRouter();
-const [manualName, setManualName] = useState("");
 
-const addManualInspector = () => {
-  if (!manualName.trim()) return;
+  const addInspector = (name: string) => {
+    setAssignedInspectors((prev) =>
+      prev.includes(name) ? prev : [...prev, name]
+    );
+  };
+  const router = useRouter();
+  const [manualName, setManualName] = useState("");
 
-  setAssignedInspectors((prev) => [...prev, manualName.trim()]);
-  setManualName("");
-};
+  const addManualInspector = () => {
+    if (!manualName.trim()) return;
+    setAssignedInspectors((prev) => [...prev, manualName.trim()]);
+    setManualName("");
+  };
 
-const removeInspector = (index: number) => {
-  setAssignedInspectors((prev) =>
-    prev.filter((_, i) => i !== index)
-  );
-};
+  const removeInspector = (index: number) => {
+    setAssignedInspectors((prev) =>
+      prev.filter((_, i) => i !== index)
+    );
+  };
 
-  const [scheduledDate, setScheduledDate]         = useState(initialScheduledDate || "");
-  const [scheduledTime, setScheduledTime]         = useState(initialScheduledTime || "");
-  const [isSaving, setIsSaving]                   = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(initialScheduledDate || "");
+  const [scheduledTime, setScheduledTime] = useState(initialScheduledTime || "");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [location, setLocation]             = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [showMapPicker, setShowMapPicker]   = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
-  const [photoFile, setPhotoFile]               = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview]         = useState<string | null>(null);
-  const [isDragging, setIsDragging]             = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [cameraPermission, setCameraPermission] = useState<"idle" | "granted" | "denied">("idle");
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef   = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [inspectors, setInspectors] = useState<string[]>([]);
 
   useEffect(() => {
-  const fetchInspectors = async () => {
-    const { data, error } = await supabase
-      .from("users")
-      .select("full_name");
+    const fetchInspectors = async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("full_name");
 
-    if (error) {
-      console.error("Failed to fetch users:", error);
-      return;
-    }
+      if (error) {
+        console.error("Failed to fetch users:", error);
+        return;
+      }
 
-    if (data) {
-      setInspectors(data.map((u) => u.full_name));
-    }
-  };
+      if (data) {
+        setInspectors(data.map((u) => u.full_name));
+      }
+    };
 
-  fetchInspectors();
-}, []);
-
+    fetchInspectors();
+  }, []);
 
   const captureLocation = () => {
     if (!navigator.geolocation) { setLocationStatus("error"); return; }
@@ -983,14 +925,14 @@ const removeInspector = (index: number) => {
     } catch { setCameraPermission("denied"); }
   };
 
-  const handleDrop      = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handlePhotoFile(f); };
-  const handleDragOver  = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handlePhotoFile(f); };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => setIsDragging(false);
-  const clearPhoto      = () => { setPhotoFile(null); setPhotoPreview(null); setCameraPermission("idle"); };
+  const clearPhoto = () => { setPhotoFile(null); setPhotoPreview(null); setCameraPermission("idle"); };
 
   const availableActions = ["Active", "Compliant", "Non-Compliant", "For Inspection"];
   const isRedAction = (a: string) => a === "Non-Compliant" || a === "For Inspection";
-  const addAction    = (a: string) => { if (!reviewActions.includes(a)) setReviewActions([...reviewActions, a]); };
+  const addAction = (a: string) => { if (!reviewActions.includes(a)) setReviewActions([...reviewActions, a]); };
   const removeAction = (i: number) => setReviewActions(reviewActions.filter((_, idx) => idx !== i));
 
   const handleViolationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -999,37 +941,37 @@ const removeInspector = (index: number) => {
     setViolations(text.split(",").map((v) => v.trim()).filter((v) => v.length > 0));
   };
 
-const handleSave = async () => {
-  setIsSaving(true);
-  try {
-    let photoUrl: string | undefined;
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      let photoUrl: string | undefined;
 
-    if (photoFile) {
-      const url = await onUploadPhoto(photoFile, location ?? undefined);
-      if (url) photoUrl = url;
+      if (photoFile) {
+        const url = await onUploadPhoto(photoFile, location ?? undefined);
+        if (url) photoUrl = url;
+      }
+
+      onSave({
+        reviewActions,
+        violations,
+        assignedInspector:
+          assignedInspectors.length > 0
+            ? assignedInspectors.join(", ")
+            : undefined,
+        scheduledDate: scheduledDate || undefined,
+        scheduledTime: scheduledTime || undefined,
+        location: location || undefined,
+        photo: photoFile || undefined,
+        photoUrl,
+      });
+
+      // ✅ REDIRECT HERE
+      router.push("/Admin/Inspection/management/analytics");
+
+    } finally {
+      setIsSaving(false);
     }
-
-    onSave({
-      reviewActions,
-      violations,
-      assignedInspector:
-        assignedInspectors.length > 0
-          ? assignedInspectors.join(", ")
-          : undefined,
-      scheduledDate: scheduledDate || undefined,
-      scheduledTime: scheduledTime || undefined,
-      location: location || undefined,
-      photo: photoFile || undefined,
-      photoUrl,
-    });
-
-    // ✅ REDIRECT HERE
-    router.push("/Admin/Inspection/management/analytics");
-
-  } finally {
-    setIsSaving(false);
-  }
-};
+  };
 
   const showInspectorFields = reviewActions.includes("For Inspection");
 
@@ -1061,13 +1003,12 @@ const handleSave = async () => {
               const isRed = isRedAction(action);
               return (
                 <button key={action} onClick={() => addAction(action)} disabled={isSelected}
-                  className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${
-                    isSelected
-                      ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
-                               : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
-                      : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}>
+                  className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${isSelected
+                    ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
+                      : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
+                    : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}>
                   {action}
                 </button>
               );
@@ -1172,11 +1113,10 @@ const handleSave = async () => {
           </h3>
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button type="button" onClick={captureLocation} disabled={locationStatus === "loading"}
-              className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg font-medium text-xs transition-all duration-200 ${
-                locationStatus === "loading"
-                  ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
-                  : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"
-              }`}>
+              className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg font-medium text-xs transition-all duration-200 ${locationStatus === "loading"
+                ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
+                : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"
+                }`}>
               <FiMapPin className="w-3.5 h-3.5 flex-shrink-0" />
               {locationStatus === "loading" ? "Getting GPS..." : "Auto GPS"}
             </button>
@@ -1241,125 +1181,124 @@ const handleSave = async () => {
         </div>
 
         {showInspectorFields && (
-  <div className="bg-white rounded-xl text-black p-4 border border-gray-200">
-    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
-      <FiUser className="w-4 h-4 mr-2 text-blue-600" /> Inspection Assignment
-    </h3>
+          <div className="bg-white rounded-xl text-black p-4 border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
+              <FiUser className="w-4 h-4 mr-2 text-blue-600" /> Inspection Assignment
+            </h3>
 
-    {/* OPTION 1: Dropdown from users */}
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Select Inspector
-      </label>
-      <select
-        onChange={(e) => addInspector(e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-        defaultValue=""
-      >
-        <option value="" disabled>
-          Select from users...
-        </option>
-        {inspectors.map((name, i) => (
-          <option key={i} value={name}>
-            {name}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    {/* OPTION 2: Manual input */}
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Add Manual Inspector
-      </label>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={manualName}
-          onChange={(e) => setManualName(e.target.value)}
-          placeholder="Enter name..."
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-        />
-        <button
-          type="button"
-          onClick={addManualInspector}
-          className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
-        >
-          Add
-        </button>
-      </div>
-    </div>
-
-    {/* Selected inspectors */}
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Assigned Inspectors
-      </label>
-
-      <div className="min-h-[50px] p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-        {assignedInspectors.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {assignedInspectors.map((name, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+            {/* OPTION 1: Dropdown from users */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Inspector
+              </label>
+              <select
+                onChange={(e) => addInspector(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                defaultValue=""
               >
-                {name}
+                <option value="" disabled>
+                  Select from users...
+                </option>
+                {inspectors.map((name, i) => (
+                  <option key={i} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* OPTION 2: Manual input */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Add Manual Inspector
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  placeholder="Enter name..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
                 <button
-                  onClick={() => removeInspector(index)}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
+                  type="button"
+                  onClick={addManualInspector}
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
                 >
-                  <FiX className="w-3 h-3" />
+                  Add
                 </button>
-              </span>
-            ))}
+              </div>
+            </div>
+
+            {/* Selected inspectors */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assigned Inspectors
+              </label>
+
+              <div className="min-h-[50px] p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                {assignedInspectors.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {assignedInspectors.map((name, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                      >
+                        {name}
+                        <button
+                          onClick={() => removeInspector(index)}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                        >
+                          <FiX className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm">No inspectors assigned</p>
+                )}
+              </div>
+            </div>
+
+            {/* ✅ SCHEDULE DATE */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Scheduled Date
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]} // ✅ only current & future dates
+                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
+                />
+                <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+              </div>
+            </div>
+
+            {/* ✅ SCHEDULE TIME */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Scheduled Time
+              </label>
+              <div className="relative">
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
+                />
+                <FiClock className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+              </div>
+            </div>
           </div>
-        ) : (
-          <p className="text-gray-400 text-sm">No inspectors assigned</p>
         )}
-      </div>
-    </div>
-
-{/* ✅ SCHEDULE DATE */}
-<div className="mb-4">
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Scheduled Date
-  </label>
-  <div className="relative">
-    <input
-      type="date"
-      value={scheduledDate}
-      onChange={(e) => setScheduledDate(e.target.value)}
-      min={new Date().toISOString().split("T")[0]} // ✅ only current & future dates
-      className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
-    />
-    <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-  </div>
-</div>
-
-    {/* ✅ SCHEDULE TIME */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Scheduled Time
-      </label>
-      <div className="relative">
-        <input
-          type="time"
-          value={scheduledTime}
-          onChange={(e) => setScheduledTime(e.target.value)}
-          className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
-        />
-        <FiClock className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-      </div>
-    </div>
-  </div>
-)}
         {/* Action Buttons */}
         <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
           <button onClick={handleSave} disabled={isSaving}
-            className={`w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200 ${
-              isSaving ? "opacity-70 cursor-wait" : "hover:from-green-700 hover:to-green-800 active:scale-95"
-            }`}>
+            className={`w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200 ${isSaving ? "opacity-70 cursor-wait" : "hover:from-green-700 hover:to-green-800 active:scale-95"
+              }`}>
             <FiSave className="w-4 h-4" />{isSaving ? "Saving..." : "Save Review"}
           </button>
           <button onClick={onCancel} disabled={isSaving}

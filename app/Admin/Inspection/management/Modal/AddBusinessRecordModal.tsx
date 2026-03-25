@@ -3,82 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
-// ── Types ─────────────────────────────────────────────────────────────────────
-export interface BusinessRecord {
-  "Business Identification Number": string;
-  "Business Name": string;
-  "Trade Name": string | null;
-  "Business Nature": string | null;
-  "Business Line": string | null;
-  "Business Type": string | null;
-  "Transmittal No.": string | null;
-  "Incharge First Name": string | null;
-  "Incharge Middle Name": string | null;
-  "Incharge Last Name": string | null;
-  "Incharge Extension Name": string | null;
-  "Incharge Sex": string | null;
-  "Citizenship": string | null;
-  "Office Street": string | null;
-  "Office Region": string | null;
-  "Office Province": string | null;
-  "Office Municipality": string | null;
-  "Office Barangay": string | null;
-  "Office Zipcode": string | null;
-  "Year": number | null;
-  "Capital": number | null;
-  "Gross Amount": number | null;
-  "Gross Amount Essential": number | null;
-  "Gross Amount Non-Essential": number | null;
-  "Reject Remarks": string | null;
-  "Module Type": string | null;
-  "Transaction Type": string | null;
-  "Requestor First Name": string | null;
-  "Requestor Middle Name": string | null;
-  "Requestor Last Name": string | null;
-  "Requestor Extension Name": string | null;
-  "Requestor Email": string | null;
-  "Requestor Mobile No.": string | null;
-  "Birth Date": string | null;
-  "Requestor Sex": string | null;
-  "Civil Status": string | null;
-  "Requestor Street": string | null;
-  "Requestor Province": string | null;
-  "Requestor Municipality": string | null;
-  "Requestor Barangay": string | null;
-  "Requestor Zipcode": string | null;
-  "Transaction ID": string | null;
-  "Reference No.": string | null;
-  "Brgy. Clearance Status": string | null;
-  "SITE Transaction Status": string | null;
-  "CORE Transaction Status": string | null;
-  "Transaction Date": string | null;
-  "SOA No.": string | null;
-  "Annual Amount": number | null;
-  "Term": string | null;
-  "Amount Paid": number | null;
-  "Balance": number | null;
-  "Payment Type": string | null;
-  "Payment Date": string | null;
-  "O.R. No.": string | null;
-  "Brgy. Clearance No.": string | null;
-  "O.R. Date": string | null;
-  "Permit No.": string | null;
-  "Business Plate No.": string | null;
-  "Actual Closure Date": string | null;
-  "Retirement Reason": string | null;
-  "Source Type": string | null;
-  violation: string | null;
-  review_action: string | null;
-  review_date: string | null;
-  reviewed_by: string | null;
-  status: string;
-  assigned_inspector: string | null;
-  scheduled_date: string | null;
-  file_id: string | null;
-  
-}
+import ConfirmScheduleModal from "../Modal/Confirmschedulemodal";
+import ReviewModal, { BusinessRecord } from "../Modal/reviewModal";
 
+interface AddBusinessRecordModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSaved: (record: BusinessRecord) => void;
+  isMobile?: boolean;
+}
 interface AddBusinessRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -222,49 +155,19 @@ const emptyRecord = () => ({
 });
 
 // ── Main Component ────────────────────────────────────────────────────────────
-const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordModalProps) => {
+const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: AddBusinessRecordModalProps) => {
   const [form, setForm] = useState(emptyRecord());
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [checkingBin, setCheckingBin] = useState(false);
-  const [binExists, setBinExists] = useState(false);
 
-  const [showProceedPrompt, setShowProceedPrompt] = useState(false);
+  // ── NEW: saved record held between confirm → review steps ─────────────────
   const [savedRecord, setSavedRecord] = useState<BusinessRecord | null>(null);
-
-  const router = useRouter();
-
-  useEffect(() => {
-    const bin = form["Business Identification Number"];
-
-    if (!bin || bin.length < 9) {
-      setBinExists(false);
-      return;
-    }
-
-    const timeout = setTimeout(async () => {
-      setCheckingBin(true);
-
-      const { data, error } = await supabase
-        .from("business_records")
-        .select("Business Identification Number")
-        .eq("Business Identification Number", bin)
-        .maybeSingle();
-
-      if (data) {
-        setBinExists(true);
-      } else {
-        setBinExists(false);
-      }
-
-      setCheckingBin(false);
-    }, 500);
-
-    return () => clearTimeout(timeout);
-  }, [form["Business Identification Number"]]);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  // ─────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (isOpen) {
@@ -272,8 +175,9 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
       setErrors({});
       setSaveError(null);
       setShowSuccess(false);
-      setShowProceedPrompt(false);
       setSavedRecord(null);
+      setShowConfirm(false);
+      setShowReview(false);
       setTimeout(() => setVisible(true), 10);
     } else {
       setVisible(false);
@@ -289,79 +193,19 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
   const validate = () => {
     const e: Partial<Record<string, string>> = {};
     const bin = form["Business Identification Number"].trim();
-
     if (!bin) {
       e["bin"] = "BIN is required.";
-    } else if (!/^\d+$/.test(bin)) {
-      e["bin"] = "BIN must be numbers only.";
-    } else if (bin.length < 9 || bin.length > 12) {
-      e["bin"] = "BIN must be 9 to 12 digits.";
+    } else if (!/^[0-9-]+$/.test(bin)) {
+      e["bin"] = "BIN must contain numbers only (e.g. 2024-00123).";
     }
-
-    if (!form["Business Name"].trim()) {
-      e["name"] = "Business Name is required.";
-    }
-
+    if (!form["Business Name"].trim()) e["name"] = "Business Name is required.";
     return e;
-  };
-
-  const clearAfterNo = () => {
-    setShowProceedPrompt(false);
-    setShowSuccess(false);
-    setSaveError(null);
-    setErrors({});
-    setSavedRecord(null);
-    setCheckingBin(false);
-    setBinExists(false);
-    setForm(emptyRecord());
-    setVisible(true);
-  };
-
-  const handleProceedYes = () => {
-    if (!savedRecord) return;
-
-    const bin = savedRecord["Business Identification Number"];
-
-    setShowProceedPrompt(false);
-    setShowSuccess(false);
-    setVisible(false);
-
-    onSaved(savedRecord);
-
-    setTimeout(() => {
-      onClose();
-      router.push(`/Admin/Inspection/management/review?bin=${encodeURIComponent(bin)}`);
-    }, 250);
-  };
-
-  const handleProceedNo = () => {
-    clearAfterNo();
   };
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     const e = validate();
-
-    if (Object.keys(e).length > 0) {
-      setErrors(e);
-      return;
-    }
-
-    if (checkingBin) {
-      setErrors(prev => ({
-        ...prev,
-        bin: "Please wait, checking BIN...",
-      }));
-      return;
-    }
-
-    if (binExists) {
-      setErrors(prev => ({
-        ...prev,
-        bin: "BIN already exists.",
-      }));
-      return;
-    }
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
 
     setSaving(true);
     setSaveError(null);
@@ -381,15 +225,18 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
         return;
       }
 
-      const saved = data as BusinessRecord;
+      const newRecord = data as BusinessRecord;
 
-      setSavedRecord(saved);
+      // ── Show success toast, then show ConfirmScheduleModal ────────────────
       setShowSuccess(true);
-      setShowProceedPrompt(true);
+      setSavedRecord(newRecord);
+      onSaved(newRecord); // notify parent immediately
 
       setTimeout(() => {
         setShowSuccess(false);
-      }, 2500);
+        setVisible(false);         // slide down the add-form sheet
+        setShowConfirm(true);      // show the confirm modal
+      }, 1200);
 
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
@@ -398,21 +245,74 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
     }
   };
 
+  const handleConfirmYes = () => {
+    setShowConfirm(false);
+    setShowReview(true);
+
+    // ✅ Pass the savedRecord to ReviewModal like analytics does
+    if (savedRecord) {
+      onSaved(savedRecord);  // This sets the selectedRow for ReviewModal
+    }
+
+    setTimeout(() => setVisible(true), 10);
+  };
+  // ── Confirm "No, Skip" ────────────────────────────────────────────────────
+  const handleConfirmSkip = () => {
+    setShowConfirm(false);
+    onClose();             // fully close everything
+  };
+
+  // ── ReviewModal save handler ──────────────────────────────────────────────
+  const handleReviewSave = async (reviewData: {
+    reviewActions: string[];
+    violations: string[];
+    assignedInspector?: string;
+    scheduledDate?: string;
+    scheduledTime?: string;
+    location?: { lat: number; lng: number; accuracy: number };
+    photo?: File;
+    photoUrl?: string;
+    reviewedBy?: string;
+  }) => {
+    if (!savedRecord) return;
+
+    const updates: Record<string, any> = {
+      review_action: reviewData.reviewActions.join(", ") || null,
+      violation: reviewData.violations.join(", ") || null,
+      status: reviewData.reviewActions[reviewData.reviewActions.length - 1]
+        ?.toLowerCase().replace(/ /g, "_") ?? null,
+      review_date: new Date().toISOString(),
+      reviewed_by: reviewData.reviewedBy ?? null,
+      assigned_inspector: reviewData.assignedInspector ?? null,
+      scheduled_date: reviewData.scheduledDate ?? null,
+      schedule_time: reviewData.scheduledTime ?? null,
+      latitude: reviewData.location?.lat?.toString() ?? null,
+      longitude: reviewData.location?.lng?.toString() ?? null,
+      accuracy: reviewData.location?.accuracy?.toString() ?? null,
+      photo: reviewData.photoUrl ?? null,
+    };
+
+    await supabase
+      .from("business_records")
+      .update(updates)
+      .eq("Business Identification Number", savedRecord["Business Identification Number"]);
+
+    setShowReview(false);
+    onClose();
+  };
+
   const handleClose = () => {
-    if (showProceedPrompt) return;
     setVisible(false);
     setTimeout(onClose, 300);
   };
 
-  if (!isOpen) return null;
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       {/* ── Success Toast ── */}
       <div
-        className={`fixed top-6 left-1/2 -translate-x-1/2 z-[90] transition-all duration-500 ${
-          showSuccess ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
-        }`}
+        className={`fixed top-6 left-1/2 -translate-x-1/2 z-[90] transition-all duration-500 ${showSuccess ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+          }`}
       >
         <div className="flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-2xl shadow-xl shadow-green-200">
           <CheckCircle size={20} className="shrink-0" />
@@ -434,489 +334,461 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordM
         </div>
       )}
 
-      {/* ── Proceed Prompt ── */}
-      {showProceedPrompt && (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl border border-slate-100 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
-                <CheckCircle size={20} className="text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-800">Saved successfully</h3>
-                <p className="text-xs text-slate-500">Proceed to Scheduling?</p>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 rounded-2xl p-3 mb-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">BIN</p>
-              <p className="text-sm font-bold text-slate-800 mt-1">
-                {savedRecord?.["Business Identification Number"] ?? "-"}
-              </p>
-              <p className="text-xs text-slate-500 mt-2">
-                Y = open review modal by BIN
-              </p>
-              <p className="text-xs text-slate-500">
-                N = stay here and clear the form
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleProceedNo}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 transition-colors"
-              >
-                N
-              </button>
-              <button
-                type="button"
-                onClick={handleProceedYes}
-                className="px-4 py-2.5 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors shadow-md shadow-green-200"
-              >
-                Y
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Backdrop */}
-      <div
-        onClick={saving || showProceedPrompt ? undefined : handleClose}
-        className="fixed inset-0 z-[60] transition-all duration-300"
-        style={{
-          background: visible ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
-          backdropFilter: visible ? "blur(2px)" : "none",
-        }}
+      {/* ── ConfirmScheduleModal ── */}
+      <ConfirmScheduleModal
+        isOpen={showConfirm}
+        businessName={savedRecord?.["Business Name"] ?? ""}
+        onConfirm={handleConfirmYes}
+        onSkip={handleConfirmSkip}
       />
 
-      {/* Bottom Sheet */}
-      <div
-        className="fixed left-0 right-0 bottom-0 z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col transition-transform duration-300 ease-out"
-        style={{
-          transform: visible ? "translateY(0)" : "translateY(100%)",
-          maxHeight: "94vh",
-        }}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-slate-200" />
-        </div>
+      {/* ── ReviewModal (opened after confirming "Yes") ── */}
+      {showReview && savedRecord && (
+        <ReviewModal
+          selectedRow={savedRecord}
+          showReviewModal={showReview ? true : false}
+          isMobile={isMobile}
+          onClose={() => { setShowReview(false); onClose(); }}
+          onSave={handleReviewSave}
+          onRecordUpdated={(updated) => setSavedRecord(updated)}
+          onRecordDeleted={(bin) => {
+            setShowReview(false);
+            onClose();
+          }}
+          onShowConfirm={() => {
+            setShowReview(false);
+            setShowConfirm(true);
+          }}
+        />
+      )}
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
-          <button
-            onClick={handleClose}
-            disabled={saving}
-            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors active:scale-90 disabled:opacity-40"
+      {/* ── Add-form sheet (hidden once confirm/review take over) ── */}
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={saving ? undefined : handleClose}
+            className="fixed inset-0 z-[60] transition-all duration-300"
+            style={{
+              background: visible ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
+              backdropFilter: visible ? "blur(2px)" : "none",
+            }}
+          />
+
+          {/* Bottom Sheet */}
+          <div
+            className="fixed left-0 right-0 bottom-0 z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col transition-transform duration-300 ease-out"
+            style={{
+              transform: visible ? "translateY(0)" : "translateY(100%)",
+              maxHeight: "94vh",
+            }}
           >
-            <X size={18} className="text-slate-500" />
-          </button>
-          <div className="text-center">
-            <h2 className="text-base font-bold text-slate-800">Add Business Record</h2>
-            <p className="text-xs text-slate-400">Fill in the details below</p>
-          </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-1.5 bg-green-500 text-white text-sm font-bold rounded-full hover:bg-green-600 transition-colors active:scale-95 shadow-md shadow-green-200 disabled:opacity-60 flex items-center gap-2"
-          >
-            {saving ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Saving...
-              </>
-            ) : 'Save'}
-          </button>
-        </div>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-slate-200" />
+            </div>
 
-        {/* Error banner */}
-        {saveError && (
-          <div className="mx-5 mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 shrink-0">
-            ⚠ {saveError}
-          </div>
-        )}
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
+              <button
+                onClick={handleClose}
+                disabled={saving}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors active:scale-90 disabled:opacity-40"
+              >
+                <X size={18} className="text-slate-500" />
+              </button>
+              <div className="text-center">
+                <h2 className="text-base font-bold text-slate-800">Add Business Record</h2>
+                <p className="text-xs text-slate-400">Fill in the details below</p>
+              </div>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-1.5 bg-green-500 text-white text-sm font-bold rounded-full hover:bg-green-600 transition-colors active:scale-95 shadow-md shadow-green-200 disabled:opacity-60 flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : 'Save'}
+              </button>
+            </div>
 
-        {/* Scrollable form */}
-        <div className="overflow-y-auto flex-1 px-4 py-4 space-y-3">
-
-          {/* ── Business Details ── */}
-          <Section
-            title="Business Details"
-            icon={<Building2 size={16} className="text-green-600" />}
-            color="bg-green-50"
-            defaultOpen
-          >
-            <Field label="Business Identification Number (BIN)" required error={errors["bin"]}>
-              <input
-                type="text"
-                placeholder="Enter 9–12 digit BIN"
-                value={form["Business Identification Number"]}
-                onChange={e => {
-                  const val = e.target.value;
-
-                  // allow numbers only
-                  if (/^\d*$/.test(val)) {
-                    setForm(p => ({ ...p, "Business Identification Number": val }));
-
-                    if (errors["bin"]) {
-                      setErrors(prev => ({ ...prev, bin: undefined }));
-                    }
-                  }
-                }}
-                className={inputCls(!!errors["bin"] || binExists)}
-              />
-            </Field>
-            {checkingBin && (
-              <p className="text-xs text-slate-400 mt-1">Checking BIN...</p>
+            {/* Error banner */}
+            {saveError && (
+              <div className="mx-5 mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 shrink-0">
+                ⚠ {saveError}
+              </div>
             )}
 
-            {binExists && (
-              <p className="text-xs text-red-500 mt-1">
-                ⚠ BIN already exists.
-              </p>
-            )}
-            <Field label="Business Name" required error={errors["name"]}>
-              <input
-                type="text"
-                placeholder="Official registered name"
-                value={form["Business Name"]}
-                onChange={e => {
-                  setForm(p => ({ ...p, "Business Name": e.target.value }));
-                  if (errors["name"]) setErrors(prev => ({ ...prev, name: undefined }));
-                }}
-                className={inputCls(!!errors["name"])}
-              />
-            </Field>
-            <Field label="Trade Name">
-              <input type="text" placeholder="DBA / Trade name" value={form["Trade Name"] ?? ""} onChange={e => set("Trade Name", e.target.value)} className={inputCls()} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Business Nature">
-                <input type="text" placeholder="e.g. Retail" value={form["Business Nature"] ?? ""} onChange={e => set("Business Nature", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Business Line">
-                <input type="text" placeholder="e.g. Food" value={form["Business Line"] ?? ""} onChange={e => set("Business Line", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Business Type">
-                <input type="text" placeholder="e.g. Sole" value={form["Business Type"] ?? ""} onChange={e => set("Business Type", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Year">
-                <input type="number" placeholder="2024" value={form["Year"] ?? ""} onChange={e => set("Year", num(e.target.value))} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Module Type">
-                <input type="text" value={form["Module Type"] ?? ""} onChange={e => set("Module Type", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Transaction Type">
-                <input type="text" value={form["Transaction Type"] ?? ""} onChange={e => set("Transaction Type", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <Field label="Transmittal No.">
-              <input type="text" value={form["Transmittal No."] ?? ""} onChange={e => set("Transmittal No.", e.target.value)} className={inputCls()} />
-            </Field>
-          </Section>
+            {/* Scrollable form */}
+            <div className="overflow-y-auto flex-1 px-4 py-4 space-y-3">
 
-          {/* ── Incharge Information ── */}
-          <Section
-            title="Incharge Information"
-            icon={<UserCheck size={16} className="text-blue-600" />}
-            color="bg-blue-50"
-          >
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="First Name">
-                <input type="text" value={form["Incharge First Name"] ?? ""} onChange={e => set("Incharge First Name", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Middle Name">
-                <input type="text" value={form["Incharge Middle Name"] ?? ""} onChange={e => set("Incharge Middle Name", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Last Name">
-                <input type="text" value={form["Incharge Last Name"] ?? ""} onChange={e => set("Incharge Last Name", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Extension">
-                <input type="text" placeholder="Jr., Sr." value={form["Incharge Extension Name"] ?? ""} onChange={e => set("Incharge Extension Name", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Sex">
-                <select value={form["Incharge Sex"] ?? ""} onChange={e => set("Incharge Sex", e.target.value)} className={selectCls}>
-                  <option value="">Select</option>
-                  <option>Male</option>
-                  <option>Female</option>
-                </select>
-              </Field>
-              <Field label="Citizenship">
-                <input type="text" placeholder="e.g. Filipino" value={form["Citizenship"] ?? ""} onChange={e => set("Citizenship", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-          </Section>
+              {/* ── Business Details ── */}
+              <Section
+                title="Business Details"
+                icon={<Building2 size={16} className="text-green-600" />}
+                color="bg-green-50"
+                defaultOpen
+              >
+                <Field label="Business Identification Number (BIN)" required error={errors["bin"]}>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2024-00123"
+                    value={form["Business Identification Number"]}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (/^[0-9-]*$/.test(val)) {
+                        setForm(p => ({ ...p, "Business Identification Number": val }));
+                        if (errors["bin"]) setErrors(prev => ({ ...prev, bin: undefined }));
+                      }
+                    }}
+                    className={inputCls(!!errors["bin"])}
+                  />
+                </Field>
+                <Field label="Business Name" required error={errors["name"]}>
+                  <input
+                    type="text"
+                    placeholder="Official registered name"
+                    value={form["Business Name"]}
+                    onChange={e => {
+                      setForm(p => ({ ...p, "Business Name": e.target.value }));
+                      if (errors["name"]) setErrors(prev => ({ ...prev, name: undefined }));
+                    }}
+                    className={inputCls(!!errors["name"])}
+                  />
+                </Field>
+                <Field label="Trade Name">
+                  <input type="text" placeholder="DBA / Trade name" value={form["Trade Name"] ?? ""} onChange={e => set("Trade Name", e.target.value)} className={inputCls()} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Business Nature">
+                    <input type="text" placeholder="e.g. Retail" value={form["Business Nature"] ?? ""} onChange={e => set("Business Nature", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Business Line">
+                    <input type="text" placeholder="e.g. Food" value={form["Business Line"] ?? ""} onChange={e => set("Business Line", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Business Type">
+                    <input type="text" placeholder="e.g. Sole" value={form["Business Type"] ?? ""} onChange={e => set("Business Type", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Year">
+                    <input type="number" placeholder="2024" value={form["Year"] ?? ""} onChange={e => set("Year", num(e.target.value))} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Module Type">
+                    <input type="text" value={form["Module Type"] ?? ""} onChange={e => set("Module Type", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Transaction Type">
+                    <input type="text" value={form["Transaction Type"] ?? ""} onChange={e => set("Transaction Type", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <Field label="Transmittal No.">
+                  <input type="text" value={form["Transmittal No."] ?? ""} onChange={e => set("Transmittal No.", e.target.value)} className={inputCls()} />
+                </Field>
+              </Section>
 
-          {/* ── Office Address ── */}
-          <Section
-            title="Office Address"
-            icon={<MapPin size={16} className="text-orange-500" />}
-            color="bg-orange-50"
-          >
-            <Field label="Street">
-              <input type="text" value={form["Office Street"] ?? ""} onChange={e => set("Office Street", e.target.value)} className={inputCls()} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Region">
-                <input type="text" value={form["Office Region"] ?? ""} onChange={e => set("Office Region", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Province">
-                <input type="text" value={form["Office Province"] ?? ""} onChange={e => set("Office Province", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Municipality">
-                <input type="text" value={form["Office Municipality"] ?? ""} onChange={e => set("Office Municipality", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Barangay">
-                <input type="text" value={form["Office Barangay"] ?? ""} onChange={e => set("Office Barangay", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <Field label="Zipcode">
-              <input type="text" value={form["Office Zipcode"] ?? ""} onChange={e => set("Office Zipcode", e.target.value)} className={inputCls()} />
-            </Field>
-          </Section>
+              {/* ── Incharge Information ── */}
+              <Section
+                title="Incharge Information"
+                icon={<UserCheck size={16} className="text-blue-600" />}
+                color="bg-blue-50"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="First Name">
+                    <input type="text" value={form["Incharge First Name"] ?? ""} onChange={e => set("Incharge First Name", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Middle Name">
+                    <input type="text" value={form["Incharge Middle Name"] ?? ""} onChange={e => set("Incharge Middle Name", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Last Name">
+                    <input type="text" value={form["Incharge Last Name"] ?? ""} onChange={e => set("Incharge Last Name", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Extension">
+                    <input type="text" placeholder="Jr., Sr." value={form["Incharge Extension Name"] ?? ""} onChange={e => set("Incharge Extension Name", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Sex">
+                    <select value={form["Incharge Sex"] ?? ""} onChange={e => set("Incharge Sex", e.target.value)} className={selectCls}>
+                      <option value="">Select</option>
+                      <option>Male</option>
+                      <option>Female</option>
+                    </select>
+                  </Field>
+                  <Field label="Citizenship">
+                    <input type="text" placeholder="e.g. Filipino" value={form["Citizenship"] ?? ""} onChange={e => set("Citizenship", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+              </Section>
 
-          {/* ── Financial Information ── */}
-          <Section
-            title="Financial Information"
-            icon={<DollarSign size={16} className="text-emerald-600" />}
-            color="bg-emerald-50"
-          >
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Capital (₱)">
-                <input type="number" placeholder="0.00" value={form["Capital"] ?? ""} onChange={e => set("Capital", num(e.target.value))} className={inputCls()} />
-              </Field>
-              <Field label="Gross Amount (₱)">
-                <input type="number" placeholder="0.00" value={form["Gross Amount"] ?? ""} onChange={e => set("Gross Amount", num(e.target.value))} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Gross Essential (₱)">
-                <input type="number" placeholder="0.00" value={form["Gross Amount Essential"] ?? ""} onChange={e => set("Gross Amount Essential", num(e.target.value))} className={inputCls()} />
-              </Field>
-              <Field label="Gross Non-Essential (₱)">
-                <input type="number" placeholder="0.00" value={form["Gross Amount Non-Essential"] ?? ""} onChange={e => set("Gross Amount Non-Essential", num(e.target.value))} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Annual Amount (₱)">
-                <input type="number" placeholder="0.00" value={form["Annual Amount"] ?? ""} onChange={e => set("Annual Amount", num(e.target.value))} className={inputCls()} />
-              </Field>
-              <Field label="Amount Paid (₱)">
-                <input type="number" placeholder="0.00" value={form["Amount Paid"] ?? ""} onChange={e => set("Amount Paid", num(e.target.value))} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Balance (₱)">
-                <input type="number" placeholder="0.00" value={form["Balance"] ?? ""} onChange={e => set("Balance", num(e.target.value))} className={inputCls()} />
-              </Field>
-              <Field label="Term">
-                <input type="text" placeholder="e.g. Annual" value={form["Term"] ?? ""} onChange={e => set("Term", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Payment Type">
-                <input type="text" value={form["Payment Type"] ?? ""} onChange={e => set("Payment Type", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Payment Date">
-                <input type="date" value={form["Payment Date"] ?? ""} onChange={e => set("Payment Date", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <Field label="Reject Remarks">
-              <input type="text" value={form["Reject Remarks"] ?? ""} onChange={e => set("Reject Remarks", e.target.value)} className={inputCls()} />
-            </Field>
-          </Section>
+              {/* ── Office Address ── */}
+              <Section
+                title="Office Address"
+                icon={<MapPin size={16} className="text-orange-500" />}
+                color="bg-orange-50"
+              >
+                <Field label="Street">
+                  <input type="text" value={form["Office Street"] ?? ""} onChange={e => set("Office Street", e.target.value)} className={inputCls()} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Region">
+                    <input type="text" value={form["Office Region"] ?? ""} onChange={e => set("Office Region", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Province">
+                    <input type="text" value={form["Office Province"] ?? ""} onChange={e => set("Office Province", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Municipality">
+                    <input type="text" value={form["Office Municipality"] ?? ""} onChange={e => set("Office Municipality", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Barangay">
+                    <input type="text" value={form["Office Barangay"] ?? ""} onChange={e => set("Office Barangay", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <Field label="Zipcode">
+                  <input type="text" value={form["Office Zipcode"] ?? ""} onChange={e => set("Office Zipcode", e.target.value)} className={inputCls()} />
+                </Field>
+              </Section>
 
-          {/* ── Requestor Information ── */}
-          <Section
-            title="Requestor Information"
-            icon={<User size={16} className="text-purple-600" />}
-            color="bg-purple-50"
-          >
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="First Name">
-                <input type="text" value={form["Requestor First Name"] ?? ""} onChange={e => set("Requestor First Name", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Middle Name">
-                <input type="text" value={form["Requestor Middle Name"] ?? ""} onChange={e => set("Requestor Middle Name", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Last Name">
-                <input type="text" value={form["Requestor Last Name"] ?? ""} onChange={e => set("Requestor Last Name", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Extension">
-                <input type="text" placeholder="Jr., Sr." value={form["Requestor Extension Name"] ?? ""} onChange={e => set("Requestor Extension Name", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <Field label="Email">
-              <input type="email" value={form["Requestor Email"] ?? ""} onChange={e => set("Requestor Email", e.target.value)} className={inputCls()} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Mobile No.">
-                <input type="tel" value={form["Requestor Mobile No."] ?? ""} onChange={e => set("Requestor Mobile No.", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Birth Date">
-                <input type="date" value={form["Birth Date"] ?? ""} onChange={e => set("Birth Date", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Sex">
-                <select value={form["Requestor Sex"] ?? ""} onChange={e => set("Requestor Sex", e.target.value)} className={selectCls}>
-                  <option value="">Select</option>
-                  <option>Male</option>
-                  <option>Female</option>
-                </select>
-              </Field>
-              <Field label="Civil Status">
-                <select value={form["Civil Status"] ?? ""} onChange={e => set("Civil Status", e.target.value)} className={selectCls}>
-                  <option value="">Select</option>
-                  <option>Single</option>
-                  <option>Married</option>
-                  <option>Widowed</option>
-                  <option>Separated</option>
-                </select>
-              </Field>
-            </div>
-            <Field label="Street">
-              <input type="text" value={form["Requestor Street"] ?? ""} onChange={e => set("Requestor Street", e.target.value)} className={inputCls()} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Province">
-                <input type="text" value={form["Requestor Province"] ?? ""} onChange={e => set("Requestor Province", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Municipality">
-                <input type="text" value={form["Requestor Municipality"] ?? ""} onChange={e => set("Requestor Municipality", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Barangay">
-                <input type="text" value={form["Requestor Barangay"] ?? ""} onChange={e => set("Requestor Barangay", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Zipcode">
-                <input type="text" value={form["Requestor Zipcode"] ?? ""} onChange={e => set("Requestor Zipcode", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-          </Section>
+              {/* ── Financial Information ── */}
+              <Section
+                title="Financial Information"
+                icon={<DollarSign size={16} className="text-emerald-600" />}
+                color="bg-emerald-50"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Capital (₱)">
+                    <input type="number" placeholder="0.00" value={form["Capital"] ?? ""} onChange={e => set("Capital", num(e.target.value))} className={inputCls()} />
+                  </Field>
+                  <Field label="Gross Amount (₱)">
+                    <input type="number" placeholder="0.00" value={form["Gross Amount"] ?? ""} onChange={e => set("Gross Amount", num(e.target.value))} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Gross Essential (₱)">
+                    <input type="number" placeholder="0.00" value={form["Gross Amount Essential"] ?? ""} onChange={e => set("Gross Amount Essential", num(e.target.value))} className={inputCls()} />
+                  </Field>
+                  <Field label="Gross Non-Essential (₱)">
+                    <input type="number" placeholder="0.00" value={form["Gross Amount Non-Essential"] ?? ""} onChange={e => set("Gross Amount Non-Essential", num(e.target.value))} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Annual Amount (₱)">
+                    <input type="number" placeholder="0.00" value={form["Annual Amount"] ?? ""} onChange={e => set("Annual Amount", num(e.target.value))} className={inputCls()} />
+                  </Field>
+                  <Field label="Amount Paid (₱)">
+                    <input type="number" placeholder="0.00" value={form["Amount Paid"] ?? ""} onChange={e => set("Amount Paid", num(e.target.value))} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Balance (₱)">
+                    <input type="number" placeholder="0.00" value={form["Balance"] ?? ""} onChange={e => set("Balance", num(e.target.value))} className={inputCls()} />
+                  </Field>
+                  <Field label="Term">
+                    <input type="text" placeholder="e.g. Annual" value={form["Term"] ?? ""} onChange={e => set("Term", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Payment Type">
+                    <input type="text" value={form["Payment Type"] ?? ""} onChange={e => set("Payment Type", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Payment Date">
+                    <input type="date" value={form["Payment Date"] ?? ""} onChange={e => set("Payment Date", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <Field label="Reject Remarks">
+                  <input type="text" value={form["Reject Remarks"] ?? ""} onChange={e => set("Reject Remarks", e.target.value)} className={inputCls()} />
+                </Field>
+              </Section>
 
-          {/* ── Transaction Details ── */}
-          <Section
-            title="Transaction Details"
-            icon={<FileText size={16} className="text-slate-600" />}
-            color="bg-slate-50"
-          >
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Transaction ID">
-                <input type="text" value={form["Transaction ID"] ?? ""} onChange={e => set("Transaction ID", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Reference No.">
-                <input type="text" value={form["Reference No."] ?? ""} onChange={e => set("Reference No.", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <Field label="Transaction Date">
-              <input type="datetime-local" value={form["Transaction Date"] ?? ""} onChange={e => set("Transaction Date", e.target.value)} className={inputCls()} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Brgy. Clearance Status">
-                <input type="text" value={form["Brgy. Clearance Status"] ?? ""} onChange={e => set("Brgy. Clearance Status", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Brgy. Clearance No.">
-                <input type="text" value={form["Brgy. Clearance No."] ?? ""} onChange={e => set("Brgy. Clearance No.", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="SITE Transaction Status">
-                <input type="text" value={form["SITE Transaction Status"] ?? ""} onChange={e => set("SITE Transaction Status", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="CORE Transaction Status">
-                <input type="text" value={form["CORE Transaction Status"] ?? ""} onChange={e => set("CORE Transaction Status", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="SOA No.">
-                <input type="text" value={form["SOA No."] ?? ""} onChange={e => set("SOA No.", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="O.R. No.">
-                <input type="text" value={form["O.R. No."] ?? ""} onChange={e => set("O.R. No.", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="O.R. Date">
-                <input type="date" value={form["O.R. Date"] ?? ""} onChange={e => set("O.R. Date", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Permit No.">
-                <input type="text" value={form["Permit No."] ?? ""} onChange={e => set("Permit No.", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Business Plate No.">
-                <input type="text" value={form["Business Plate No."] ?? ""} onChange={e => set("Business Plate No.", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Source Type">
-                <input type="text" value={form["Source Type"] ?? ""} onChange={e => set("Source Type", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Actual Closure Date">
-                <input type="date" value={form["Actual Closure Date"] ?? ""} onChange={e => set("Actual Closure Date", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Retirement Reason">
-                <input type="text" value={form["Retirement Reason"] ?? ""} onChange={e => set("Retirement Reason", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-          </Section>
+              {/* ── Requestor Information ── */}
+              <Section
+                title="Requestor Information"
+                icon={<User size={16} className="text-purple-600" />}
+                color="bg-purple-50"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="First Name">
+                    <input type="text" value={form["Requestor First Name"] ?? ""} onChange={e => set("Requestor First Name", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Middle Name">
+                    <input type="text" value={form["Requestor Middle Name"] ?? ""} onChange={e => set("Requestor Middle Name", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Last Name">
+                    <input type="text" value={form["Requestor Last Name"] ?? ""} onChange={e => set("Requestor Last Name", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Extension">
+                    <input type="text" placeholder="Jr., Sr." value={form["Requestor Extension Name"] ?? ""} onChange={e => set("Requestor Extension Name", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <Field label="Email">
+                  <input type="email" value={form["Requestor Email"] ?? ""} onChange={e => set("Requestor Email", e.target.value)} className={inputCls()} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Mobile No.">
+                    <input type="tel" value={form["Requestor Mobile No."] ?? ""} onChange={e => set("Requestor Mobile No.", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Birth Date">
+                    <input type="date" value={form["Birth Date"] ?? ""} onChange={e => set("Birth Date", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Sex">
+                    <select value={form["Requestor Sex"] ?? ""} onChange={e => set("Requestor Sex", e.target.value)} className={selectCls}>
+                      <option value="">Select</option>
+                      <option>Male</option>
+                      <option>Female</option>
+                    </select>
+                  </Field>
+                  <Field label="Civil Status">
+                    <select value={form["Civil Status"] ?? ""} onChange={e => set("Civil Status", e.target.value)} className={selectCls}>
+                      <option value="">Select</option>
+                      <option>Single</option>
+                      <option>Married</option>
+                      <option>Widowed</option>
+                      <option>Separated</option>
+                    </select>
+                  </Field>
+                </div>
+                <Field label="Street">
+                  <input type="text" value={form["Requestor Street"] ?? ""} onChange={e => set("Requestor Street", e.target.value)} className={inputCls()} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Province">
+                    <input type="text" value={form["Requestor Province"] ?? ""} onChange={e => set("Requestor Province", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Municipality">
+                    <input type="text" value={form["Requestor Municipality"] ?? ""} onChange={e => set("Requestor Municipality", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Barangay">
+                    <input type="text" value={form["Requestor Barangay"] ?? ""} onChange={e => set("Requestor Barangay", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Zipcode">
+                    <input type="text" value={form["Requestor Zipcode"] ?? ""} onChange={e => set("Requestor Zipcode", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+              </Section>
 
-          {/* ── Review / Inspection ── */}
-          <Section
-            title="Review & Inspection"
-            icon={<ClipboardList size={16} className="text-red-500" />}
-            color="bg-red-50"
-          >
-            <Field label="Status">
-              <select value={form.status} onChange={e => set("status", e.target.value)} className={selectCls}>
-                <option value="not reviewed">Not Reviewed</option>
-                <option value="compliant">Compliant</option>
-                <option value="non_compliant">Non-Compliant</option>
-                <option value="for_inspection">For Inspection</option>
-                <option value="active">Active</option>
-              </select>
-            </Field>
-            <Field label="Violation">
-              <textarea
-                rows={2}
-                placeholder="Describe violations (comma-separated)"
-                value={form.violation ?? ""}
-                onChange={e => set("violation", e.target.value)}
-                className={`${inputCls()} resize-none`}
-              />
-            </Field>
-            <Field label="Review Action">
-              <input type="text" value={form.review_action ?? ""} onChange={e => set("review_action", e.target.value)} className={inputCls()} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Assigned Inspector">
-                <input type="text" value={form.assigned_inspector ?? ""} onChange={e => set("assigned_inspector", e.target.value)} className={inputCls()} />
-              </Field>
-              <Field label="Scheduled Date">
-                <input type="date" value={form.scheduled_date ?? ""} onChange={e => set("scheduled_date", e.target.value)} className={inputCls()} />
-              </Field>
-            </div>
-          </Section>
+              {/* ── Transaction Details ── */}
+              <Section
+                title="Transaction Details"
+                icon={<FileText size={16} className="text-slate-600" />}
+                color="bg-slate-50"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Transaction ID">
+                    <input type="text" value={form["Transaction ID"] ?? ""} onChange={e => set("Transaction ID", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Reference No.">
+                    <input type="text" value={form["Reference No."] ?? ""} onChange={e => set("Reference No.", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <Field label="Transaction Date">
+                  <input type="datetime-local" value={form["Transaction Date"] ?? ""} onChange={e => set("Transaction Date", e.target.value)} className={inputCls()} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Brgy. Clearance Status">
+                    <input type="text" value={form["Brgy. Clearance Status"] ?? ""} onChange={e => set("Brgy. Clearance Status", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Brgy. Clearance No.">
+                    <input type="text" value={form["Brgy. Clearance No."] ?? ""} onChange={e => set("Brgy. Clearance No.", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="SITE Transaction Status">
+                    <input type="text" value={form["SITE Transaction Status"] ?? ""} onChange={e => set("SITE Transaction Status", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="CORE Transaction Status">
+                    <input type="text" value={form["CORE Transaction Status"] ?? ""} onChange={e => set("CORE Transaction Status", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="SOA No.">
+                    <input type="text" value={form["SOA No."] ?? ""} onChange={e => set("SOA No.", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="O.R. No.">
+                    <input type="text" value={form["O.R. No."] ?? ""} onChange={e => set("O.R. No.", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="O.R. Date">
+                    <input type="date" value={form["O.R. Date"] ?? ""} onChange={e => set("O.R. Date", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Permit No.">
+                    <input type="text" value={form["Permit No."] ?? ""} onChange={e => set("Permit No.", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Business Plate No.">
+                    <input type="text" value={form["Business Plate No."] ?? ""} onChange={e => set("Business Plate No.", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Source Type">
+                    <input type="text" value={form["Source Type"] ?? ""} onChange={e => set("Source Type", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Actual Closure Date">
+                    <input type="date" value={form["Actual Closure Date"] ?? ""} onChange={e => set("Actual Closure Date", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Retirement Reason">
+                    <input type="text" value={form["Retirement Reason"] ?? ""} onChange={e => set("Retirement Reason", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+              </Section>
 
-          <div className="h-8" />
-        </div>
-      </div>
+              {/* ── Review / Inspection ── */}
+              <Section
+                title="Review & Inspection"
+                icon={<ClipboardList size={16} className="text-red-500" />}
+                color="bg-red-50"
+              >
+                <Field label="Status">
+                  <select value={form.status} onChange={e => set("status", e.target.value)} className={selectCls}>
+                    <option value="not reviewed">Not Reviewed</option>
+                    <option value="compliant">Compliant</option>
+                    <option value="non_compliant">Non-Compliant</option>
+                    <option value="for_inspection">For Inspection</option>
+                    <option value="active">Active</option>
+                  </select>
+                </Field>
+                <Field label="Violation">
+                  <textarea
+                    rows={2}
+                    placeholder="Describe violations (comma-separated)"
+                    value={form.violation ?? ""}
+                    onChange={e => set("violation", e.target.value)}
+                    className={`${inputCls()} resize-none`}
+                  />
+                </Field>
+                <Field label="Review Action">
+                  <input type="text" value={form.review_action ?? ""} onChange={e => set("review_action", e.target.value)} className={inputCls()} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Assigned Inspector">
+                    <input type="text" value={form.assigned_inspector ?? ""} onChange={e => set("assigned_inspector", e.target.value)} className={inputCls()} />
+                  </Field>
+                  <Field label="Scheduled Date">
+                    <input type="date" value={form.scheduled_date ?? ""} onChange={e => set("scheduled_date", e.target.value)} className={inputCls()} />
+                  </Field>
+                </div>
+              </Section>
+
+              <div className="h-8" />
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 };
