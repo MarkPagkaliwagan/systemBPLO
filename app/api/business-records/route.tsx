@@ -39,15 +39,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Request body is too large or not valid JSON. Try a smaller file or split the CSV.' }, { status: 413 });
     }
 
-    const { rows, fileName } = body;
+    // ── Destructure fileSize from the request body ────────────────────────────
+    const { rows, fileName, fileSize } = body;
     if (!rows || !Array.isArray(rows)) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
     // 1. Create a csv_uploads record and get back the file_id
+    // ── file_size (bytes) is now saved to the database ────────────────────────
     const { data: uploadRecord, error: uploadError } = await supabase
       .from('csv_uploads')
-      .insert({ file_name: fileName ?? 'unknown.csv', status: 'processing' })
+      .insert({
+        file_name: fileName ?? 'unknown.csv',
+        file_size: fileSize ?? null,
+        status: 'processing',
+      })
       .select('id')
       .single();
 
