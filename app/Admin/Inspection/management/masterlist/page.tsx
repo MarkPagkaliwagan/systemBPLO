@@ -478,13 +478,6 @@ function CSVManagerContent() {
 
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={(e) => handleDownload(e, file)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors active:scale-95"
-                            >
-                              <FiDownload className="w-3.5 h-3.5" />
-                              Download
-                            </button>
-                            <button
                               onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
                               className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded-lg hover:bg-red-100 transition-colors active:scale-95"
                             >
