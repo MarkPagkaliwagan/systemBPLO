@@ -470,75 +470,87 @@ function DashboardPageContent() {
 
   // ── Fetch status counts using review_action with ilike ────────────────────
   useEffect(() => {
-    const fetchStatusCounts = async () => {
-      try {
-        const [
-          { count: compliant },
-          { count: nonCompliant },
-          { count: forInspection },
-          { count: active },
-        ] = await Promise.all([
-          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Compliant%").not("review_action", "ilike", "%Non-Compliant%"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Non-Compliant%"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%For Inspection%"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Active%"),
-        ]);
-        setCompliantCount(compliant ?? 0);
-        setNonCompliantCount(nonCompliant ?? 0);
-        setForInspectionCount(forInspection ?? 0);
-        setActiveCount(active ?? 0);
-      } catch (err) {
-        console.error("fetchStatusCounts error:", err);
-      }
-    };
-    fetchStatusCounts();
-  }, [refreshKey]);
+  const fetchStatusCounts = async () => {
+    try {
+      const { data } = await supabase
+        .from("business_records")
+        .select("review_action");
+
+      const records = data ?? [];
+
+      setCompliantCount(records.filter(r => {
+        const actions = (r.review_action ?? "").split(",").map((a: string) => a.trim().toLowerCase());
+        return actions.includes("compliant");
+      }).length);
+
+      setNonCompliantCount(records.filter(r => {
+        const actions = (r.review_action ?? "").split(",").map((a: string) => a.trim().toLowerCase());
+        return actions.includes("non-compliant");
+      }).length);
+
+      setForInspectionCount(records.filter(r => {
+        const actions = (r.review_action ?? "").split(",").map((a: string) => a.trim().toLowerCase());
+        return actions.includes("for inspection");
+      }).length);
+
+      setActiveCount(records.filter(r => {
+        const actions = (r.review_action ?? "").split(",").map((a: string) => a.trim().toLowerCase());
+        return actions.includes("active");
+      }).length);
+
+    } catch (err) {
+      console.error("fetchStatusCounts error:", err);
+    }
+  };
+  fetchStatusCounts();
+}, [refreshKey]);
 
   // ── Fetch violation counts ────────────────────────────────────────────────
-  useEffect(() => {
-    const fetchViolationCounts = async () => {
-      try {
-        const now = new Date();
-        const start = new Date(now);
-        switch (noticeRange) {
-          case "7d":  start.setDate(start.getDate() - 7); break;
-          case "1m":  start.setMonth(start.getMonth() - 1); break;
-          case "3m":  start.setMonth(start.getMonth() - 3); break;
-          case "6m":  start.setMonth(start.getMonth() - 6); break;
-          case "1yr": start.setFullYear(start.getFullYear() - 1); break;
-        }
-
-        // Fetch ALL violations with no filters
-        const { data, error } = await supabase
-          .from("business_violations")
-          .select("notice_level, resolved, cease_flag, last_sent_time");
-
-        if (error) { console.error("fetchViolationCounts error:", error); return; }
-        const violations = data ?? [];
-
-        // Notice counts: only sent records within the selected date range
-        const nowTime = now.getTime();
-        const startTime = start.getTime();
-        const inRange = violations.filter((v) => {
-          if (!v.last_sent_time) return false;
-          const sent = new Date(v.last_sent_time).getTime();
-          return sent >= startTime && sent <= nowTime;
-        });
-
-        setNotice1Count(inRange.filter((v) => v.notice_level === 1).length);
-        setNotice2Count(inRange.filter((v) => v.notice_level === 2).length);
-        setNotice3Count(inRange.filter((v) => v.notice_level === 3).length);
-
-        // Active cases & cease/desist: ALL violations regardless of date or sent status
-        setActiveCasesCount(violations.filter((v) => !v.resolved && !v.cease_flag).length);
-        setCeaseDesistCount(violations.filter((v) => v.cease_flag === true).length);
-
-      } catch (err) {
-        console.error("fetchViolationCounts error:", err);
+ useEffect(() => {
+  const fetchViolationCounts = async () => {
+    try {
+      const now = new Date();
+      const start = new Date(now);
+      switch (noticeRange) {
+        case "7d":  start.setDate(start.getDate() - 7); break;
+        case "1m":  start.setMonth(start.getMonth() - 1); break;
+        case "3m":  start.setMonth(start.getMonth() - 3); break;
+        case "6m":  start.setMonth(start.getMonth() - 6); break;
+        case "1yr": start.setFullYear(start.getFullYear() - 1); break;
       }
-    };
-    fetchViolationCounts();
-  }, [noticeRange, refreshKey]);
+
+      const { data, error } = await supabase
+        .from("business_violations")
+        .select("notice_level, resolved, cease_flag, last_sent_time");
+
+      if (error) { console.error("fetchViolationCounts error:", error); return; }
+      const violations = data ?? [];
+
+      // Notice counts: only within selected date range
+      const nowTime = now.getTime();
+      const startTime = start.getTime();
+      const inRange = violations.filter((v) => {
+        if (!v.last_sent_time) return false;
+        const sent = new Date(v.last_sent_time).getTime();
+        return sent >= startTime && sent <= nowTime;
+      });
+
+      setNotice1Count(inRange.filter((v) => v.notice_level === 1).length);
+      setNotice2Count(inRange.filter((v) => v.notice_level === 2).length);
+      setNotice3Count(inRange.filter((v) => v.notice_level === 3).length);
+
+      // Active cases = not resolved (treat null as active) AND not cease_flag
+      setActiveCasesCount(violations.filter((v) => v.resolved !== true && v.cease_flag !== true).length);
+
+      // Cease & desist = cease_flag is true regardless of resolved
+      setCeaseDesistCount(violations.filter((v) => v.cease_flag === true).length);
+
+    } catch (err) {
+      console.error("fetchViolationCounts error:", err);
+    }
+  };
+  fetchViolationCounts();
+}, [noticeRange, refreshKey]);
 
   // ── Fetch schedules ───────────────────────────────────────────────────────
   useEffect(() => {
