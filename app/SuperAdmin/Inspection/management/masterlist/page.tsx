@@ -82,11 +82,21 @@ function CSVManagerContent() {
               derivedStatus = 'completed';
             }
 
+            // ── Format file_size from Supabase ──────────────────────────────
+            let formattedSize = '-';
+            if (upload.file_size) {
+              if (upload.file_size < 1024 * 1024) {
+                formattedSize = `${(upload.file_size / 1024).toFixed(1)} KB`;
+              } else {
+                formattedSize = `${(upload.file_size / (1024 * 1024)).toFixed(1)} MB`;
+              }
+            }
+
             return {
               id: upload.id,
               name: upload.file_name,
               uploadDate: new Date(upload.uploaded_at).toLocaleString(),
-              size: '-',
+              size: formattedSize,
               rows: total,
               successCount: total,
               status: derivedStatus,
@@ -124,11 +134,16 @@ function CSVManagerContent() {
   const handleFile = (file: File) => {
     const tempId = Date.now().toString();
 
+    // Format size for immediate display on the temp card
+    const formattedSize = file.size < 1024 * 1024
+      ? `${(file.size / 1024).toFixed(1)} KB`
+      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+
     const newCSV: CSVFile = {
       id: tempId,
       name: file.name,
       uploadDate: new Date().toLocaleString(),
-      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+      size: formattedSize,
       rows: 0,
       status: 'processing',
     };
@@ -157,7 +172,8 @@ function CSVManagerContent() {
           const res = await fetch("/api/business-records", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rows, fileName: file.name }),
+            // ── Send fileSize (in bytes) to the API ──────────────────────────
+            body: JSON.stringify({ rows, fileName: file.name, fileSize: file.size }),
           });
 
           const data = await res.json();
@@ -314,7 +330,7 @@ function CSVManagerContent() {
 
           {/* Upload Progress Banner */}
           <div className={`transition-all duration-300 overflow-hidden ${uploadProgress ? 'mb-4 max-h-24 opacity-100' : 'mb-0 max-h-0 opacity-0'}`}>
-            tsx{uploadProgress && (
+            {uploadProgress && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-blue-800">
@@ -410,7 +426,6 @@ function CSVManagerContent() {
                   ) : (
                     paginatedFiles.map((file) => (
                       <div key={file.id}>
-                        {/* ── No onClick on card anymore ── */}
                         <div className="p-4 transition-colors">
 
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -427,10 +442,13 @@ function CSVManagerContent() {
                             )}
                           </div>
 
-                          <p className="text-xs text-gray-400 flex items-center gap-1 mb-2">
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mb-1">
                             <FiClock className="w-3 h-3" />
                             {file.uploadDate}
                           </p>
+
+                          {/* ── File size display ── */}
+                          <p className="text-xs text-gray-400 mb-2">{file.size}</p>
 
                           <div className="flex flex-wrap gap-1.5 mb-3">
                             {file.status === 'processing' && !file.successCount ? (
@@ -520,7 +538,6 @@ function CSVManagerContent() {
                       ) : (
                         paginatedFiles.map((file) => (
                           <React.Fragment key={file.id}>
-                            {/* ── No onClick on row anymore ── */}
                             <tr className="hover:bg-gray-50">
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center">
@@ -529,6 +546,7 @@ function CSVManagerContent() {
                                 </div>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.uploadDate}</td>
+                              {/* ── File size column ── */}
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.size}</td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm">
                                 {file.status === 'processing' && !file.successCount ? (

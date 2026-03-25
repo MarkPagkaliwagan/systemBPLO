@@ -24,6 +24,15 @@ interface ToastItem {
     message: string;
 }
 
+type InspectorSource = "user" | "inspector";
+
+interface InspectorOption {
+    name: string;
+    icon: "👤" | "🛂";
+    source: InspectorSource;
+    label: string;
+}
+
 function ManualAddBusinessContent() {
     const router = useRouter();
 
@@ -32,7 +41,7 @@ function ManualAddBusinessContent() {
     const [inspectorInput, setInspectorInput] = useState<string>("");
     const [inspectorList, setInspectorList] = useState<string[]>([]);
     const [inspectorError, setInspectorError] = useState<string | null>(null);
-    const [adminUsers, setAdminUsers] = useState<string[]>([]);
+    const [adminUsers, setAdminUsers] = useState<InspectorOption[]>([]);
     const [selectedAdminInspector, setSelectedAdminInspector] = useState<string>("");
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [binChecking, setBinChecking] = useState(false);
@@ -91,16 +100,39 @@ function ManualAddBusinessContent() {
                 if (usersError) throw new Error(usersError.message);
                 if (inspectorsError) throw new Error(inspectorsError.message);
 
-                const names = [
-                    ...(usersData ?? [])
-                        .map((item) => String(item.full_name ?? "").trim())
-                        .filter((name) => name.length > 0),
-                    ...(inspectorsData ?? [])
-                        .map((item) => String(item.full_name ?? "").trim())
-                        .filter((name) => name.length > 0),
-                ];
+                const users: InspectorOption[] = (usersData ?? [])
+                    .map((item) => {
+                        const name = String(item.full_name ?? "").trim();
+                        if (!name) return null;
+                        return {
+                            name,
+                            icon: "👤" as const,
+                            source: "user" as const,
+                            label: `👤 ${name}`,
+                        };
+                    })
+                    .filter(Boolean) as InspectorOption[];
 
-                setAdminUsers(Array.from(new Set(names)).sort((a, b) => a.localeCompare(b)));
+                const inspectors: InspectorOption[] = (inspectorsData ?? [])
+                    .map((item) => {
+                        const name = String(item.full_name ?? "").trim();
+                        if (!name) return null;
+                        return {
+                            name,
+                            icon: "🛂" as const,
+                            source: "inspector" as const,
+                            label: `🛂 ${name}`,
+                        };
+                    })
+                    .filter(Boolean) as InspectorOption[];
+
+                const combined = [...users, ...inspectors];
+
+                const uniqueByLabel = Array.from(
+                    new Map(combined.map((item) => [item.label, item])).values()
+                ).sort((a, b) => a.label.localeCompare(b.label));
+
+                setAdminUsers(uniqueByLabel);
             } catch (err: any) {
                 console.error("Failed to load users/inspectors:", err.message || err);
                 setAdminUsers([]);
@@ -122,6 +154,17 @@ function ManualAddBusinessContent() {
     /* ---------- HELPERS ---------- */
     const normalizeDigits = (value: any) => String(value ?? "").replace(/\D/g, "");
     const normalizeText = (value: any) => String(value ?? "").trim();
+
+    const formatInspectorValue = (rawName: string) => {
+        const candidate = rawName.trim();
+        if (!candidate) return "";
+
+        if (candidate.startsWith("👤 ") || candidate.startsWith("🛂 ")) {
+            return candidate;
+        }
+
+        return `👤 ${candidate}`;
+    };
 
     /* ---------- HANDLE INPUT ---------- */
     const handleChange = (label: string, value: any) => {
@@ -256,8 +299,12 @@ function ManualAddBusinessContent() {
 
     /* ---------- INSPECTOR HELPERS ---------- */
     const addInspectorName = (rawName: string) => {
-        const candidate = rawName.trim();
-        if (!candidate) { setInspectorError("Inspector name is required."); return; }
+        const candidate = formatInspectorValue(rawName);
+        if (!candidate) {
+            setInspectorError("Inspector name is required.");
+            return;
+        }
+
         if (!inspectorList.includes(candidate)) {
             const updatedList = [...inspectorList, candidate];
             setInspectorList(updatedList);
@@ -528,13 +575,18 @@ function ManualAddBusinessContent() {
                                     onChange={(e) => {
                                         const value = e.target.value;
                                         setSelectedAdminInspector(value);
-                                        if (value) { addInspectorName(value); setSelectedAdminInspector(""); }
+                                        if (value) {
+                                            addInspectorName(value);
+                                            setSelectedAdminInspector("");
+                                        }
                                     }}
                                     className="border rounded-lg px-3 py-2 text-black outline-none w-full sm:w-[260px] transition border-green-100 focus:ring-2 focus:ring-green-900"
                                 >
-                                    <option value="">Select users name</option>
-                                    {adminUsers.map((name) => (
-                                        <option key={name} value={name}>{name}</option>
+                                    <option value="">Select user / inspector</option>
+                                    {adminUsers.map((item) => (
+                                        <option key={item.label} value={item.label}>
+                                            {item.label}
+                                        </option>
                                     ))}
                                 </select>
                                 <input
