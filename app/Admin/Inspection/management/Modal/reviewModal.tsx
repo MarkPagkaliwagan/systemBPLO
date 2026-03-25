@@ -110,8 +110,6 @@ interface ReviewModalProps {
   isMobile: boolean;
   onShowConfirm?: () => void;  // ✅ Add this new prop
 }
-const [dragY, setDragY] = useState(0);
-const dragStartY = useRef<number | null>(null);
 
 const NUMERIC_KEYS: (keyof BusinessRecord)[] = [
   "Year", "Capital", "Gross Amount", "Gross Amount Essential",
