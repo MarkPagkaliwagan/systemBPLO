@@ -270,7 +270,7 @@ export default function ReviewModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-gray-900/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-gray-900/50 flex items-end sm:items-center justify-center z-[60] p-0 sm:p-4" onClick={onClose}>
 
         {/* Mobile toast */}
         {isMobile && (
