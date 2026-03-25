@@ -478,7 +478,7 @@ function DashboardPageContent() {
           { count: forInspection },
           { count: active },
         ] = await Promise.all([
-          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Compliant%").not("review_action", "ilike", "%Non-Compliant%"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Compliant%").not("review_action", "ilike", "%Non-Compliant%").not("review_action", "ilike", "%non-compliant%"),
           supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Non-Compliant%"),
           supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%For Inspection%"),
           supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Active%"),
