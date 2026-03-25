@@ -511,6 +511,7 @@ function DashboardPageContent() {
     try {
       const now = new Date();
       const start = new Date(now);
+
       switch (noticeRange) {
         case "7d":  start.setDate(start.getDate() - 7); break;
         case "1m":  start.setMonth(start.getMonth() - 1); break;
@@ -523,32 +524,46 @@ function DashboardPageContent() {
         .from("business_violations")
         .select("notice_level, resolved, cease_flag, last_sent_time");
 
-      if (error) { console.error("fetchViolationCounts error:", error); return; }
+      if (error) {
+        console.error("fetchViolationCounts error:", error);
+        return;
+      }
+
       const violations = data ?? [];
 
-      // Notice counts: only within selected date range
       const nowTime = now.getTime();
       const startTime = start.getTime();
-      const inRange = violations.filter((v) => {
+
+      // ✅ ACTIVE ONLY
+      const activeOnly = violations.filter(
+        (v) => v.resolved !== true && v.cease_flag !== true
+      );
+
+      // ✅ WITHIN DATE RANGE
+      const filtered = activeOnly.filter((v) => {
         if (!v.last_sent_time) return false;
         const sent = new Date(v.last_sent_time).getTime();
         return sent >= startTime && sent <= nowTime;
       });
 
-      setNotice1Count(inRange.filter((v) => v.notice_level === 1).length);
-      setNotice2Count(inRange.filter((v) => v.notice_level === 2).length);
-      setNotice3Count(inRange.filter((v) => v.notice_level === 3).length);
+      // ✅ COUNT BASED ON CURRENT NOTICE LEVEL (NO DUPLICATES)
+      setNotice1Count(filtered.filter((v) => v.notice_level === 1).length);
+      setNotice2Count(filtered.filter((v) => v.notice_level === 2).length);
+      setNotice3Count(filtered.filter((v) => v.notice_level === 3).length);
 
-      // Active cases = not resolved (treat null as active) AND not cease_flag
-      setActiveCasesCount(violations.filter((v) => v.resolved !== true && v.cease_flag !== true).length);
+      // ✅ ACTIVE CASES
+      setActiveCasesCount(activeOnly.length);
 
-      // Cease & desist = cease_flag is true regardless of resolved
-      setCeaseDesistCount(violations.filter((v) => v.cease_flag === true).length);
+      // ✅ CEASE & DESIST
+      setCeaseDesistCount(
+        violations.filter((v) => v.cease_flag === true).length
+      );
 
     } catch (err) {
       console.error("fetchViolationCounts error:", err);
     }
   };
+
   fetchViolationCounts();
 }, [noticeRange, refreshKey]);
 
