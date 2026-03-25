@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 
-const TIMEOUT_MS = 10 * 1000; // 10 seconds
+const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 const ACTIVITY_EVENTS = [
   "mousedown",
