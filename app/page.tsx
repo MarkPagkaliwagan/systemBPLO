@@ -36,16 +36,14 @@ export default function LoginPage() {
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [isVerificationResending, setIsVerificationResending] = useState(false);
 
-  // ── Page loader: show for at least 3 s on initial load ────────────────
+  // ── Page loader ────────────────────────────────────────────────────────
   useEffect(() => {
     const start = Date.now();
     const MIN = 3000;
-
     const finish = () => {
       const remaining = Math.max(0, MIN - (Date.now() - start));
       setTimeout(() => setPageLoading(false), remaining);
     };
-
     if (document.readyState === "complete") {
       finish();
     } else {
@@ -56,29 +54,41 @@ export default function LoginPage() {
   }, []);
 
   // ── Single-session guard ───────────────────────────────────────────────
+  // FIX: Before checking localStorage, verify the sessionExpiry is still valid.
+  // Previously, stale localStorage data (user still set but cookie expired) caused
+  // the login page to redirect the user back to the dashboard, which middleware
+  // blocked → redirect back to / → infinite reload loop.
   useEffect(() => {
     if (isRedirectingRef.current) return;
 
     const userData = localStorage.getItem("user");
     const sessionExpiry = localStorage.getItem("sessionExpiry");
 
-    if (userData && sessionExpiry) {
-      if (Date.now() > Number(sessionExpiry)) {
-        localStorage.removeItem("user");
-        localStorage.removeItem("sessionExpiry");
-        return;
-      }
-      try {
-        const user = JSON.parse(userData);
-        const destination =
-          user.role === "admin"
-            ? "/SuperAdmin/Inspection/management/analytics"
-            : "/Admin/Inspection/management/analytics";
-        window.location.replace(destination);
-      } catch {
-        localStorage.removeItem("user");
-        localStorage.removeItem("sessionExpiry");
-      }
+    if (!userData || !sessionExpiry) return;
+
+    // ↓ If expiry has passed, clear everything and stay on login page
+    if (Date.now() > Number(sessionExpiry)) {
+      localStorage.removeItem("user");
+      localStorage.removeItem("sessionExpiry");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("sessionExpiry");
+      return; // Stay on login — do NOT redirect
+    }
+
+    // Only redirect if session is genuinely still valid
+    try {
+      const user = JSON.parse(userData);
+      const destination =
+        user.role === "admin"
+          ? "/SuperAdmin/Inspection/management/analytics"
+          : "/Admin/Inspection/management/analytics";
+      isRedirectingRef.current = true;
+      window.location.replace(destination);
+    } catch {
+      localStorage.removeItem("user");
+      localStorage.removeItem("sessionExpiry");
+      sessionStorage.removeItem("user");
+      sessionStorage.removeItem("sessionExpiry");
     }
   }, []);
 
@@ -112,7 +122,6 @@ export default function LoginPage() {
     isRedirectingRef.current = true;
     setRedirecting(true);
 
-    // ── 3 s minimum before navigating away ────────────────────────────
     setTimeout(() => {
       window.location.href = destination;
     }, 2500);
@@ -198,20 +207,13 @@ export default function LoginPage() {
   const handleOtpVerify = async (otp: string) => {
     setOtpLoading(true);
     setOtpError("");
-
     try {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: otpUser.email,
-          otp,
-          userId: otpUser.id,
-        }),
+        body: JSON.stringify({ email: otpUser.email, otp, userId: otpUser.id }),
       });
-
       const data = await res.json();
-
       if (res.ok) {
         setOtpSuccess("Login verification successful!");
         setShowOtpModal(false);
@@ -270,20 +272,16 @@ export default function LoginPage() {
         body: JSON.stringify({ email, userId }),
       });
       const data = await res.json();
-      if (!res.ok)
-        throw new Error(data.error || "Failed to send verification email");
+      if (!res.ok) throw new Error(data.error || "Failed to send verification email");
     } catch (err) {
       console.error("Send verification email error:", err);
-      setVerificationError(
-        "Failed to send verification email. Please try again."
-      );
+      setVerificationError("Failed to send verification email. Please try again.");
     }
   };
 
   const handleEmailVerification = async (otp: string) => {
     setVerificationLoading(true);
     setVerificationError("");
-
     try {
       const res = await fetch("/api/auth/verify-email", {
         method: "POST",
@@ -294,9 +292,7 @@ export default function LoginPage() {
           userId: verificationUser.id,
         }),
       });
-
       const data = await res.json();
-
       if (res.ok) {
         setShowEmailVerificationModal(false);
         setVerificationUser(null);
@@ -308,9 +304,7 @@ export default function LoginPage() {
           });
         }, 50);
       } else {
-        setVerificationError(
-          data.error || "Invalid verification code. Please try again."
-        );
+        setVerificationError(data.error || "Invalid verification code. Please try again.");
       }
     } catch (err) {
       console.error("Email verification error:", err);
@@ -328,9 +322,7 @@ export default function LoginPage() {
       await sendVerificationEmail(verificationUser.email, verificationUser.id);
     } catch (err) {
       console.error("Resend verification email error:", err);
-      setVerificationError(
-        "Failed to resend verification email. Please try again."
-      );
+      setVerificationError("Failed to resend verification email. Please try again.");
     } finally {
       setIsVerificationResending(false);
     }
@@ -395,10 +387,7 @@ export default function LoginPage() {
               </div>
 
               <div className="text-right">
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-gray-400 hover:underline"
-                >
+                <Link href="/forgot-password" className="text-xs text-gray-400 hover:underline">
                   Forgot your password?
                 </Link>
               </div>
