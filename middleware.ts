@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
 
   console.log('[MIDDLEWARE] Token exists:', !!sessionToken);
 
-  const publicExactRoutes = ['/'];
+  const publicExactRoutes = ['/', '/session-expired']; // ← added /session-expired
   const publicPrefixRoutes = [
     '/forgot-password',
     '/reset-password',
@@ -38,8 +38,10 @@ export async function middleware(request: NextRequest) {
 
   // All non-public routes require a valid session
   if (!sessionToken) {
-    console.log('[MIDDLEWARE] No token found, redirecting to home');
-    const response = NextResponse.redirect(new URL('/', request.url));
+    console.log('[MIDDLEWARE] No token found, redirecting to session-expired');
+    // ↑ Changed: redirect to /session-expired instead of /
+    // This breaks the loop: login page no longer gets hit with stale localStorage data
+    const response = NextResponse.redirect(new URL('/session-expired', request.url));
     response.cookies.delete('session-token');
     return response;
   }
@@ -53,8 +55,9 @@ export async function middleware(request: NextRequest) {
   } | null;
 
   if (!sessionData) {
-    console.log('[MIDDLEWARE] Invalid token, redirecting to home');
-    const response = NextResponse.redirect(new URL('/', request.url));
+    console.log('[MIDDLEWARE] Invalid/expired token, redirecting to session-expired');
+    // ↑ Changed: expired token → /session-expired, not /
+    const response = NextResponse.redirect(new URL('/session-expired', request.url));
     response.cookies.delete('session-token');
     return response;
   }
