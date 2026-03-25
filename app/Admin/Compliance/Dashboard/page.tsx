@@ -10,6 +10,7 @@ import {
   FiAlertCircle,
   FiCheckCircle,
   FiInfo,
+  FiTrash2
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabaseClient";
 import Sidebar from "../../../components/sidebar";
@@ -487,6 +488,42 @@ function ViolationsPageContent() {
         await handleMarkResolved(v.id);
       },
       "Mark Resolved",
+      "Cancel",
+    );
+  };
+
+  const askDeleteViolation = (v: Violation) => {
+    openConfirmModal(
+      "Delete Record",
+      `Do you want to delete this?\n\nBusiness Name: ${v.business_name || "N/A"}\nBusiness ID: ${v.business_id}`,
+      async () => {
+        closeConfirmModal();
+        setLoading(true);
+
+        try {
+          const { error } = await supabase
+            .from("business_violations")
+            .delete()
+            .eq("id", v.id);
+
+          if (error) {
+            console.error(error);
+            openMessageModal("Error", "Failed to delete record.", "error");
+          } else {
+            setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== v.id));
+            if (editingEmail === v.id) setEditingEmail(null);
+            if (editingInterval === v.id) setEditingInterval(null);
+            openMessageModal("Success", "Record deleted.", "success");
+            await fetchViolations();
+          }
+        } catch (err) {
+          console.error(err);
+          openMessageModal("Error", "Something went wrong.", "error");
+        } finally {
+          setLoading(false);
+        }
+      },
+      "Delete",
       "Cancel",
     );
   };
@@ -992,20 +1029,33 @@ function ViolationsPageContent() {
                         <td className="px-6 py-4 align-top">
                           {v.resolved ? null : getStatusText(v) ===
                             "Cease and Desist" ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askMarkResolved(v);
-                              }}
-                              disabled={v.resolved}
-                              className={`ml-2 px-2 py-1 text-xs rounded font-medium ${
-                                v.resolved
-                                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                                  : "bg-blue-600 text-white hover:bg-blue-700"
-                              }`}
-                            >
-                              Mark Resolved
-                            </button>
+                            <div className="flex flex-col gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  askMarkResolved(v);
+                                }}
+                                disabled={v.resolved}
+                                className={`ml-2 px-2 py-1 text-xs rounded font-medium ${
+                                  v.resolved
+                                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                }`}
+                              >
+                                Mark Resolved
+                              </button>
+
+                              <button
+  onClick={(e) => {
+    e.stopPropagation();
+    askDeleteViolation(v);
+  }}
+  title="Delete"
+  className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
+>
+  <FiTrash2 className="w-4 h-4" />
+</button>
+                            </div>
                           ) : (
                             <>
                               <button
@@ -1063,6 +1113,17 @@ function ViolationsPageContent() {
                               >
                                 Mark Resolved
                               </button>
+
+                              <button
+  onClick={(e) => {
+    e.stopPropagation();
+    askDeleteViolation(v);
+  }}
+  title="Delete"
+  className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
+>
+  <FiTrash2 className="w-4 h-4" />
+</button>
 
                               {!canSendNotice(v) &&
                                 v.last_sent_time &&
@@ -1302,51 +1363,50 @@ function ViolationsPageContent() {
                       <NoticeBadge notice={3} v={v} />
                     </div>
 
-                    {/* Interval */}
-                    <div className="text-xs text-gray-500">
-                      Interval:{" "}
-                      {editingInterval === v.id ? (
-                        <span className="flex items-center gap-2 mt-1">
-                          <input
-                            type="number"
-                            value={intervalValue}
-                            onChange={(e) =>
-                              setIntervalValue(Number(e.target.value))
-                            }
-                            className="w-16 border rounded px-1 py-0.5 text-xs"
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateInterval(v.id);
-                            }}
-                            className="text-green-600 text-xs hover:underline"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingInterval(null);
-                            }}
-                            className="text-gray text-xs hover:underline"
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      ) : (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingInterval(v.id);
-                            setIntervalValue(v.interval_days ?? 7);
-                          }}
-                          className="cursor-pointer text-gray-700 hover:text-green-700"
-                        >
-                          {v.interval_days ?? 7} days
-                        </span>
-                      )}
-                    </div>
+{/* Interval */}
+<div className="text-xs text-gray-500">
+  Interval:{" "}
+  {editingInterval === v.id ? (
+    <span className="flex items-center gap-2 mt-1">
+      <input
+        type="number"
+        value={intervalValue}
+        onChange={(e) => setIntervalValue(Number(e.target.value))}
+        className="w-16 border rounded px-1 py-0.5 text-xs"
+      />
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          updateInterval(v.id);
+        }}
+        className="text-green-600 text-xs hover:underline"
+      >
+        Save
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setEditingInterval(null);
+        }}
+        className="text-gray text-xs hover:underline"
+      >
+        Cancel
+      </button>
+    </span>
+  ) : (
+    <span
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditingInterval(v.id);
+        setIntervalValue(v.interval_days ?? 7);
+      }}
+      className="cursor-pointer text-gray-700 hover:text-green-700 flex items-center gap-1"
+    >
+      {v.interval_days ?? 7} days
+      <span className="text-gray-400 text-[10px] italic">Click to edit</span>
+    </span>
+  )}
+</div>
 
                     {/* Last Sent */}
                     {v.last_sent_time && (
@@ -1359,16 +1419,28 @@ function ViolationsPageContent() {
                     <div className="flex flex-col gap-1">
                       {!v.resolved &&
                         getStatusText(v) === "Cease and Desist" && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              askMarkResolved(v);
-                            }}
-                            disabled={v.resolved}
-                            className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-                          >
-                            Mark Resolved
-                          </button>
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                askMarkResolved(v);
+                              }}
+                              disabled={v.resolved}
+                              className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+                            >
+                              Mark Resolved
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                askDeleteViolation(v);
+                              }}
+                              className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </>
                         )}
 
                       {!v.resolved &&
@@ -1420,6 +1492,16 @@ function ViolationsPageContent() {
                               className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
                             >
                               Mark Resolved
+                            </button>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                askDeleteViolation(v);
+                              }}
+                              className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
+                            >
+                              Delete
                             </button>
 
                             {!canSendNotice(v) && v.last_sent_time && (
@@ -1535,12 +1617,12 @@ function ViolationsPageContent() {
           </div>
         </div>
       )}
-<DetailsForBusinessFormModal
-  open={detailsModalOpen}
-  onClose={() => setDetailsModalOpen(false)}
-  data={selectedBusiness}
-  tableName="business_records" // ✅ ADD THIS
-/>
+      <DetailsForBusinessFormModal
+        open={detailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        data={selectedBusiness}
+        tableName="business_records" // ✅ ADD THIS
+      />
     </div>
   );
 }

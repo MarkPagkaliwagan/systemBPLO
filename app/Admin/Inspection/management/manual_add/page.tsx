@@ -45,6 +45,16 @@ function ManualAddBusinessContent() {
     const [reviewRecord, setReviewRecord] = useState<BusinessRecord | null>(null);
     const [showReview, setShowReview] = useState(false);
 
+    // Add this near the top of ManualAddBusinessContent
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 640);
+        check();
+        window.addEventListener("resize", check);
+        return () => window.removeEventListener("resize", check);
+    }, []);
+
     const openProceedModal = () => {
         return new Promise<boolean>((resolve) => {
             confirmResolveRef.current = resolve;
@@ -216,6 +226,16 @@ function ManualAddBusinessContent() {
         return () => window.clearTimeout(delay);
     }, [form[BIN_FIELD]]);
 
+    /* ---------- PREVENT BODY SCROLL WHEN REVIEW MODAL IS OPEN ---------- */
+    useEffect(() => {
+        if (showReview) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+        return () => { document.body.style.overflow = ""; };
+    }, [showReview]);
+
     /* ---------- INSPECTOR HELPERS ---------- */
     const addInspectorName = (rawName: string) => {
         const candidate = rawName.trim();
@@ -363,22 +383,21 @@ function ManualAddBusinessContent() {
         <div className="min-h-screen bg-gray-50">
 
             {showReview && reviewRecord && (
-                <ReviewModal
-                    selectedRow={reviewRecord}
-                    showReviewModal={true}
-                    isMobile={false}
-                    onClose={() => {
-                        setShowReview(false);
-                        setReviewRecord(null);
-                    }}
-                    onSave={handleReviewSave}
-                    onRecordUpdated={(updated) => setReviewRecord(updated as BusinessRecord)}
-                    onRecordDeleted={() => {
-                        setShowReview(false);
-                        setReviewRecord(null);
-                        router.back();
-                    }}
-                />
+                <div className="fixed inset-0 z-[100] overflow-y-auto">  {/* ← wrapper */}
+                    <ReviewModal
+                        selectedRow={reviewRecord}
+                        showReviewModal={true}
+                        isMobile={isMobile}
+                        onClose={() => { setShowReview(false); setReviewRecord(null); }}
+                        onSave={handleReviewSave}
+                        onRecordUpdated={(updated) => setReviewRecord(updated as BusinessRecord)}
+                        onRecordDeleted={() => {
+                            setShowReview(false);
+                            setReviewRecord(null);
+                            router.back();
+                        }}
+                    />
+                </div>
             )}
 
             {/* TOASTS */}
