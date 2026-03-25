@@ -31,17 +31,24 @@ const INITIAL: AuthState = {
   isStaff: false,
 };
 
+// ── Helper: wipe all auth-related storage ────────────────────────────────────
+function clearAuthStorage() {
+  localStorage.removeItem('user');
+  localStorage.removeItem('sessionExpiry');
+  sessionStorage.removeItem('user');
+  sessionStorage.removeItem('sessionExpiry');
+}
+
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(INITIAL);
 
-  // Guards to prevent redundant/concurrent calls
   const isCheckingRef = useRef(false);
   const isAuthenticatedRef = useRef(false);
 
-  // ── 1. Sync localStorage check — before first paint ──────────────────
+  // ── 1. Sync localStorage check — before first paint ──────────────────────
   useIsomorphicLayoutEffect(() => {
     try {
       const userData =
@@ -50,7 +57,18 @@ export const useAuth = () => {
         localStorage.getItem('sessionExpiry') ||
         sessionStorage.getItem('sessionExpiry');
 
-      if (userData && sessionExpiry && Date.now() <= Number(sessionExpiry)) {
+      if (userData && sessionExpiry) {
+        // ↓ Session expired in localStorage → clear it immediately
+        //   This is the ROOT CAUSE of the reload loop: stale data in localStorage
+        //   made the login page think the user was still authenticated and tried
+        //   to redirect them back to the dashboard, which middleware then blocked.
+        if (Date.now() > Number(sessionExpiry)) {
+          clearAuthStorage();
+          isAuthenticatedRef.current = false;
+          setAuthState(UNAUTHENTICATED);
+          return;
+        }
+
         const user = JSON.parse(userData);
         isAuthenticatedRef.current = true;
         setAuthState({
@@ -63,17 +81,16 @@ export const useAuth = () => {
         return;
       }
     } catch {
-      // ignore
+      clearAuthStorage();
     }
+
     isAuthenticatedRef.current = false;
     setAuthState(UNAUTHENTICATED);
   }, []);
 
-  // ── 2. Background server-side session validation ──────────────────────
+  // ── 2. Background server-side session validation ──────────────────────────
   useEffect(() => {
     const checkAuth = async () => {
-      // Don't run if already checking or if we know user is not authenticated
-      // (prevents loops when on login page / unauthenticated state)
       if (isCheckingRef.current) return;
       if (!isAuthenticatedRef.current) return;
 
@@ -98,14 +115,21 @@ export const useAuth = () => {
               isStaff: data.user.role === 'staff',
             });
           } else {
-            // Session invalid — clear everything
-            localStorage.removeItem('user');
-            localStorage.removeItem('sessionExpiry');
-            sessionStorage.removeItem('user');
-            sessionStorage.removeItem('sessionExpiry');
+            // Server says session is invalid → clear storage and go to /session-expired
+            // ↑ Changed: was just clearing storage and setting UNAUTHENTICATED state.
+            //   Now we also navigate to /session-expired so the user sees the page
+            //   instead of silently landing on a broken state.
+            clearAuthStorage();
             isAuthenticatedRef.current = false;
             setAuthState(UNAUTHENTICATED);
+            window.location.replace('/session-expired');
           }
+        } else if (response.status === 401 || response.status === 403) {
+          // Explicit auth failure from server → clear and redirect
+          clearAuthStorage();
+          isAuthenticatedRef.current = false;
+          setAuthState(UNAUTHENTICATED);
+          window.location.replace('/session-expired');
         }
       } catch {
         console.log('Server session check failed, relying on localStorage');
@@ -114,10 +138,8 @@ export const useAuth = () => {
       }
     };
 
-    // Only run initial server check if we think we're authenticated
     checkAuth();
 
-    // Multi-tab sync — only re-check if currently authenticated
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sessionToken' || e.key === 'user') {
         isAuthenticatedRef.current = !!localStorage.getItem('user');
@@ -125,8 +147,6 @@ export const useAuth = () => {
       }
     };
 
-    // Re-check on visibility/focus ONLY if authenticated
-    // This prevents the reload loop on the login page
     const handleVisibilityChange = () => {
       if (!document.hidden && isAuthenticatedRef.current) checkAuth();
     };
@@ -152,10 +172,7 @@ export const useAuth = () => {
       console.error('Logout API error:', error);
     }
     isAuthenticatedRef.current = false;
-    localStorage.removeItem('user');
-    localStorage.removeItem('sessionExpiry');
-    sessionStorage.removeItem('user');
-    sessionStorage.removeItem('sessionExpiry');
+    clearAuthStorage();
     window.location.href = '/';
   };
 
