@@ -569,12 +569,7 @@ function CSVManagerContent() {
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                 <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                    className="text-gray-600 hover:text-gray-900 p-1"
-                                    onClick={(e) => handleDownload(e, file)}
-                                  >
-                                    <FiDownload className="w-4 h-4" />
-                                  </button>
+                  
                                   <button
                                     className="text-red-600 hover:text-red-900 p-1"
                                     onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
