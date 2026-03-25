@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FiHome, FiBookOpen, FiAlertCircle } from "react-icons/fi";
-import AddEventModal from "../Admin/Inspection/management/Modal/AddBusinessRecordModal";
-import ReviewModal, { BusinessRecord } from "../Admin/Inspection/management/Modal/reviewModal";
-import ConfirmScheduleModal from "../Admin/Inspection/management/Modal/Confirmschedulemodal";
+import AddEventModal from "../SuperAdmin/Inspection/management/Modal/AddBusinessRecordModal";
+import ReviewModal, { BusinessRecord } from "../SuperAdmin/Inspection/management/Modal/reviewModal";
+import ConfirmScheduleModal from "../SuperAdmin/Inspection/management/Modal/Confirmschedulemodal";
 import { supabase } from "@/lib/supabaseClient";
 
 interface NavItem {

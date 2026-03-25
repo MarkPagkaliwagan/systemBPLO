@@ -42,25 +42,31 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
       id: "dashboard",
       label: "Dashboard",
       icon: <FiHome className="w-5 h-5" />,
-      href: "/Admin/Inspection/management/analytics",
+      href: "/SuperAdmin/Inspection/management/analytics",
     },
     {
       id: "scheduling",
       label: "Scheduling",
       icon: <FiBookOpen className="w-5 h-5" />,
-      href: "/Admin/Inspection/management/review",
+      href: "/SuperAdmin/Inspection/management/review",
     },
     {
       id: "business-registry",
       label: "Business Registry",
       icon: <FiBookOpen className="w-5 h-5" />,
-      href: "/Admin/Inspection/management/masterlist",
+      href: "/SuperAdmin/Inspection/management/masterlist",
     },
     {
       id: "compliance-dashboard",
       label: "Compliance Notice",
       icon: <FiAlertCircle className="w-5 h-5" />,
-      href: "/Admin/Compliance/Dashboard",
+      href: "/SuperAdmin/Compliance/Dashboard",
+    },
+    {
+      id: "user-management",
+      label: "User Management",
+      icon: <FiUser className="w-5 h-5" />,
+      href: "/SuperAdmin/users",
     },
   ];
 
@@ -97,7 +103,7 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
     },
   ];
 
-  return userRole === "admin" ? superAdminItems : adminItems;
+  return userRole === "admin" ? adminItems : superAdminItems;
 };
 
 const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => {
@@ -270,7 +276,7 @@ export default function Sidebar({
 
         <div className="fixed top-0 left-0 right-0 h-16 bg-green-900 border-b border-gray-200 z-50 flex items-center justify-between px-5 shadow-sm">
           <div className="flex items-center space-x-3">
-            <Link href="/Admin/Inspection/management/analytics">
+            <Link href="/SuperAdmin/Inspection/management/analytics">
               <Image
                 src="/bplo-logo.png"
                 alt="BPLO Logo"
@@ -375,7 +381,7 @@ export default function Sidebar({
 
       <div className="fixed top-0 left-0 right-0 h-16 bg-green-900 border-b border-gray-200 z-50 flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center space-x-4">
-          <Link href="/Admin/Inspection/management/analytics">
+          <Link href="/SuperAdmin/Inspection/management/analytics">
             <Image
               src="/bplo-logo.png"
               alt="BPLO Logo"
