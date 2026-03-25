@@ -865,24 +865,40 @@ function ReviewForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [inspectors, setInspectors] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchInspectors = async () => {
-      const { data, error } = await supabase
+useEffect(() => {
+  const fetchInspectors = async () => {
+    try {
+      // fetch users
+      const { data: usersData, error: usersError } = await supabase
         .from("users")
         .select("full_name");
 
-      if (error) {
-        console.error("Failed to fetch users:", error);
-        return;
-      }
+      // fetch bplo inspectors
+      const { data: inspectorsData, error: inspectorsError } = await supabase
+        .from("bplo_inspectors")
+        .select("full_name");
 
-      if (data) {
-        setInspectors(data.map((u) => u.full_name));
-      }
-    };
+      if (usersError) console.error("Users fetch error:", usersError);
+      if (inspectorsError) console.error("Inspectors fetch error:", inspectorsError);
 
-    fetchInspectors();
-  }, []);
+      // combine both
+      const combined = [
+  ...(usersData?.map((u) => `👤 ${u.full_name}`) || []),
+  ...(inspectorsData?.map((i) => `🛂 ${i.full_name}`) || []),
+];
+
+      // remove duplicates
+      const uniqueInspectors = [...new Set(combined)];
+
+      setInspectors(uniqueInspectors);
+
+    } catch (err) {
+      console.error("Failed to fetch inspectors:", err);
+    }
+  };
+
+  fetchInspectors();
+}, []);
 
   const captureLocation = () => {
     if (!navigator.geolocation) { setLocationStatus("error"); return; }
