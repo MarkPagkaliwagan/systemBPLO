@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -11,15 +11,14 @@ import {
   FiMenu,
   FiX,
   FiBookOpen,
-  FiSettings,
   FiChevronDown,
   FiChevronRight,
   FiLogOut,
   FiKey,
-  FiTrendingUp,
 } from "react-icons/fi";
 import MobileBottomNav from "./MobileBottomNav";
 import LogoutModal from "./LogoutModal";
+import PageLoader from "./Pageloader";
 
 interface SidebarItem {
   id: string;
@@ -110,30 +109,14 @@ const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => 
       }
     }
   }
-
-  // Handle specific paths for new structure
   if (pathname.includes("/review")) return "Scheduling";
   if (pathname.includes("/masterlist")) return "Business Registry";
   if (pathname.includes("/analytics")) return "Dashboard";
   if (pathname.includes("/Compliance")) return "Compliance Notice";
   if (pathname.includes("/users")) return "User Management";
   if (pathname.includes("/notifCompliance")) return "Settings";
-
   return "Dashboard";
 };
-
-function LoadingModal({ isOpen }: { isOpen: boolean }) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-5 shadow-2xl">
-        <div className="mb-3 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-green-600" />
-        <p className="text-sm font-medium text-gray-700">Loading ...</p>
-      </div>
-    </div>
-  );
-}
 
 export default function Sidebar({
   isCollapsed,
@@ -145,6 +128,8 @@ export default function Sidebar({
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
@@ -161,6 +146,12 @@ export default function Sidebar({
   const userRole = getUserData().role;
   const sidebarItems = getSidebarItems(userRole);
 
+  // ── Hide PageLoader once the new page has mounted ─────────────────────
+  useEffect(() => {
+    if (navTimerRef.current) clearTimeout(navTimerRef.current);
+    setIsNavigating(false);
+  }, [pathname]);
+
   useEffect(() => {
     setCurrentPageLabel(getCurrentPageLabel(pathname, sidebarItems));
   }, [pathname, userRole]);
@@ -172,8 +163,6 @@ export default function Sidebar({
     if (activeParent && !expandedItems.includes(activeParent.id)) {
       setExpandedItems((prev) => [...prev, activeParent.id]);
     }
-
-    // Update expanded items based on current pathname for new structure
     if (pathname.includes("/review") && !expandedItems.includes("scheduling")) {
       setExpandedItems((prev) => [...prev, "scheduling"]);
     }
@@ -187,38 +176,28 @@ export default function Sidebar({
     );
   };
 
-  const handleLogout = () => {
-    setIsLogoutModalOpen(true);
-  };
+  const handleLogout = () => setIsLogoutModalOpen(true);
 
   const confirmLogout = async () => {
     try {
-      // Call logout API to clear HTTP-only cookie
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } catch (error) {
       console.error("Logout API error:", error);
     }
-
-    // Clear localStorage
     localStorage.removeItem("user");
     localStorage.removeItem("sessionToken");
     localStorage.removeItem("sessionExpiry");
-
-    // Redirect to login page
     window.location.href = "/";
   };
 
-  const handleStartNavigation = (
-    href?: string,
-    hasChildren?: boolean
-  ) => {
+  // ── Show PageLoader for 1.5 s min on nav link click ───────────────────
+  const handleStartNavigation = (href?: string, hasChildren?: boolean) => {
     if (!href || hasChildren) return;
 
     if (href !== pathname) {
-      // Navigation loading handled by page.tsx PageLoader
+      setIsNavigating(true);
+      // Safety valve: hide loader after 1.5 s even if pathname hasn't changed
+      navTimerRef.current = setTimeout(() => setIsNavigating(false), 1500);
     }
 
     if (isMobile) {
@@ -261,11 +240,9 @@ export default function Sidebar({
           >
             {item.icon}
           </span>
-
           <span className="ml-3 text-sm tracking-wide font-medium">
             {item.label}
           </span>
-
           {hasChildren && (
             <span className="ml-auto">
               {isExpanded ? (
@@ -289,6 +266,8 @@ export default function Sidebar({
   if (isMobile) {
     return (
       <>
+        <PageLoader isVisible={isNavigating} />
+
         <div className="fixed top-0 left-0 right-0 h-16 bg-green-900 border-b border-gray-200 z-50 flex items-center justify-between px-5 shadow-sm">
           <div className="flex items-center space-x-3">
             <Link href="/Admin/Inspection/management/analytics">
@@ -336,11 +315,9 @@ export default function Sidebar({
                     Navigation
                   </h2>
                 </div>
-
                 <nav className="flex-1 overflow-y-auto space-y-2">
                   {sidebarItems.map((item) => renderNavItem(item))}
                 </nav>
-
                 <div className="flex-shrink-0 border-t pt-4">
                   <div className="flex items-center space-x-3 mb-3">
                     <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
@@ -358,7 +335,10 @@ export default function Sidebar({
                   <div className="space-y-1">
                     <Link
                       href="/change-password"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleStartNavigation("/change-password");
+                      }}
                       className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
                     >
                       <FiKey className="w-4 h-4 mr-3" />
@@ -379,9 +359,7 @@ export default function Sidebar({
         )}
 
         <div className="h-16"></div>
-
         <MobileBottomNav />
-
         <LogoutModal
           isOpen={isLogoutModalOpen}
           onClose={() => setIsLogoutModalOpen(false)}
@@ -393,6 +371,8 @@ export default function Sidebar({
 
   return (
     <>
+      <PageLoader isVisible={isNavigating} />
+
       <div className="fixed top-0 left-0 right-0 h-16 bg-green-900 border-b border-gray-200 z-50 flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center space-x-4">
           <Link href="/Admin/Inspection/management/analytics">
@@ -446,7 +426,10 @@ export default function Sidebar({
                 <div className="space-y-1">
                   <Link
                     href="/change-password"
-                    onClick={() => setIsDesktopMenuOpen(false)}
+                    onClick={() => {
+                      setIsDesktopMenuOpen(false);
+                      handleStartNavigation("/change-password");
+                    }}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
                   >
                     <FiKey className="w-4 h-4 mr-3" />

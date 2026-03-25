@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
+import PageLoader from '../app/components/Pageloader';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,18 +10,6 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-/**
- * Role hierarchy:
- *   admin (2) — full access    → /SuperAdmin/...
- *   staff (1) — limited access → /Admin/...
- *
- * A higher-ranked role automatically satisfies a lower requirement.
- * e.g. requiredRole="staff" also allows admin users through.
- *
- * Default is 'staff' (least-privileged) so all authenticated users
- * can access pages that don't explicitly require admin.
- * Pages under /SuperAdmin must explicitly pass requiredRole="admin".
- */
 const ROLE_HIERARCHY: Record<string, number> = {
   staff: 1,
   admin: 2,
@@ -38,7 +27,7 @@ function getDefaultRedirect(role?: string): string {
 
 export default function ProtectedRoute({
   children,
-  requiredRole = 'staff', // ← changed from 'admin' to 'staff'
+  requiredRole = 'staff',
   redirectTo,
 }: ProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -46,6 +35,8 @@ export default function ProtectedRoute({
 
   const roleOk =
     isAuthenticated && !!user?.role && hasRequiredRole(user.role, requiredRole);
+
+  const isPending = isLoading || !isAuthenticated || !roleOk;
 
   useEffect(() => {
     if (isLoading) return;
@@ -60,14 +51,10 @@ export default function ProtectedRoute({
     }
   }, [isLoading, isAuthenticated, roleOk, user?.role, router, redirectTo]);
 
-  // Show spinner while loading or while a redirect is in-flight
-  if (isLoading || !isAuthenticated || !roleOk) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600" />
-      </div>
-    );
-  }
-
-  return <>{children}</>;
+  return (
+    <>
+      <PageLoader isVisible={isPending} />
+      {!isPending && children}
+    </>
+  );
 }
