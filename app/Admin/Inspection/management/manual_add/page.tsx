@@ -350,10 +350,13 @@ function ManualAddBusinessContent() {
         setReviewRecord(null);
         addToast("success", "Review saved successfully.");
 
-        // ✅ After review is saved, close the manual add page entirely
-        setTimeout(() => {
-            router.back();
-        }, 800); // small delay so the toast is visible before leaving
+        // ✅ Clear form so user can add another record
+        setForm({});
+        setInspectorList([]);
+        setInspectorInput("");
+        setSelectedAdminInspector("");
+        setErrors({});
+        setBinDuplicate(false);
     };
 
     return (
