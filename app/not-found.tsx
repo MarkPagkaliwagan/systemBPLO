@@ -20,7 +20,6 @@ export default function SessionExpiredPage() {
     <div className="page">
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         html, body { height: 100%; overflow: hidden; }
 
         .page {
@@ -33,7 +32,6 @@ export default function SessionExpiredPage() {
           justify-content: center;
           text-align: center;
           padding: 0 24px;
-          gap: 0;
         }
 
         .logo-wrap {
@@ -65,7 +63,7 @@ export default function SessionExpiredPage() {
           color: rgba(255,255,255,0.55);
           letter-spacing: 0.06em;
           text-transform: uppercase;
-          margin-bottom: 28px;
+          margin-bottom: 32px;
         }
 
         .divider {
@@ -76,12 +74,12 @@ export default function SessionExpiredPage() {
         }
 
         .code-404 {
-          font-size: clamp(3.5rem, 10vw, 5.5rem);
+          font-size: clamp(4.5rem, 14vw, 7rem);
           font-weight: 700;
-          color: rgba(255,255,255,0.1);
+          color: rgb(255, 255, 255);
           line-height: 1;
-          letter-spacing: -2px;
-          margin-bottom: 12px;
+          letter-spacing: -3px;
+          margin-bottom: 16px;
           user-select: none;
         }
 
@@ -142,7 +140,7 @@ export default function SessionExpiredPage() {
           .logo-wrap { width: 80px; height: 80px; margin-bottom: 12px; }
           .divider { height: 20px; margin-bottom: 20px; }
           .office-sub { margin-bottom: 20px; }
-          .code-404 { font-size: 3rem; margin-bottom: 8px; }
+          .code-404 { font-size: 3.5rem; margin-bottom: 10px; }
           h1 { font-size: 1.2rem; }
           .sub-msg { font-size: 0.78rem; margin-bottom: 20px; }
         }
@@ -159,18 +157,15 @@ export default function SessionExpiredPage() {
         />
       </div>
 
-      <div className="office-name">
-        Business Permit &amp; Licensing Office
-      </div>
-      <div className="office-sub">City of San Pablo · Official Portal</div>
+      <div className="office-name">Business Permit &amp; Licensing Office</div>
+      <div className="office-sub">City of San Pablo</div>
+
 
       <div className="code-404">404</div>
 
-      <h1>Session Expired</h1>
+      <h1>Page Not Found</h1>
       <p className="sub-msg">
-        Your session has timed out due to inactivity.
-        Please log in again to continue using the
-        Business Permit &amp; Licensing System.
+        You don't have access to this page.
       </p>
 
       <button className="btn" onClick={handleLogin}>
