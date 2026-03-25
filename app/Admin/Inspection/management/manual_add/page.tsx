@@ -24,11 +24,13 @@ interface ToastItem {
     message: string;
 }
 
-type AdminSource = "user" | "inspector";
+type InspectorSource = "user" | "inspector";
 
-interface AdminOption {
+interface InspectorOption {
     name: string;
-    source: AdminSource;
+    icon: "👤" | "🛂";
+    source: InspectorSource;
+    label: string;
 }
 
 function ManualAddBusinessContent() {
@@ -39,7 +41,7 @@ function ManualAddBusinessContent() {
     const [inspectorInput, setInspectorInput] = useState<string>("");
     const [inspectorList, setInspectorList] = useState<string[]>([]);
     const [inspectorError, setInspectorError] = useState<string | null>(null);
-    const [adminUsers, setAdminUsers] = useState<AdminOption[]>([]);
+    const [adminUsers, setAdminUsers] = useState<InspectorOption[]>([]);
     const [selectedAdminInspector, setSelectedAdminInspector] = useState<string>("");
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [binChecking, setBinChecking] = useState(false);
@@ -98,27 +100,39 @@ function ManualAddBusinessContent() {
                 if (usersError) throw new Error(usersError.message);
                 if (inspectorsError) throw new Error(inspectorsError.message);
 
-                const usersList: AdminOption[] = (usersData ?? [])
-                    .map((item) => ({
-                        name: String(item.full_name ?? "").trim(),
-                        source: "user" as AdminSource,
-                    }))
-                    .filter((item) => item.name.length > 0);
+                const users: InspectorOption[] = (usersData ?? [])
+                    .map((item) => {
+                        const name = String(item.full_name ?? "").trim();
+                        if (!name) return null;
+                        return {
+                            name,
+                            icon: "👤" as const,
+                            source: "user" as const,
+                            label: `👤 ${name}`,
+                        };
+                    })
+                    .filter(Boolean) as InspectorOption[];
 
-                const inspectorsList: AdminOption[] = (inspectorsData ?? [])
-                    .map((item) => ({
-                        name: String(item.full_name ?? "").trim(),
-                        source: "inspector" as AdminSource,
-                    }))
-                    .filter((item) => item.name.length > 0);
+                const inspectors: InspectorOption[] = (inspectorsData ?? [])
+                    .map((item) => {
+                        const name = String(item.full_name ?? "").trim();
+                        if (!name) return null;
+                        return {
+                            name,
+                            icon: "🛂" as const,
+                            source: "inspector" as const,
+                            label: `🛂 ${name}`,
+                        };
+                    })
+                    .filter(Boolean) as InspectorOption[];
 
-                const merged = [...usersList, ...inspectorsList];
+                const combined = [...users, ...inspectors];
 
-                const unique = Array.from(
-                    new Map(merged.map((item) => [item.name, item])).values()
-                ).sort((a, b) => a.name.localeCompare(b.name));
+                const uniqueByLabel = Array.from(
+                    new Map(combined.map((item) => [item.label, item])).values()
+                ).sort((a, b) => a.label.localeCompare(b.label));
 
-                setAdminUsers(unique);
+                setAdminUsers(uniqueByLabel);
             } catch (err: any) {
                 console.error("Failed to load users/inspectors:", err.message || err);
                 setAdminUsers([]);
@@ -140,6 +154,17 @@ function ManualAddBusinessContent() {
     /* ---------- HELPERS ---------- */
     const normalizeDigits = (value: any) => String(value ?? "").replace(/\D/g, "");
     const normalizeText = (value: any) => String(value ?? "").trim();
+
+    const formatInspectorValue = (rawName: string) => {
+        const candidate = rawName.trim();
+        if (!candidate) return "";
+
+        if (candidate.startsWith("👤 ") || candidate.startsWith("🛂 ")) {
+            return candidate;
+        }
+
+        return `👤 ${candidate}`;
+    };
 
     /* ---------- HANDLE INPUT ---------- */
     const handleChange = (label: string, value: any) => {
@@ -274,8 +299,12 @@ function ManualAddBusinessContent() {
 
     /* ---------- INSPECTOR HELPERS ---------- */
     const addInspectorName = (rawName: string) => {
-        const candidate = rawName.trim();
-        if (!candidate) { setInspectorError("Inspector name is required."); return; }
+        const candidate = formatInspectorValue(rawName);
+        if (!candidate) {
+            setInspectorError("Inspector name is required.");
+            return;
+        }
+
         if (!inspectorList.includes(candidate)) {
             const updatedList = [...inspectorList, candidate];
             setInspectorList(updatedList);
@@ -546,15 +575,17 @@ function ManualAddBusinessContent() {
                                     onChange={(e) => {
                                         const value = e.target.value;
                                         setSelectedAdminInspector(value);
-                                        if (value) { addInspectorName(value); setSelectedAdminInspector(""); }
+                                        if (value) {
+                                            addInspectorName(value);
+                                            setSelectedAdminInspector("");
+                                        }
                                     }}
                                     className="border rounded-lg px-3 py-2 text-black outline-none w-full sm:w-[260px] transition border-green-100 focus:ring-2 focus:ring-green-900"
                                 >
                                     <option value="">Select user / inspector</option>
                                     {adminUsers.map((item) => (
-                                        <option key={`${item.source}-${item.name}`} value={item.name}>
-                                            {item.source === "user" ? "👤 User: " : "🛂 Inspector: "}
-                                            {item.name}
+                                        <option key={item.label} value={item.label}>
+                                            {item.label}
                                         </option>
                                     ))}
                                 </select>
