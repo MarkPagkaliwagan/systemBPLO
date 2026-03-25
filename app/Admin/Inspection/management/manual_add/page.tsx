@@ -24,6 +24,13 @@ interface ToastItem {
     message: string;
 }
 
+type AdminSource = "user" | "inspector";
+
+interface AdminOption {
+    name: string;
+    source: AdminSource;
+}
+
 function ManualAddBusinessContent() {
     const router = useRouter();
 
@@ -32,7 +39,7 @@ function ManualAddBusinessContent() {
     const [inspectorInput, setInspectorInput] = useState<string>("");
     const [inspectorList, setInspectorList] = useState<string[]>([]);
     const [inspectorError, setInspectorError] = useState<string | null>(null);
-    const [adminUsers, setAdminUsers] = useState<string[]>([]);
+    const [adminUsers, setAdminUsers] = useState<AdminOption[]>([]);
     const [selectedAdminInspector, setSelectedAdminInspector] = useState<string>("");
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [binChecking, setBinChecking] = useState(false);
@@ -91,16 +98,27 @@ function ManualAddBusinessContent() {
                 if (usersError) throw new Error(usersError.message);
                 if (inspectorsError) throw new Error(inspectorsError.message);
 
-                const names = [
-                    ...(usersData ?? [])
-                        .map((item) => String(item.full_name ?? "").trim())
-                        .filter((name) => name.length > 0),
-                    ...(inspectorsData ?? [])
-                        .map((item) => String(item.full_name ?? "").trim())
-                        .filter((name) => name.length > 0),
-                ];
+                const usersList: AdminOption[] = (usersData ?? [])
+                    .map((item) => ({
+                        name: String(item.full_name ?? "").trim(),
+                        source: "user" as AdminSource,
+                    }))
+                    .filter((item) => item.name.length > 0);
 
-                setAdminUsers(Array.from(new Set(names)).sort((a, b) => a.localeCompare(b)));
+                const inspectorsList: AdminOption[] = (inspectorsData ?? [])
+                    .map((item) => ({
+                        name: String(item.full_name ?? "").trim(),
+                        source: "inspector" as AdminSource,
+                    }))
+                    .filter((item) => item.name.length > 0);
+
+                const merged = [...usersList, ...inspectorsList];
+
+                const unique = Array.from(
+                    new Map(merged.map((item) => [item.name, item])).values()
+                ).sort((a, b) => a.name.localeCompare(b.name));
+
+                setAdminUsers(unique);
             } catch (err: any) {
                 console.error("Failed to load users/inspectors:", err.message || err);
                 setAdminUsers([]);
@@ -532,9 +550,12 @@ function ManualAddBusinessContent() {
                                     }}
                                     className="border rounded-lg px-3 py-2 text-black outline-none w-full sm:w-[260px] transition border-green-100 focus:ring-2 focus:ring-green-900"
                                 >
-                                    <option value="">Select users name</option>
-                                    {adminUsers.map((name) => (
-                                        <option key={name} value={name}>{name}</option>
+                                    <option value="">Select user / inspector</option>
+                                    {adminUsers.map((item) => (
+                                        <option key={`${item.source}-${item.name}`} value={item.name}>
+                                            {item.source === "user" ? "👤 User: " : "🛂 Inspector: "}
+                                            {item.name}
+                                        </option>
                                     ))}
                                 </select>
                                 <input
