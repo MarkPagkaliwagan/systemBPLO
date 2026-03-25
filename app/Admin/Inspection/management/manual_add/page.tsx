@@ -70,25 +70,43 @@ function ManualAddBusinessContent() {
         }
     };
 
-    /* ---------- LOAD ADMIN USERS ---------- */
+    /* ---------- LOAD ADMIN USERS + INSPECTORS ---------- */
     useEffect(() => {
         const loadAdminUsers = async () => {
             try {
-                const { data, error } = await supabase
-                    .from("users")
-                    .select("full_name, role")
-                    .order("full_name", { ascending: true });
-                if (error) throw new Error(error.message);
-                if (!data || data.length === 0) { setAdminUsers([]); return; }
-                const names = data
-                    .map((item) => String(item.full_name ?? "").trim())
-                    .filter((name) => name.length > 0);
-                setAdminUsers(names);
+                const [usersResult, inspectorsResult] = await Promise.all([
+                    supabase
+                        .from("users")
+                        .select("full_name, role")
+                        .order("full_name", { ascending: true }),
+                    supabase
+                        .from("bplo_inspectors")
+                        .select("full_name, email, contact_number, position")
+                        .order("full_name", { ascending: true }),
+                ]);
+
+                const { data: usersData, error: usersError } = usersResult;
+                const { data: inspectorsData, error: inspectorsError } = inspectorsResult;
+
+                if (usersError) throw new Error(usersError.message);
+                if (inspectorsError) throw new Error(inspectorsError.message);
+
+                const names = [
+                    ...(usersData ?? [])
+                        .map((item) => String(item.full_name ?? "").trim())
+                        .filter((name) => name.length > 0),
+                    ...(inspectorsData ?? [])
+                        .map((item) => String(item.full_name ?? "").trim())
+                        .filter((name) => name.length > 0),
+                ];
+
+                setAdminUsers(Array.from(new Set(names)).sort((a, b) => a.localeCompare(b)));
             } catch (err: any) {
-                console.error("Failed to load users:", err.message || err);
+                console.error("Failed to load users/inspectors:", err.message || err);
                 setAdminUsers([]);
             }
         };
+
         loadAdminUsers();
     }, []);
 
