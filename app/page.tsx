@@ -438,8 +438,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── Modals ─────────────────────────────────────────────────────────── */}
-
       <InvalidCredentialsModal
         isOpen={showInvalidModal}
         onClose={() => setShowInvalidModal(false)}

@@ -145,8 +145,6 @@ export default function Sidebar({
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isPageLoading, setIsPageLoading] = useState(false);
   const pathname = usePathname();
   const [currentPageLabel, setCurrentPageLabel] = useState("Dashboard");
 
@@ -165,7 +163,6 @@ export default function Sidebar({
 
   useEffect(() => {
     setCurrentPageLabel(getCurrentPageLabel(pathname, sidebarItems));
-    setIsPageLoading(false);
   }, [pathname, userRole]);
 
   useEffect(() => {
@@ -195,10 +192,8 @@ export default function Sidebar({
   };
 
   const confirmLogout = async () => {
-    setIsLoggingOut(true);
-
     try {
-      // Call logout API to clear the HTTP-only cookie
+      // Call logout API to clear HTTP-only cookie
       await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
@@ -223,7 +218,7 @@ export default function Sidebar({
     if (!href || hasChildren) return;
 
     if (href !== pathname) {
-      setIsPageLoading(true);
+      // Navigation loading handled by page.tsx PageLoader
     }
 
     if (isMobile) {
@@ -387,13 +382,10 @@ export default function Sidebar({
 
         <MobileBottomNav />
 
-        <LoadingModal isOpen={isPageLoading} />
-
         <LogoutModal
           isOpen={isLogoutModalOpen}
           onClose={() => setIsLogoutModalOpen(false)}
           onConfirm={confirmLogout}
-          isLoading={isLoggingOut}
         />
       </>
     );
@@ -476,13 +468,10 @@ export default function Sidebar({
 
       <div className="h-16"></div>
 
-      <LoadingModal isOpen={isPageLoading} />
-
       <LogoutModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={confirmLogout}
-        isLoading={isLoggingOut}
       />
     </>
   );
