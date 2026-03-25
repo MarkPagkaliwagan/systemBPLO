@@ -1013,7 +1013,7 @@ function DashboardPageContent() {
 
           {!isMobile && (
             <Link
-              href="/Admin/Inspection/management/manual_add"
+              href="/SuperAdmin/Inspection/management/manual_add"
               title="Manual Add Record"
               className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
             >

@@ -15,7 +15,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import Sidebar from "../../../components/sidebar";
 import ProtectedRoute from "../../../../components/ProtectedRoute";
-import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
+import CalendarPage from "./calendar";
 import DetailsForBusinessFormModal from "./DetailsForBusinessFormModal";
 
 type Violation = {
@@ -856,7 +856,7 @@ function ViolationsPageContent() {
                         <button
                           onClick={() =>
                             (window.location.href =
-                              "/Admin/Inspection/management/review")
+                              "/SuperAdmin/Inspection/management/review")
                           }
                           className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                         >
@@ -1264,7 +1264,7 @@ function ViolationsPageContent() {
                   <button
                     onClick={() =>
                       (window.location.href =
-                        "/Admin/Inspection/management/review")
+                        "/SuperAdmin/Inspection/management/review")
                     }
                     className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                   >
