@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FiHome, FiBookOpen, FiAlertCircle } from "react-icons/fi";
-import AddEventModal, { BusinessRecord } from "../Admin/Inspection/management/Modal/AddBusinessRecordModal";
+import AddEventModal from "../Admin/Inspection/management/Modal/AddBusinessRecordModal";
+import { BusinessRecord } from "../Admin/Inspection/management/Modal/reviewModal";
 
 interface NavItem {
   id: string;

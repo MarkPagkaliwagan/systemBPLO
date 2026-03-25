@@ -12,7 +12,7 @@ import ProtectedRoute from "../../../../../components/ProtectedRoute";
 const PAGE_SIZE = 50;
  
 interface BusinessRecord {
-  id: string;
+  // ❌ Removed: id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
