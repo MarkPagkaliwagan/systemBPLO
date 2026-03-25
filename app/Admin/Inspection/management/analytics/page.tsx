@@ -20,6 +20,7 @@ import { FiPlus } from "react-icons/fi";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
 interface BusinessRecord {
+  id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
@@ -371,7 +372,7 @@ function DashboardPageContent() {
   const [scheduleMonth, setScheduleMonth] = useState(new Date());
   const [noticeRange, setNoticeRange] = useState<NoticeRange>("7d");
 
-  // ── Refresh trigger — bumped after every save to re-fetch all data ────────
+  // ── Refresh trigger ───────────────────────────────────────────────────────
   const [refreshKey, setRefreshKey] = useState(0);
 
   // ── Mini calendar ─────────────────────────────────────────────────────────
@@ -467,7 +468,7 @@ function DashboardPageContent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // ── FIX 1: Fetch status counts using review_action with ilike ─────────────
+  // ── Fetch status counts using review_action with ilike ────────────────────
   useEffect(() => {
     const fetchStatusCounts = async () => {
       try {
@@ -493,7 +494,7 @@ function DashboardPageContent() {
     fetchStatusCounts();
   }, [refreshKey]);
 
-  // ── FIX 2: Fetch violation counts — handle NULL last_sent_time correctly ──
+  // ── Fetch violation counts ────────────────────────────────────────────────
   useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
@@ -507,7 +508,7 @@ function DashboardPageContent() {
           case "1yr": start.setFullYear(start.getFullYear() - 1); break;
         }
 
-        // Fetch ALL violations — no date filter, no null filter
+        // Fetch ALL violations with no filters
         const { data, error } = await supabase
           .from("business_violations")
           .select("notice_level, resolved, cease_flag, last_sent_time");
@@ -515,7 +516,7 @@ function DashboardPageContent() {
         if (error) { console.error("fetchViolationCounts error:", error); return; }
         const violations = data ?? [];
 
-        // Notice counts: only records that have been sent AND fall within the range
+        // Notice counts: only sent records within the selected date range
         const nowTime = now.getTime();
         const startTime = start.getTime();
         const inRange = violations.filter((v) => {
@@ -539,7 +540,7 @@ function DashboardPageContent() {
     fetchViolationCounts();
   }, [noticeRange, refreshKey]);
 
-  // ── Fetch schedules — re-runs on currentMonth or refreshKey ──────────────
+  // ── Fetch schedules ───────────────────────────────────────────────────────
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
@@ -597,15 +598,21 @@ function DashboardPageContent() {
     setDropdownOpen((prev) => !prev);
   };
 
+  // ── Use maybeSingle() and refresh schedule if record no longer exists ─────
   const handleOpenReview = useCallback(async (bin: string) => {
     setLoadingBin(bin);
     const { data, error } = await supabase
       .from("business_records")
       .select("*")
       .eq("Business Identification Number", bin)
-      .single();
+      .maybeSingle();
     setLoadingBin(null);
-    if (error || !data) { console.error("Failed to fetch record:", error); return; }
+    if (error) { console.error("Failed to fetch record:", error); return; }
+    if (!data) {
+      // Record no longer exists — refresh to remove stale schedule entry
+      setRefreshKey(prev => prev + 1);
+      return;
+    }
     setReviewRecord(data as BusinessRecord);
   }, []);
 
@@ -643,6 +650,12 @@ function DashboardPageContent() {
     setRefreshKey(prev => prev + 1);
   };
 
+  // ── Refresh everything when a record is deleted ───────────────────────────
+  const handleRecordDeleted = useCallback(() => {
+    setReviewRecord(null);
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
   const PortalDropdown = () => {
     if (!dropdownOpen || !dropdownPos) return null;
     return createPortal(
@@ -673,6 +686,7 @@ function DashboardPageContent() {
     { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle, iconColor: "text-red-400" },
   ];
 
+  // ── Active Cases first ────────────────────────────────────────────────────
   const noticeStats = [
     { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, iconColor: "text-orange-400" },
     { title: "Notice 1 Sent",  value: String(notice1Count),     icon: Mail,  iconColor: "text-indigo-400" },
@@ -784,8 +798,8 @@ function DashboardPageContent() {
           isMobile={isMobile}
           onClose={() => setReviewRecord(null)}
           onSave={handleReviewSave}
-          onRecordUpdated={(updated) => setReviewRecord(updated)}
-          onRecordDeleted={() => setReviewRecord(null)}
+          onRecordUpdated={(updated) => setReviewRecord(updated as unknown as BusinessRecord)}
+          onRecordDeleted={handleRecordDeleted}
         />
       )}
 
