@@ -193,79 +193,19 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
   const validate = () => {
     const e: Partial<Record<string, string>> = {};
     const bin = form["Business Identification Number"].trim();
-
     if (!bin) {
       e["bin"] = "BIN is required.";
-    } else if (!/^\d+$/.test(bin)) {
-      e["bin"] = "BIN must be numbers only.";
-    } else if (bin.length < 9 || bin.length > 12) {
-      e["bin"] = "BIN must be 9 to 12 digits.";
+    } else if (!/^[0-9-]+$/.test(bin)) {
+      e["bin"] = "BIN must contain numbers only (e.g. 2024-00123).";
     }
-
-    if (!form["Business Name"].trim()) {
-      e["name"] = "Business Name is required.";
-    }
-
+    if (!form["Business Name"].trim()) e["name"] = "Business Name is required.";
     return e;
-  };
-
-  const clearAfterNo = () => {
-    setShowProceedPrompt(false);
-    setShowSuccess(false);
-    setSaveError(null);
-    setErrors({});
-    setSavedRecord(null);
-    setCheckingBin(false);
-    setBinExists(false);
-    setForm(emptyRecord());
-    setVisible(true);
-  };
-
-  const handleProceedYes = () => {
-    if (!savedRecord) return;
-
-    const bin = savedRecord["Business Identification Number"];
-
-    setShowProceedPrompt(false);
-    setShowSuccess(false);
-    setVisible(false);
-
-    onSaved(savedRecord);
-
-    setTimeout(() => {
-      onClose();
-      router.push(`/Admin/Inspection/management/review?bin=${encodeURIComponent(bin)}`);
-    }, 250);
-  };
-
-  const handleProceedNo = () => {
-    clearAfterNo();
   };
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     const e = validate();
-
-    if (Object.keys(e).length > 0) {
-      setErrors(e);
-      return;
-    }
-
-    if (checkingBin) {
-      setErrors(prev => ({
-        ...prev,
-        bin: "Please wait, checking BIN...",
-      }));
-      return;
-    }
-
-    if (binExists) {
-      setErrors(prev => ({
-        ...prev,
-        bin: "BIN already exists.",
-      }));
-      return;
-    }
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
 
     setSaving(true);
     setSaveError(null);
@@ -357,7 +297,6 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
   };
 
   const handleClose = () => {
-    if (showProceedPrompt) return;
     setVisible(false);
     setTimeout(onClose, 300);
   };
@@ -367,9 +306,8 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
     <>
       {/* ── Success Toast ── */}
       <div
-        className={`fixed top-6 left-1/2 -translate-x-1/2 z-[90] transition-all duration-500 ${
-          showSuccess ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
-        }`}
+        className={`fixed top-6 left-1/2 -translate-x-1/2 z-[90] transition-all duration-500 ${showSuccess ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+          }`}
       >
         <div className="flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-2xl shadow-xl shadow-green-200">
           <CheckCircle size={20} className="shrink-0" />
@@ -391,53 +329,6 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
         </div>
       )}
 
-      {/* ── Proceed Prompt ── */}
-      {showProceedPrompt && (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 backdrop-blur-sm px-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl border border-slate-100 p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
-                <CheckCircle size={20} className="text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-800">Saved successfully</h3>
-                <p className="text-xs text-slate-500">Proceed to Scheduling?</p>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 rounded-2xl p-3 mb-4">
-              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">BIN</p>
-              <p className="text-sm font-bold text-slate-800 mt-1">
-                {savedRecord?.["Business Identification Number"] ?? "-"}
-              </p>
-              <p className="text-xs text-slate-500 mt-2">
-                Y = open review modal by BIN
-              </p>
-              <p className="text-xs text-slate-500">
-                N = stay here and clear the form
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleProceedNo}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 transition-colors"
-              >
-                N
-              </button>
-              <button
-                type="button"
-                onClick={handleProceedYes}
-                className="px-4 py-2.5 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors shadow-md shadow-green-200"
-              >
-                Y
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── ConfirmScheduleModal ── */}
       <ConfirmScheduleModal
         isOpen={showConfirm}
@@ -446,6 +337,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
         onSkip={handleConfirmSkip}
       />
 
+     
       {/* ── ReviewModal (opened after confirming "Yes") ── */}
       {showReview && savedRecord && (
         <ReviewModal
@@ -455,7 +347,10 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
           onClose={() => { setShowReview(false); onClose(); }}
           onSave={handleReviewSave}
           onRecordUpdated={(updated) => setSavedRecord(updated)}
-          onRecordDeleted={(_bin) => { setShowReview(false); onClose(); }}
+          onRecordDeleted={(bin) => {  // ✅ Updated: changed from '_bin' to 'bin'
+            setShowReview(false);
+            onClose();
+          }}
         />
       )}
 

@@ -12,7 +12,6 @@ import DeleteConfirmModal from "./DeleteConfirmModal";
 import ActivityLogModal from "./Activitylogmodal";
 import { useRouter } from "next/navigation";
 
-
 // ── BIN is the primary key — no separate id field needed ──
 export interface BusinessRecord {
   "Business Identification Number": string;
@@ -107,7 +106,7 @@ interface ReviewModalProps {
     reviewedBy?: string;
   }) => void;
   onRecordUpdated?: (updated: BusinessRecord) => void;
-  onRecordDeleted?: (id: string) => void;
+  onRecordDeleted?: (bin: string) => void;  // ✅ Updated: changed from 'id' to 'bin'
   isMobile: boolean;
 }
 
@@ -136,22 +135,15 @@ export default function ReviewModal({
   const [showLog, setShowLog]                 = useState(false);
   const reviewFormRef = useRef<HTMLDivElement | null>(null);
 
+  // ── Fixed: Single useEffect for mobile scroll ───────────────────────────────
   useEffect(() => {
-  if (showReviewModal && isMobile) {
-    setTimeout(() => {
-      reviewFormRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 300); // delay para sure rendered na
-  }
-}, [showReviewModal, isMobile]);
-
-
     if (showReviewModal && isMobile) {
       setTimeout(() => {
-        reviewFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 300);
+        reviewFormRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 300); // delay para sure rendered na
     }
   }, [showReviewModal, isMobile]);
 
@@ -563,7 +555,6 @@ export default function ReviewModal({
               {/* Right: Review Form */}
               <div ref={reviewFormRef} className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}>
                 <ReviewForm
-                
                   initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map((a) => a.trim()) : []}
                   initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
                   initialInspector={selectedRow.assigned_inspector ?? undefined}
@@ -609,8 +600,8 @@ export default function ReviewModal({
           bin={selectedRow["Business Identification Number"]}
           isMobile={isMobile}
           onClose={() => setShowDelete(false)}
-          onDeleted={(id) => {
-            onRecordDeleted?.(id);
+          onDeleted={(bin) => {  // ✅ Updated: changed from 'id' to 'bin'
+            onRecordDeleted?.(bin);  // ✅ Passes BIN to parent
             setShowDelete(false);
             onClose();
           }}
@@ -836,29 +827,28 @@ function ReviewForm({
   const [violations, setViolations]               = useState<string[]>(initialViolations);
   const [violationText, setViolationText]         = useState(initialViolations.join(", "));
   const [assignedInspectors, setAssignedInspectors] = useState<string[]>(
-  initialInspector ? [initialInspector] : []
-);
-
-const addInspector = (name: string) => {
-  setAssignedInspectors((prev) =>
-    prev.includes(name) ? prev : [...prev, name]
+    initialInspector ? [initialInspector] : []
   );
-};
-const router = useRouter();
-const [manualName, setManualName] = useState("");
 
-const addManualInspector = () => {
-  if (!manualName.trim()) return;
+  const addInspector = (name: string) => {
+    setAssignedInspectors((prev) =>
+      prev.includes(name) ? prev : [...prev, name]
+    );
+  };
+  const router = useRouter();
+  const [manualName, setManualName] = useState("");
 
-  setAssignedInspectors((prev) => [...prev, manualName.trim()]);
-  setManualName("");
-};
+  const addManualInspector = () => {
+    if (!manualName.trim()) return;
+    setAssignedInspectors((prev) => [...prev, manualName.trim()]);
+    setManualName("");
+  };
 
-const removeInspector = (index: number) => {
-  setAssignedInspectors((prev) =>
-    prev.filter((_, i) => i !== index)
-  );
-};
+  const removeInspector = (index: number) => {
+    setAssignedInspectors((prev) =>
+      prev.filter((_, i) => i !== index)
+    );
+  };
 
   const [scheduledDate, setScheduledDate]         = useState(initialScheduledDate || "");
   const [scheduledTime, setScheduledTime]         = useState(initialScheduledTime || "");
@@ -878,24 +868,23 @@ const removeInspector = (index: number) => {
   const [inspectors, setInspectors] = useState<string[]>([]);
 
   useEffect(() => {
-  const fetchInspectors = async () => {
-    const { data, error } = await supabase
-      .from("users")
-      .select("full_name");
+    const fetchInspectors = async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("full_name");
 
-    if (error) {
-      console.error("Failed to fetch users:", error);
-      return;
-    }
+      if (error) {
+        console.error("Failed to fetch users:", error);
+        return;
+      }
 
-    if (data) {
-      setInspectors(data.map((u) => u.full_name));
-    }
-  };
+      if (data) {
+        setInspectors(data.map((u) => u.full_name));
+      }
+    };
 
-  fetchInspectors();
-}, []);
-
+    fetchInspectors();
+  }, []);
 
   const captureLocation = () => {
     if (!navigator.geolocation) { setLocationStatus("error"); return; }
@@ -950,37 +939,37 @@ const removeInspector = (index: number) => {
     setViolations(text.split(",").map((v) => v.trim()).filter((v) => v.length > 0));
   };
 
-const handleSave = async () => {
-  setIsSaving(true);
-  try {
-    let photoUrl: string | undefined;
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      let photoUrl: string | undefined;
 
-    if (photoFile) {
-      const url = await onUploadPhoto(photoFile, location ?? undefined);
-      if (url) photoUrl = url;
+      if (photoFile) {
+        const url = await onUploadPhoto(photoFile, location ?? undefined);
+        if (url) photoUrl = url;
+      }
+
+      onSave({
+        reviewActions,
+        violations,
+        assignedInspector:
+          assignedInspectors.length > 0
+            ? assignedInspectors.join(", ")
+            : undefined,
+        scheduledDate: scheduledDate || undefined,
+        scheduledTime: scheduledTime || undefined,
+        location: location || undefined,
+        photo: photoFile || undefined,
+        photoUrl,
+      });
+
+      // ✅ REDIRECT HERE
+      router.push("/Admin/Inspection/management/analytics");
+
+    } finally {
+      setIsSaving(false);
     }
-
-    onSave({
-      reviewActions,
-      violations,
-      assignedInspector:
-        assignedInspectors.length > 0
-          ? assignedInspectors.join(", ")
-          : undefined,
-      scheduledDate: scheduledDate || undefined,
-      scheduledTime: scheduledTime || undefined,
-      location: location || undefined,
-      photo: photoFile || undefined,
-      photoUrl,
-    });
-
-    // ✅ REDIRECT HERE
-    router.push("/Admin/Inspection/management/analytics");
-
-  } finally {
-    setIsSaving(false);
-  }
-};
+  };
 
   const showInspectorFields = reviewActions.includes("For Inspection");
 
@@ -1192,119 +1181,119 @@ const handleSave = async () => {
         </div>
 
         {showInspectorFields && (
-  <div className="bg-white rounded-xl text-black p-4 border border-gray-200">
-    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
-      <FiUser className="w-4 h-4 mr-2 text-blue-600" /> Inspection Assignment
-    </h3>
+          <div className="bg-white rounded-xl text-black p-4 border border-gray-200">
+            <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
+              <FiUser className="w-4 h-4 mr-2 text-blue-600" /> Inspection Assignment
+            </h3>
 
-    {/* OPTION 1: Dropdown from users */}
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Select Inspector
-      </label>
-      <select
-        onChange={(e) => addInspector(e.target.value)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-        defaultValue=""
-      >
-        <option value="" disabled>
-          Select from users...
-        </option>
-        {inspectors.map((name, i) => (
-          <option key={i} value={name}>
-            {name}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    {/* OPTION 2: Manual input */}
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Add Manual Inspector
-      </label>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={manualName}
-          onChange={(e) => setManualName(e.target.value)}
-          placeholder="Enter name..."
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-        />
-        <button
-          type="button"
-          onClick={addManualInspector}
-          className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
-        >
-          Add
-        </button>
-      </div>
-    </div>
-
-    {/* Selected inspectors */}
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Assigned Inspectors
-      </label>
-
-      <div className="min-h-[50px] p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-        {assignedInspectors.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {assignedInspectors.map((name, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+            {/* OPTION 1: Dropdown from users */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Inspector
+              </label>
+              <select
+                onChange={(e) => addInspector(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                defaultValue=""
               >
-                {name}
+                <option value="" disabled>
+                  Select from users...
+                </option>
+                {inspectors.map((name, i) => (
+                  <option key={i} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* OPTION 2: Manual input */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Add Manual Inspector
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  placeholder="Enter name..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
                 <button
-                  onClick={() => removeInspector(index)}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
+                  type="button"
+                  onClick={addManualInspector}
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
                 >
-                  <FiX className="w-3 h-3" />
+                  Add
                 </button>
-              </span>
-            ))}
+              </div>
+            </div>
+
+            {/* Selected inspectors */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assigned Inspectors
+              </label>
+
+              <div className="min-h-[50px] p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                {assignedInspectors.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {assignedInspectors.map((name, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                      >
+                        {name}
+                        <button
+                          onClick={() => removeInspector(index)}
+                          className="ml-2 text-blue-600 hover:text-blue-800"
+                        >
+                          <FiX className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-400 text-sm">No inspectors assigned</p>
+                )}
+              </div>
+            </div>
+
+            {/* ✅ SCHEDULE DATE */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Scheduled Date
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]} // ✅ only current & future dates
+                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
+                />
+                <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+              </div>
+            </div>
+
+            {/* ✅ SCHEDULE TIME */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Scheduled Time
+              </label>
+              <div className="relative">
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
+                />
+                <FiClock className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+              </div>
+            </div>
           </div>
-        ) : (
-          <p className="text-gray-400 text-sm">No inspectors assigned</p>
         )}
-      </div>
-    </div>
-
-{/* ✅ SCHEDULE DATE */}
-<div className="mb-4">
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Scheduled Date
-  </label>
-  <div className="relative">
-    <input
-      type="date"
-      value={scheduledDate}
-      onChange={(e) => setScheduledDate(e.target.value)}
-      min={new Date().toISOString().split("T")[0]} // ✅ only current & future dates
-      className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
-    />
-    <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-  </div>
-</div>
-
-    {/* ✅ SCHEDULE TIME */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Scheduled Time
-      </label>
-      <div className="relative">
-        <input
-          type="time"
-          value={scheduledTime}
-          onChange={(e) => setScheduledTime(e.target.value)}
-          className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
-        />
-        <FiClock className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-      </div>
-    </div>
-  </div>
-)}
         {/* Action Buttons */}
         <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
           <button onClick={handleSave} disabled={isSaving}
