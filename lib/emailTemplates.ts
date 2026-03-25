@@ -20,7 +20,7 @@ export const generateWelcomeEmailTemplate = (userName: string, userEmail: string
           padding: 20px;
         }
         .header {
-          background: #059669;
+          background: #166534;
           color: white;
           padding: 20px;
           text-align: center;
@@ -34,7 +34,7 @@ export const generateWelcomeEmailTemplate = (userName: string, userEmail: string
         }
         .password-box {
           background: white;
-          border: 2px solid #059669;
+          border: 2px solid #166534;
           border-radius: 8px;
           padding: 20px;
           margin: 20px 0;
@@ -44,7 +44,7 @@ export const generateWelcomeEmailTemplate = (userName: string, userEmail: string
           font-family: 'Courier New', monospace;
           font-size: 18px;
           font-weight: bold;
-          color: #059669;
+          color: #166534;
           background: #f0fdf4;
           padding: 10px;
           border-radius: 4px;
@@ -52,7 +52,7 @@ export const generateWelcomeEmailTemplate = (userName: string, userEmail: string
         }
         .reset-button {
           display: inline-block;
-          background-color: #059669;
+          background-color: #166534;
           color: white;
           padding: 12px 25px;
           text-decoration: none;
@@ -144,7 +144,7 @@ export const generateEmailVerificationTemplate = (verificationCode: string, user
           padding: 20px;
         }
         .header {
-          background: #059669;
+          background: #166534;
           color: white;
           padding: 20px;
           text-align: center;
@@ -158,7 +158,7 @@ export const generateEmailVerificationTemplate = (verificationCode: string, user
         }
         .verification-code {
           background: white;
-          border: 2px solid #059669;
+          border: 2px solid #166534;
           border-radius: 8px;
           padding: 20px;
           text-align: center;
@@ -166,7 +166,7 @@ export const generateEmailVerificationTemplate = (verificationCode: string, user
           font-size: 32px;
           font-weight: bold;
           letter-spacing: 8px;
-          color: #059669;
+          color: #166534;
         }
         .footer {
           text-align: center;
@@ -242,7 +242,7 @@ export const generateVerificationSuccessTemplate = (userName: string): string =>
           padding: 20px;
         }
         .header {
-          background: #059669;
+          background: #166534;
           color: white;
           padding: 20px;
           text-align: center;
@@ -256,12 +256,12 @@ export const generateVerificationSuccessTemplate = (userName: string): string =>
         }
         .success-box {
           background: #d1fae5;
-          border: 2px solid #059669;
+          border: 2px solid #166534;
           border-radius: 8px;
           padding: 20px;
           margin: 20px 0;
           text-align: center;
-          color: #065f46;
+          color: #166534;
         }
         .footer {
           text-align: center;

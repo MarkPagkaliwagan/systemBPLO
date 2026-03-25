@@ -33,7 +33,7 @@ export const generateOTPEmailTemplate = (code: string, userEmail: string): strin
           padding: 20px;
         }
         .header {
-          background: #059669;
+          background: #166534;
           color: white;
           padding: 20px;
           text-align: center;
@@ -47,7 +47,7 @@ export const generateOTPEmailTemplate = (code: string, userEmail: string): strin
         }
         .otp-code {
           background: white;
-          border: 2px solid #059669;
+          border: 2px solid #166534;
           border-radius: 8px;
           padding: 20px;
           text-align: center;
@@ -55,7 +55,7 @@ export const generateOTPEmailTemplate = (code: string, userEmail: string): strin
           font-size: 32px;
           font-weight: bold;
           letter-spacing: 8px;
-          color: #059669;
+          color: #166534;
         }
         .footer {
           text-align: center;
