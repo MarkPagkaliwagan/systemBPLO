@@ -37,40 +37,34 @@ interface SidebarProps {
 }
 
 const getSidebarItems = (userRole: string): SidebarItem[] => {
-  const adminItems: SidebarItem[] = [
+  const staffItems: SidebarItem[] = [
     {
       id: "dashboard",
       label: "Dashboard",
       icon: <FiHome className="w-5 h-5" />,
-      href: "/SuperAdmin/Inspection/management/analytics",
+      href: "/Admin/Inspection/management/analytics",
     },
     {
       id: "scheduling",
       label: "Scheduling",
       icon: <FiBookOpen className="w-5 h-5" />,
-      href: "/SuperAdmin/Inspection/management/review",
+      href: "/Admin/Inspection/management/review",
     },
     {
       id: "business-registry",
       label: "Business Registry",
       icon: <FiBookOpen className="w-5 h-5" />,
-      href: "/SuperAdmin/Inspection/management/masterlist",
+      href: "/Admin/Inspection/management/masterlist",
     },
     {
       id: "compliance-dashboard",
       label: "Compliance Notice",
       icon: <FiAlertCircle className="w-5 h-5" />,
-      href: "/SuperAdmin/Compliance/Dashboard",
-    },
-    {
-      id: "user-management",
-      label: "User Management",
-      icon: <FiUser className="w-5 h-5" />,
-      href: "/SuperAdmin/users",
+      href: "/Admin/Compliance/Dashboard",
     },
   ];
 
-  const superAdminItems: SidebarItem[] = [
+  const adminItems: SidebarItem[] = [
     {
       id: "dashboard",
       label: "Dashboard",
@@ -103,7 +97,7 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
     },
   ];
 
-  return userRole === "admin" ? adminItems : superAdminItems;
+  return userRole === "admin" ? adminItems : staffItems;
 };
 
 const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => {
