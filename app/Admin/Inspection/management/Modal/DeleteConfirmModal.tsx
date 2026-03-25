@@ -50,11 +50,11 @@ export default function DeleteConfirmModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-50 p-4">
+  
+    <div className="fixed inset-0 bg-gray-900/60 flex items-center justify-center z-70 p-4">
       <div
-        className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${
-          isMobile ? "w-full" : "w-full max-w-md"
-        }`}
+        className={`bg-white rounded-2xl shadow-2xl overflow-hidden ${isMobile ? "w-full" : "w-full max-w-md"
+          }`}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-red-600 to-red-700 text-white px-5 py-4">
@@ -111,13 +111,12 @@ export default function DeleteConfirmModal({
               onChange={(e) => setConfirmText(e.target.value)}
               placeholder={bin}
               disabled={isDeleting}
-              className={`w-full px-3 py-2.5 text-sm font-mono border rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 ${
-                confirmText && !isConfirmed
+              className={`w-full px-3 py-2.5 text-sm font-mono border rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 ${confirmText && !isConfirmed
                   ? "border-red-300 bg-red-50 text-red-700"
                   : isConfirmed
-                  ? "border-green-400 bg-green-50 text-green-700"
-                  : "border-gray-300 text-gray-900"
-              }`}
+                    ? "border-green-400 bg-green-50 text-green-700"
+                    : "border-gray-300 text-gray-900"
+                }`}
             />
             {confirmText && !isConfirmed && (
               <p className="text-xs text-red-500 mt-1">BIN does not match</p>
@@ -147,11 +146,10 @@ export default function DeleteConfirmModal({
             <button
               onClick={handleDelete}
               disabled={!isConfirmed || isDeleting}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all ${
-                !isConfirmed || isDeleting
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all ${!isConfirmed || isDeleting
                   ? "bg-red-300 cursor-not-allowed"
                   : "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 active:scale-95 shadow"
-              }`}
+                }`}
             >
               <FiTrash2 className="w-4 h-4" />
               {isDeleting ? "Deleting..." : "Delete Permanently"}

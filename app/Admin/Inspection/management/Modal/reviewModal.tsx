@@ -106,8 +106,9 @@ interface ReviewModalProps {
     reviewedBy?: string;
   }) => void;
   onRecordUpdated?: (updated: BusinessRecord) => void;
-  onRecordDeleted?: (bin: string) => void;  // ✅ Updated: changed from 'id' to 'bin'
+  onRecordDeleted?: (bin: string) => void;
   isMobile: boolean;
+  onShowConfirm?: () => void;  // ✅ Add this new prop
 }
 
 const NUMERIC_KEYS: (keyof BusinessRecord)[] = [
@@ -121,18 +122,18 @@ const READONLY_KEYS: (keyof BusinessRecord)[] = [
 
 export default function ReviewModal({
   selectedRow, showReviewModal, onClose, onSave,
-  onRecordUpdated, onRecordDeleted, isMobile,
+  onRecordUpdated, onRecordDeleted, isMobile, onShowConfirm,
 }: ReviewModalProps) {
-  const [showSavedToast, setShowSavedToast]   = useState(false);
-  const [previewPhoto, setPreviewPhoto]       = useState<string | null>(null);
-  const [showDelete, setShowDelete]           = useState(false);
-  const [isEditing, setIsEditing]             = useState(false);
-  const [editForm, setEditForm]               = useState<BusinessRecord | null>(null);
-  const [isSavingEdit, setIsSavingEdit]       = useState(false);
-  const [editError, setEditError]             = useState<string | null>(null);
-  const [showEditToast, setShowEditToast]     = useState(false);
-  const [reviewedByName, setReviewedByName]   = useState<string>("");
-  const [showLog, setShowLog]                 = useState(false);
+  const [showSavedToast, setShowSavedToast] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
+  const [showDelete, setShowDelete] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<BusinessRecord | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [showEditToast, setShowEditToast] = useState(false);
+  const [reviewedByName, setReviewedByName] = useState<string>("");
+  const [showLog, setShowLog] = useState(false);
   const reviewFormRef = useRef<HTMLDivElement | null>(null);
 
   // ── Fixed: Single useEffect for mobile scroll ───────────────────────────────
@@ -170,7 +171,7 @@ export default function ReviewModal({
 
   if (!showReviewModal || !selectedRow) return null;
 
-  const handleStartEdit  = () => { setEditForm({ ...selectedRow }); setEditError(null); setIsEditing(true); };
+  const handleStartEdit = () => { setEditForm({ ...selectedRow }); setEditError(null); setIsEditing(true); };
   const handleCancelEdit = () => { setIsEditing(false); setEditForm(null); setEditError(null); };
 
   const setField = (key: keyof BusinessRecord, raw: string) => {
@@ -247,11 +248,13 @@ export default function ReviewModal({
     });
 
     setShowSavedToast(true);
-    if (isMobile) {
-      setTimeout(() => { setShowSavedToast(false); onClose(); }, 1800);
-    } else {
-      setTimeout(() => setShowSavedToast(false), 2200);
-    }
+
+    // ✅ Show confirm modal after save
+    setTimeout(() => {
+      setShowSavedToast(false);
+      onClose(); // Close review modal first
+      onShowConfirm?.(); // Then show confirm modal
+    }, 1500);
   };
 
   const onUploadPhoto = async (
@@ -509,9 +512,9 @@ export default function ReviewModal({
                       ) : <span className="text-gray-600">-</span>}
                     </div>
 
-                    <InfoRow label="Latitude"  value={selectedRow["latitude"]} />
+                    <InfoRow label="Latitude" value={selectedRow["latitude"]} />
                     <InfoRow label="Longitude" value={selectedRow["longitude"]} />
-                    <InfoRow label="Accuracy"  value={selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : null} />
+                    <InfoRow label="Accuracy" value={selectedRow["accuracy"] ? `±${selectedRow["accuracy"]}m` : null} />
 
                     {selectedRow["latitude"] && selectedRow["longitude"] && (
                       <div className="mt-1 rounded-xl border border-blue-200 bg-blue-50 overflow-hidden">
@@ -676,9 +679,9 @@ function MapPickerModal({
   onConfirm: (lat: number, lng: number) => void;
   onClose: () => void;
 }) {
-  const mapRef      = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
-  const markerRef   = useRef<any>(null);
+  const markerRef = useRef<any>(null);
   const [pinned, setPinned] = useState<{ lat: number; lng: number } | null>(
     initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null
   );
@@ -721,7 +724,7 @@ function MapPickerModal({
               });
             }
           },
-          () => {},
+          () => { },
           { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
         );
       }
@@ -823,9 +826,9 @@ function ReviewForm({
   onUploadPhoto: (file: File, location?: { lat: number; lng: number; accuracy: number }) => Promise<string | null>;
   isMobile?: boolean;
 }) {
-  const [reviewActions, setReviewActions]         = useState<string[]>(initialActions);
-  const [violations, setViolations]               = useState<string[]>(initialViolations);
-  const [violationText, setViolationText]         = useState(initialViolations.join(", "));
+  const [reviewActions, setReviewActions] = useState<string[]>(initialActions);
+  const [violations, setViolations] = useState<string[]>(initialViolations);
+  const [violationText, setViolationText] = useState(initialViolations.join(", "));
   const [assignedInspectors, setAssignedInspectors] = useState<string[]>(
     initialInspector ? [initialInspector] : []
   );
@@ -850,21 +853,21 @@ function ReviewForm({
     );
   };
 
-  const [scheduledDate, setScheduledDate]         = useState(initialScheduledDate || "");
-  const [scheduledTime, setScheduledTime]         = useState(initialScheduledTime || "");
-  const [isSaving, setIsSaving]                   = useState(false);
+  const [scheduledDate, setScheduledDate] = useState(initialScheduledDate || "");
+  const [scheduledTime, setScheduledTime] = useState(initialScheduledTime || "");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [location, setLocation]             = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [showMapPicker, setShowMapPicker]   = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
-  const [photoFile, setPhotoFile]               = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview]         = useState<string | null>(null);
-  const [isDragging, setIsDragging]             = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [cameraPermission, setCameraPermission] = useState<"idle" | "granted" | "denied">("idle");
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef   = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [inspectors, setInspectors] = useState<string[]>([]);
 
   useEffect(() => {
@@ -923,14 +926,14 @@ function ReviewForm({
     } catch { setCameraPermission("denied"); }
   };
 
-  const handleDrop      = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handlePhotoFile(f); };
-  const handleDragOver  = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) handlePhotoFile(f); };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => setIsDragging(false);
-  const clearPhoto      = () => { setPhotoFile(null); setPhotoPreview(null); setCameraPermission("idle"); };
+  const clearPhoto = () => { setPhotoFile(null); setPhotoPreview(null); setCameraPermission("idle"); };
 
   const availableActions = ["Active", "Compliant", "Non-Compliant", "For Inspection"];
   const isRedAction = (a: string) => a === "Non-Compliant" || a === "For Inspection";
-  const addAction    = (a: string) => { if (!reviewActions.includes(a)) setReviewActions([...reviewActions, a]); };
+  const addAction = (a: string) => { if (!reviewActions.includes(a)) setReviewActions([...reviewActions, a]); };
   const removeAction = (i: number) => setReviewActions(reviewActions.filter((_, idx) => idx !== i));
 
   const handleViolationTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -1001,13 +1004,12 @@ function ReviewForm({
               const isRed = isRedAction(action);
               return (
                 <button key={action} onClick={() => addAction(action)} disabled={isSelected}
-                  className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${
-                    isSelected
+                  className={`px-3 py-2 text-sm rounded-lg font-medium transition-all duration-200 ${isSelected
                       ? isRed ? "bg-red-600 text-white shadow-lg scale-105 ring-2 ring-red-500 ring-offset-2"
-                               : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
+                        : "bg-green-600 text-white shadow-lg scale-105 ring-2 ring-green-500 ring-offset-2"
                       : isRed ? "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}>
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}>
                   {action}
                 </button>
               );
@@ -1112,11 +1114,10 @@ function ReviewForm({
           </h3>
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button type="button" onClick={captureLocation} disabled={locationStatus === "loading"}
-              className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg font-medium text-xs transition-all duration-200 ${
-                locationStatus === "loading"
+              className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg font-medium text-xs transition-all duration-200 ${locationStatus === "loading"
                   ? "bg-gray-100 text-gray-500 border border-gray-300 cursor-wait"
                   : "bg-blue-50 text-blue-700 border border-blue-300 hover:bg-blue-100"
-              }`}>
+                }`}>
               <FiMapPin className="w-3.5 h-3.5 flex-shrink-0" />
               {locationStatus === "loading" ? "Getting GPS..." : "Auto GPS"}
             </button>
@@ -1297,9 +1298,8 @@ function ReviewForm({
         {/* Action Buttons */}
         <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
           <button onClick={handleSave} disabled={isSaving}
-            className={`w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200 ${
-              isSaving ? "opacity-70 cursor-wait" : "hover:from-green-700 hover:to-green-800 active:scale-95"
-            }`}>
+            className={`w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200 ${isSaving ? "opacity-70 cursor-wait" : "hover:from-green-700 hover:to-green-800 active:scale-95"
+              }`}>
             <FiSave className="w-4 h-4" />{isSaving ? "Saving..." : "Save Review"}
           </button>
           <button onClick={onCancel} disabled={isSaving}
