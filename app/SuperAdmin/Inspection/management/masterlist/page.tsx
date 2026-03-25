@@ -446,7 +446,7 @@ function CSVManagerContent() {
                                 )}
                                 {file.skippedCount != null && file.skippedCount > 0 && (
                                   <span className="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-xs rounded-full">
-                                    ⟳ {file.skippedCount} skipped
+                                    ⟳ {file.skippedCount} skipped. It is already exist.
                                   </span>
                                 )}
                                 {file.errorCount != null && file.errorCount > 0 && (
@@ -541,7 +541,7 @@ function CSVManagerContent() {
                                       <div className="text-green-600 text-xs">✓ {file.successCount} inserted</div>
                                     )}
                                     {file.skippedCount != null && file.skippedCount > 0 && (
-                                      <div className="text-yellow-600 text-xs">⟳ {file.skippedCount} skipped</div>
+                                      <div className="text-yellow-600 text-xs">⟳ {file.skippedCount} skipped. It is already exist.</div>
                                     )}
                                     {file.errorCount != null && file.errorCount > 0 && (
                                       <div className="text-red-500 text-xs">✗ {file.errorCount} failed</div>
