@@ -140,10 +140,14 @@ function CSVManagerContent() {
       skipEmptyLines: true,
       beforeFirstChunk: (chunk) => {
         const lines = chunk.split('\n');
+        const firstLine = lines[0].trim().replace(/\r/g, '');
+        if (firstLine.startsWith('Business Identification Number')) {
+          return chunk;
+        }
         return lines.slice(5).join('\n');
       },
       transformHeader: (header: string) => {
-        return header.trim().replace(/\s+/g, ' ');
+        return header.trim().replace(/\r/g, '').replace(/\s+/g, ' ');
       },
       complete: async (results) => {
         const rows = results.data as Record<string, any>[];
@@ -246,11 +250,11 @@ function CSVManagerContent() {
 
   const getStatusStyle = (status?: string) => {
     switch (status) {
-      case 'completed':    return 'bg-green-100 text-green-800';
-      case 'processing':   return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'processing': return 'bg-yellow-100 text-yellow-800';
       case 'not_reviewed': return 'bg-gray-100 text-gray-800';
-      case 'error':        return 'bg-red-100 text-red-800';
-      default:             return 'bg-gray-100 text-gray-800';
+      case 'error': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -310,7 +314,7 @@ function CSVManagerContent() {
 
           {/* Upload Progress Banner */}
           <div className={`transition-all duration-300 overflow-hidden ${uploadProgress ? 'mb-4 max-h-24 opacity-100' : 'mb-0 max-h-0 opacity-0'}`}>
-            {uploadProgress && (
+            tsx{uploadProgress && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-blue-800">
@@ -333,9 +337,8 @@ function CSVManagerContent() {
           {/* Upload Area */}
           <div className="mb-5">
             <div
-              className={`relative border-2 border-dashed rounded-xl p-5 text-center transition-colors ${
-                dragActive ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-white hover:border-green-400'
-              }`}
+              className={`relative border-2 border-dashed rounded-xl p-5 text-center transition-colors ${dragActive ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-white hover:border-green-400'
+                }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
@@ -615,11 +618,10 @@ function CSVManagerContent() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`flex items-center justify-center rounded-lg font-medium transition-colors ${
-                        currentPage === pageNum
-                          ? 'bg-green-600 text-white'
-                          : 'border border-gray-200 hover:bg-gray-100 text-gray-700'
-                      }`}
+                      className={`flex items-center justify-center rounded-lg font-medium transition-colors ${currentPage === pageNum
+                        ? 'bg-green-600 text-white'
+                        : 'border border-gray-200 hover:bg-gray-100 text-gray-700'
+                        }`}
                       style={{
                         width: 'clamp(26px, 2.2vw, 40px)',
                         height: 'clamp(26px, 2.2vw, 40px)',

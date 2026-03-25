@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 import Sidebar from "../../../components/sidebar";
+import ProtectedRoute from "../../../../components/ProtectedRoute";
 import {
   FiPlusCircle,
   FiDollarSign,
   FiBriefcase,
   FiArrowLeft,
 } from "react-icons/fi";
-import ProtectedRoute from "../../../../components/ProtectedRoute";
 
 interface Business {
   id: number;
@@ -179,7 +179,7 @@ function InsertViolationPageContent() {
 
 export default function InsertViolationPage() {
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="staff">
       <InsertViolationPageContent />
     </ProtectedRoute>
   );

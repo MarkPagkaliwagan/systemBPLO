@@ -20,6 +20,7 @@ import { FiPlus } from "react-icons/fi";
 type NoticeRange = '7d' | '1m' | '3m' | '6m' | '1yr';
 
 interface BusinessRecord {
+  id: string;
   "Business Identification Number": string;
   "Business Name": string;
   "Trade Name": string | null;
@@ -371,7 +372,7 @@ function DashboardPageContent() {
   const [scheduleMonth, setScheduleMonth] = useState(new Date());
   const [noticeRange, setNoticeRange] = useState<NoticeRange>("7d");
 
-  // ── Refresh trigger — bumped after every save to re-fetch all data ────────
+  // ── Refresh trigger ───────────────────────────────────────────────────────
   const [refreshKey, setRefreshKey] = useState(0);
 
   // ── Mini calendar ─────────────────────────────────────────────────────────
@@ -421,7 +422,7 @@ function DashboardPageContent() {
   ];
   const selectedLabel = rangeOptions.find((r) => r.value === noticeRange)?.label ?? "Last 7 Days";
 
-  // ── Calendar date select → scroll to row ─────────────────────────────────
+ // ── Calendar date select → scroll to row ─────────────────────────────────
   const handleCalendarSelect = useCallback((date: Date) => {
     setHighlightedDate(date);
     setScheduleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
@@ -467,68 +468,106 @@ function DashboardPageContent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // ── Fetch status counts — re-runs on refreshKey ───────────────────────────
+  // ── Fetch status counts using review_action with ilike ────────────────────
   useEffect(() => {
-    const fetchStatusCounts = async () => {
-      try {
-        const [
-          { count: compliant },
-          { count: nonCompliant },
-          { count: forInspection },
-          { count: active },
-        ] = await Promise.all([
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "compliant"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "non-compliant"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "for_inspection"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "active"),
-        ]);
-        setCompliantCount(compliant ?? 0);
-        setNonCompliantCount(nonCompliant ?? 0);
-        setForInspectionCount(forInspection ?? 0);
-        setActiveCount(active ?? 0);
-      } catch (err) {
-        console.error("fetchStatusCounts error:", err);
-      }
-    };
-    fetchStatusCounts();
-  }, [refreshKey]); // ← refreshKey added
+  const fetchStatusCounts = async () => {
+    try {
+      const { data } = await supabase
+        .from("business_records")
+        .select("review_action");
 
-  // ── Fetch violation counts — re-runs on noticeRange or refreshKey ─────────
-  useEffect(() => {
-    const fetchViolationCounts = async () => {
-      try {
-        const now = new Date();
-        const nowISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
-        const start = new Date(now);
-        switch (noticeRange) {
-          case "7d":  start.setDate(start.getDate() - 7); break;
-          case "1m":  start.setMonth(start.getMonth() - 1); break;
-          case "3m":  start.setMonth(start.getMonth() - 3); break;
-          case "6m":  start.setMonth(start.getMonth() - 6); break;
-          case "1yr": start.setFullYear(start.getFullYear() - 1); break;
-        }
-        const startISO = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString();
-        const { data, error } = await supabase
-          .from("business_violations")
-          .select("notice_level, resolved, cease_flag, last_sent_time")
-          .not("last_sent_time", "is", null)
-          .gte("last_sent_time", startISO)
-          .lte("last_sent_time", nowISO);
-        if (error) { console.error("fetchViolationCounts error:", error); return; }
-        const violations = data ?? [];
-        setNotice1Count(violations.filter((v) => v.notice_level === 1).length);
-        setNotice2Count(violations.filter((v) => v.notice_level === 2).length);
-        setNotice3Count(violations.filter((v) => v.notice_level === 3).length);
-        setActiveCasesCount(violations.filter((v) => !v.resolved && !v.cease_flag).length);
-        setCeaseDesistCount(violations.filter((v) => v.cease_flag === true).length);
-      } catch (err) {
-        console.error("fetchViolationCounts error:", err);
-      }
-    };
-    fetchViolationCounts();
-  }, [noticeRange, refreshKey]); // ← refreshKey added
+      const records = data ?? [];
 
-  // ── Fetch schedules — re-runs on currentMonth or refreshKey ──────────────
+      setCompliantCount(records.filter(r => {
+        const actions = (r.review_action ?? "").split(",").map((a: string) => a.trim().toLowerCase());
+        return actions.includes("compliant");
+      }).length);
+
+      setNonCompliantCount(records.filter(r => {
+        const actions = (r.review_action ?? "").split(",").map((a: string) => a.trim().toLowerCase());
+        return actions.includes("non-compliant");
+      }).length);
+
+      setForInspectionCount(records.filter(r => {
+        const actions = (r.review_action ?? "").split(",").map((a: string) => a.trim().toLowerCase());
+        return actions.includes("for inspection");
+      }).length);
+
+      setActiveCount(records.filter(r => {
+        const actions = (r.review_action ?? "").split(",").map((a: string) => a.trim().toLowerCase());
+        return actions.includes("active");
+      }).length);
+
+    } catch (err) {
+      console.error("fetchStatusCounts error:", err);
+    }
+  };
+  fetchStatusCounts();
+}, [refreshKey]);
+
+  // ── Fetch violation counts ────────────────────────────────────────────────
+ useEffect(() => {
+  const fetchViolationCounts = async () => {
+    try {
+      const now = new Date();
+      const start = new Date(now);
+
+      switch (noticeRange) {
+        case "7d":  start.setDate(start.getDate() - 7); break;
+        case "1m":  start.setMonth(start.getMonth() - 1); break;
+        case "3m":  start.setMonth(start.getMonth() - 3); break;
+        case "6m":  start.setMonth(start.getMonth() - 6); break;
+        case "1yr": start.setFullYear(start.getFullYear() - 1); break;
+      }
+
+      const { data, error } = await supabase
+        .from("business_violations")
+        .select("notice_level, resolved, cease_flag, last_sent_time");
+
+      if (error) {
+        console.error("fetchViolationCounts error:", error);
+        return;
+      }
+
+      const violations = data ?? [];
+
+      const nowTime = now.getTime();
+      const startTime = start.getTime();
+
+      // ✅ ACTIVE ONLY
+      const activeOnly = violations.filter(
+        (v) => v.resolved !== true && v.cease_flag !== true
+      );
+
+      // ✅ WITHIN DATE RANGE
+      const filtered = activeOnly.filter((v) => {
+        if (!v.last_sent_time) return false;
+        const sent = new Date(v.last_sent_time).getTime();
+        return sent >= startTime && sent <= nowTime;
+      });
+
+      // ✅ COUNT BASED ON CURRENT NOTICE LEVEL (NO DUPLICATES)
+      setNotice1Count(filtered.filter((v) => v.notice_level === 1).length);
+      setNotice2Count(filtered.filter((v) => v.notice_level === 2).length);
+      setNotice3Count(filtered.filter((v) => v.notice_level === 3).length);
+
+      // ✅ ACTIVE CASES
+      setActiveCasesCount(activeOnly.length);
+
+      // ✅ CEASE & DESIST
+      setCeaseDesistCount(
+        violations.filter((v) => v.cease_flag === true).length
+      );
+
+    } catch (err) {
+      console.error("fetchViolationCounts error:", err);
+    }
+  };
+
+  fetchViolationCounts();
+}, [noticeRange, refreshKey]);
+
+  // ── Fetch schedules ───────────────────────────────────────────────────────
   useEffect(() => {
     const fetchSchedules = async () => {
       const { data, error } = await supabase
@@ -563,7 +602,7 @@ function DashboardPageContent() {
       setDesktopMockEvents(byDay);
     };
     fetchSchedules();
-  }, [currentMonth, refreshKey]); // ← refreshKey added
+  }, [currentMonth, refreshKey]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -586,15 +625,21 @@ function DashboardPageContent() {
     setDropdownOpen((prev) => !prev);
   };
 
+  // ── Use maybeSingle() and refresh schedule if record no longer exists ─────
   const handleOpenReview = useCallback(async (bin: string) => {
     setLoadingBin(bin);
     const { data, error } = await supabase
       .from("business_records")
       .select("*")
       .eq("Business Identification Number", bin)
-      .single();
+      .maybeSingle();
     setLoadingBin(null);
-    if (error || !data) { console.error("Failed to fetch record:", error); return; }
+    if (error) { console.error("Failed to fetch record:", error); return; }
+    if (!data) {
+      // Record no longer exists — refresh to remove stale schedule entry
+      setRefreshKey(prev => prev + 1);
+      return;
+    }
     setReviewRecord(data as BusinessRecord);
   }, []);
 
@@ -629,8 +674,14 @@ function DashboardPageContent() {
       .update(updates)
       .eq("Business Identification Number", reviewRecord["Business Identification Number"]);
     setReviewRecord(null);
-    setRefreshKey(prev => prev + 1); // ← triggers all three fetches simultaneously
+    setRefreshKey(prev => prev + 1);
   };
+
+  // ── Refresh everything when a record is deleted ───────────────────────────
+  const handleRecordDeleted = useCallback(() => {
+    setReviewRecord(null);
+    setRefreshKey(prev => prev + 1);
+  }, []);
 
   const PortalDropdown = () => {
     if (!dropdownOpen || !dropdownPos) return null;
@@ -662,11 +713,12 @@ function DashboardPageContent() {
     { title: "Non-Compliant",     value: String(nonCompliantCount),  icon: AlertTriangle, iconColor: "text-red-400" },
   ];
 
+  // ── Active Cases first ────────────────────────────────────────────────────
   const noticeStats = [
+    { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, iconColor: "text-orange-400" },
     { title: "Notice 1 Sent",  value: String(notice1Count),     icon: Mail,  iconColor: "text-indigo-400" },
     { title: "Notice 2 Sent",  value: String(notice2Count),     icon: Mail,  iconColor: "text-purple-400" },
     { title: "Notice 3 Sent",  value: String(notice3Count),     icon: Mail,  iconColor: "text-pink-400" },
-    { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, iconColor: "text-orange-400" },
     { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   iconColor: "text-red-400" },
   ];
 
@@ -773,8 +825,8 @@ function DashboardPageContent() {
           isMobile={isMobile}
           onClose={() => setReviewRecord(null)}
           onSave={handleReviewSave}
-          onRecordUpdated={(updated) => setReviewRecord(updated)}
-          onRecordDeleted={() => setReviewRecord(null)}
+          onRecordUpdated={(updated) => setReviewRecord(updated as unknown as BusinessRecord)}
+          onRecordDeleted={handleRecordDeleted}
         />
       )}
 
