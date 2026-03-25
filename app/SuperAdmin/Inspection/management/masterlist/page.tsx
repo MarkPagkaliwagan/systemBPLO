@@ -659,7 +659,7 @@ function CSVManagerContent() {
 
 export default function CSVManager() {
   return (
-    <ProtectedRoute requiredRole="staff">
+    <ProtectedRoute requiredRole="admin">
       <CSVManagerContent />
     </ProtectedRoute>
   );

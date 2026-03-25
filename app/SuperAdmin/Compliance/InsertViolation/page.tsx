@@ -179,7 +179,7 @@ function InsertViolationPageContent() {
 
 export default function InsertViolationPage() {
   return (
-    <ProtectedRoute requiredRole="staff">
+    <ProtectedRoute requiredRole="admin">
       <InsertViolationPageContent />
     </ProtectedRoute>
   );

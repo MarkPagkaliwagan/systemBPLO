@@ -705,7 +705,7 @@ function CSVReviewContent() {
 
 export default function CSVReview() {
   return (
-    <ProtectedRoute requiredRole="staff">
+    <ProtectedRoute requiredRole="admin">
       <CSVReviewContent />
     </ProtectedRoute>
   );

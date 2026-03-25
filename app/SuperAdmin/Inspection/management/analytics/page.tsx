@@ -422,7 +422,7 @@ function DashboardPageContent() {
   ];
   const selectedLabel = rangeOptions.find((r) => r.value === noticeRange)?.label ?? "Last 7 Days";
 
- // ── Calendar date select → scroll to row ─────────────────────────────────
+  // ── Calendar date select → scroll to row ─────────────────────────────────
   const handleCalendarSelect = useCallback((date: Date) => {
     setHighlightedDate(date);
     setScheduleMonth(new Date(date.getFullYear(), date.getMonth(), 1));
@@ -1028,7 +1028,7 @@ function DashboardPageContent() {
 
 export default function DashboardPage() {
   return (
-    <ProtectedRoute requiredRole="staff">
+    <ProtectedRoute requiredRole="admin">
       <DashboardPageContent />
     </ProtectedRoute>
   );
