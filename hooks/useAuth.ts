@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 
 interface User {
   id: string;
@@ -11,130 +11,128 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  isAdmin: boolean;  // full access  — routes to /SuperAdmin/...
-  isStaff: boolean;  // limited access — routes to /Admin/...
+  isAdmin: boolean;
+  isStaff: boolean;
 }
 
+const UNAUTHENTICATED: AuthState = {
+  user: null,
+  isLoading: false,
+  isAuthenticated: false,
+  isAdmin: false,
+  isStaff: false,
+};
+
+const INITIAL: AuthState = {
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  isAdmin: false,
+  isStaff: false,
+};
+
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 export const useAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-    isAdmin: false,
-    isStaff: false,
-  });
+  const [authState, setAuthState] = useState<AuthState>(INITIAL);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // First, try to validate session via server-side cookie check
-        try {
-          const response = await fetch('/api/auth/validate-session', {
-            method: 'GET',
-            credentials: 'include', // Important: include cookies
-          });
+  // Guards to prevent redundant/concurrent calls
+  const isCheckingRef = useRef(false);
+  const isAuthenticatedRef = useRef(false);
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.valid && data.user) {
-              setAuthState({
-                user: data.user,
-                isLoading: false,
-                isAuthenticated: true,
-                isAdmin: data.user.role === 'admin',
-                isStaff: data.user.role === 'staff',
-              });
-              return;
-            } else if (data.requiresEmailVerification) {
-              // Session invalid due to unverified email - clear storage and let login handle it
-              localStorage.removeItem('user');
-              localStorage.removeItem('sessionExpiry');
-              sessionStorage.removeItem('user');
-              sessionStorage.removeItem('sessionExpiry');
-              setAuthState({
-                user: null,
-                isLoading: false,
-                isAuthenticated: false,
-                isAdmin: false,
-                isStaff: false,
-              });
-              return;
-            }
-          }
-        } catch (serverError) {
-          console.log('Server session check failed, falling back to localStorage');
-        }
+  // ── 1. Sync localStorage check — before first paint ──────────────────
+  useIsomorphicLayoutEffect(() => {
+    try {
+      const userData =
+        localStorage.getItem('user') || sessionStorage.getItem('user');
+      const sessionExpiry =
+        localStorage.getItem('sessionExpiry') ||
+        sessionStorage.getItem('sessionExpiry');
 
-        // Fallback to localStorage/sessionStorage check
-        const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
-        const sessionExpiry = localStorage.getItem('sessionExpiry') || sessionStorage.getItem('sessionExpiry');
-
-        if (!userData || !sessionExpiry) {
-          setAuthState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-            isAdmin: false,
-            isStaff: false,
-          });
-          return;
-        }
-
-        // Check session expiration
-        if (Date.now() > Number(sessionExpiry)) {
-          localStorage.removeItem('user');
-          localStorage.removeItem('sessionExpiry');
-          sessionStorage.removeItem('user');
-          sessionStorage.removeItem('sessionExpiry');
-          setAuthState({
-            user: null,
-            isLoading: false,
-            isAuthenticated: false,
-            isAdmin: false,
-            isStaff: false,
-          });
-          return;
-        }
-
+      if (userData && sessionExpiry && Date.now() <= Number(sessionExpiry)) {
         const user = JSON.parse(userData);
-        const isAdmin = user.role === 'admin';  // → /SuperAdmin/...
-        const isStaff = user.role === 'staff';  // → /Admin/...
-
+        isAuthenticatedRef.current = true;
         setAuthState({
           user,
           isLoading: false,
           isAuthenticated: true,
-          isAdmin,
-          isStaff,
+          isAdmin: user.role === 'admin',
+          isStaff: user.role === 'staff',
         });
-      } catch (error) {
-        console.error('Auth check error:', error);
-        setAuthState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-          isAdmin: false,
-          isStaff: false,
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    isAuthenticatedRef.current = false;
+    setAuthState(UNAUTHENTICATED);
+  }, []);
+
+  // ── 2. Background server-side session validation ──────────────────────
+  useEffect(() => {
+    const checkAuth = async () => {
+      // Don't run if already checking or if we know user is not authenticated
+      // (prevents loops when on login page / unauthenticated state)
+      if (isCheckingRef.current) return;
+      if (!isAuthenticatedRef.current) return;
+
+      isCheckingRef.current = true;
+
+      try {
+        const response = await fetch('/api/auth/validate-session', {
+          method: 'GET',
+          credentials: 'include',
         });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.valid && data.user) {
+            isAuthenticatedRef.current = true;
+            setAuthState({
+              user: data.user,
+              isLoading: false,
+              isAuthenticated: true,
+              isAdmin: data.user.role === 'admin',
+              isStaff: data.user.role === 'staff',
+            });
+          } else {
+            // Session invalid — clear everything
+            localStorage.removeItem('user');
+            localStorage.removeItem('sessionExpiry');
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('sessionExpiry');
+            isAuthenticatedRef.current = false;
+            setAuthState(UNAUTHENTICATED);
+          }
+        }
+      } catch {
+        console.log('Server session check failed, relying on localStorage');
+      } finally {
+        isCheckingRef.current = false;
       }
     };
 
+    // Only run initial server check if we think we're authenticated
     checkAuth();
 
-    // Multi-tab sync
+    // Multi-tab sync — only re-check if currently authenticated
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'sessionToken' || e.key === 'user') {
+        isAuthenticatedRef.current = !!localStorage.getItem('user');
         checkAuth();
       }
     };
 
-    // Re-check on visibility (handles browser back button)
+    // Re-check on visibility/focus ONLY if authenticated
+    // This prevents the reload loop on the login page
     const handleVisibilityChange = () => {
-      if (!document.hidden) checkAuth();
+      if (!document.hidden && isAuthenticatedRef.current) checkAuth();
     };
-
-    // Re-check on window focus
-    const handleFocus = () => checkAuth();
+    const handleFocus = () => {
+      if (isAuthenticatedRef.current) checkAuth();
+    };
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('visibilitychange', handleVisibilityChange);
@@ -149,15 +147,11 @@ export const useAuth = () => {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (error) {
       console.error('Logout API error:', error);
     }
-
-    // Clear all storage
+    isAuthenticatedRef.current = false;
     localStorage.removeItem('user');
     localStorage.removeItem('sessionExpiry');
     sessionStorage.removeItem('user');
@@ -172,9 +166,5 @@ export const useAuth = () => {
     return false;
   };
 
-  return {
-    ...authState,
-    logout,
-    hasRole,
-  };
+  return { ...authState, logout, hasRole };
 };
