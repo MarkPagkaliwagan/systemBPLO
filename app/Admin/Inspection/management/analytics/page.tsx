@@ -467,7 +467,7 @@ function DashboardPageContent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // ── Fetch status counts — re-runs on refreshKey ───────────────────────────
+  // ── FIX 1: Fetch status counts using review_action with ilike ─────────────
   useEffect(() => {
     const fetchStatusCounts = async () => {
       try {
@@ -477,10 +477,10 @@ function DashboardPageContent() {
           { count: forInspection },
           { count: active },
         ] = await Promise.all([
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "compliant"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "non-compliant"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "for_inspection"),
-          supabase.from("business_records").select("*", { count: "exact", head: true }).eq("status", "active"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Compliant%").not("review_action", "ilike", "%Non-Compliant%"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Non-Compliant%"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%For Inspection%"),
+          supabase.from("business_records").select("*", { count: "exact", head: true }).ilike("review_action", "%Active%"),
         ]);
         setCompliantCount(compliant ?? 0);
         setNonCompliantCount(nonCompliant ?? 0);
@@ -491,14 +491,13 @@ function DashboardPageContent() {
       }
     };
     fetchStatusCounts();
-  }, [refreshKey]); // ← refreshKey added
+  }, [refreshKey]);
 
-  // ── Fetch violation counts — re-runs on noticeRange or refreshKey ─────────
+  // ── FIX 2: Fetch violation counts — handle NULL last_sent_time correctly ──
   useEffect(() => {
     const fetchViolationCounts = async () => {
       try {
         const now = new Date();
-        const nowISO = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString();
         const start = new Date(now);
         switch (noticeRange) {
           case "7d":  start.setDate(start.getDate() - 7); break;
@@ -507,26 +506,38 @@ function DashboardPageContent() {
           case "6m":  start.setMonth(start.getMonth() - 6); break;
           case "1yr": start.setFullYear(start.getFullYear() - 1); break;
         }
-        const startISO = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString();
+
+        // Fetch ALL violations — no date filter, no null filter
         const { data, error } = await supabase
           .from("business_violations")
-          .select("notice_level, resolved, cease_flag, last_sent_time")
-          .not("last_sent_time", "is", null)
-          .gte("last_sent_time", startISO)
-          .lte("last_sent_time", nowISO);
+          .select("notice_level, resolved, cease_flag, last_sent_time");
+
         if (error) { console.error("fetchViolationCounts error:", error); return; }
         const violations = data ?? [];
-        setNotice1Count(violations.filter((v) => v.notice_level === 1).length);
-        setNotice2Count(violations.filter((v) => v.notice_level === 2).length);
-        setNotice3Count(violations.filter((v) => v.notice_level === 3).length);
+
+        // Notice counts: only records that have been sent AND fall within the range
+        const nowTime = now.getTime();
+        const startTime = start.getTime();
+        const inRange = violations.filter((v) => {
+          if (!v.last_sent_time) return false;
+          const sent = new Date(v.last_sent_time).getTime();
+          return sent >= startTime && sent <= nowTime;
+        });
+
+        setNotice1Count(inRange.filter((v) => v.notice_level === 1).length);
+        setNotice2Count(inRange.filter((v) => v.notice_level === 2).length);
+        setNotice3Count(inRange.filter((v) => v.notice_level === 3).length);
+
+        // Active cases & cease/desist: ALL violations regardless of date or sent status
         setActiveCasesCount(violations.filter((v) => !v.resolved && !v.cease_flag).length);
         setCeaseDesistCount(violations.filter((v) => v.cease_flag === true).length);
+
       } catch (err) {
         console.error("fetchViolationCounts error:", err);
       }
     };
     fetchViolationCounts();
-  }, [noticeRange, refreshKey]); // ← refreshKey added
+  }, [noticeRange, refreshKey]);
 
   // ── Fetch schedules — re-runs on currentMonth or refreshKey ──────────────
   useEffect(() => {
@@ -563,7 +574,7 @@ function DashboardPageContent() {
       setDesktopMockEvents(byDay);
     };
     fetchSchedules();
-  }, [currentMonth, refreshKey]); // ← refreshKey added
+  }, [currentMonth, refreshKey]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -629,7 +640,7 @@ function DashboardPageContent() {
       .update(updates)
       .eq("Business Identification Number", reviewRecord["Business Identification Number"]);
     setReviewRecord(null);
-    setRefreshKey(prev => prev + 1); // ← triggers all three fetches simultaneously
+    setRefreshKey(prev => prev + 1);
   };
 
   const PortalDropdown = () => {
