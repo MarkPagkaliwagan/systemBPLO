@@ -961,7 +961,7 @@ function ReviewForm({
         photoUrl,
       });
 
-      router.push("/Admin/Inspection/management/analytics");
+      router.push("/SuperAdmin/Inspection/management/analytics");
 
     } finally {
       setIsSaving(false);

@@ -442,7 +442,7 @@ function CSVReviewContent() {
                     {searchTerm && (
                       <div
                         className="mt-4 px-6 py-3 bg-green-100 cursor-pointer rounded-lg text-green-900 font-semibold hover:bg-green-200 transition-colors text-sm"
-                        onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                        onClick={() => router.push(`/SuperAdmin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
                       >
                         + Add "{searchTerm}"
                       </div>
@@ -524,7 +524,7 @@ function CSVReviewContent() {
                     ) && (
                         <div
                           className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
-                          onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                          onClick={() => router.push(`/SuperAdmin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
                         >
                           + Add "{searchTerm}"
                         </div>
@@ -640,7 +640,7 @@ function CSVReviewContent() {
                         ) && (
                             <tr
                               className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
-                              onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                              onClick={() => router.push(`/SuperAdmin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
                             >
                               <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
                                 + Add "{searchTerm}"
@@ -692,7 +692,7 @@ function CSVReviewContent() {
       />
       {!isMobile && (
         <Link
-          href="/Admin/Inspection/management/manual_add"
+          href="/SuperAdmin/Inspection/management/manual_add"
           title="Manual Add Record"
           className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
         >

@@ -3,16 +3,43 @@
 import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FiHome, FiBookOpen, FiAlertCircle } from "react-icons/fi";
-import AddEventModal from "../SuperAdmin/Inspection/management/Modal/AddBusinessRecordModal";
-import ReviewModal, { BusinessRecord } from "../SuperAdmin/Inspection/management/Modal/reviewModal";
-import ConfirmScheduleModal from "../SuperAdmin/Inspection/management/Modal/Confirmschedulemodal";
 import { supabase } from "@/lib/supabaseClient";
+
+// Dynamic imports based on user role
+const getModalImports = (userRole: string) => {
+  if (userRole === "admin") {
+    return {
+      AddEventModal: require("../SuperAdmin/Inspection/management/Modal/AddBusinessRecordModal").default,
+      BusinessRecord: require("../SuperAdmin/Inspection/management/Modal/reviewModal").BusinessRecord,
+      ConfirmScheduleModal: require("../SuperAdmin/Inspection/management/Modal/Confirmschedulemodal").default,
+      ReviewModal: require("../SuperAdmin/Inspection/management/Modal/reviewModal").default,
+    };
+  } else {
+    return {
+      AddEventModal: require("../Admin/Inspection/management/Modal/AddBusinessRecordModal").default,
+      BusinessRecord: require("../Admin/Inspection/management/Modal/reviewModal").BusinessRecord,
+      ConfirmScheduleModal: require("../Admin/Inspection/management/Modal/Confirmschedulemodal").default,
+      ReviewModal: require("../Admin/Inspection/management/Modal/reviewModal").default,
+    };
+  }
+};
 
 interface NavItem {
   id: string;
   label: string;
   icon: React.ReactNode;
   href: string;
+}
+
+interface BusinessRecord {
+  id: string;
+  "Business Identification Number": string;
+  "Business Name": string;
+  "Trade Name": string | null;
+  "Business Nature": string | null;
+  "Business Line": string | null;
+  "Business Type": string | null;
+  [key: string]: any;
 }
 
 interface MobileBottomNavProps {
@@ -37,15 +64,6 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
 
-  // ── Lifted state: lives here at nav level, outside AddEventModal ──────────
-  const [pendingRecord, setPendingRecord] = useState<BusinessRecord | null>(null);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showReview, setShowReview] = useState(false);
-
-  useEffect(() => {
-    setIsPageLoading(false);
-  }, [pathname]);
-
   const getUserData = () => {
     if (typeof window !== "undefined") {
       const userData = localStorage.getItem("user");
@@ -55,6 +73,16 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
   };
 
   const userRole = getUserData().role;
+  const modalImports = getModalImports(userRole);
+  const { AddEventModal, BusinessRecord, ConfirmScheduleModal, ReviewModal } = modalImports;
+
+  const [pendingRecord, setPendingRecord] = useState<any>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+
+  useEffect(() => {
+    setIsPageLoading(false);
+  }, [pathname]);
 
   const getNavItems = (): NavItem[] => {
     if (userRole === "admin") {
@@ -217,7 +245,7 @@ const MobileBottomNav = ({ onAddEvent }: MobileBottomNavProps) => {
           isMobile={true}
           onClose={() => { setShowReview(false); setPendingRecord(null); }}
           onSave={handleReviewSave}
-          onRecordUpdated={(updated) => setPendingRecord(updated as BusinessRecord)}
+          onRecordUpdated={(updated: any) => setPendingRecord(updated as BusinessRecord)}
           onRecordDeleted={() => { setShowReview(false); setPendingRecord(null); }}
         />
       )}
