@@ -245,12 +245,12 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, isMobile = false }: 
     }
   };
 
-  // ── Confirm "Yes, Schedule Now" ───────────────────────────────────────────
   const handleConfirmYes = () => {
     setShowConfirm(false);
-    setShowReview(true);   // open review modal with the saved record
+    setShowReview(true);   // Open review modal
+    onSaved(savedRecord!); // ✅ Use non-null assertion (since we know it exists)
+    setTimeout(() => setVisible(true), 10);
   };
-
   // ── Confirm "No, Skip" ────────────────────────────────────────────────────
   const handleConfirmSkip = () => {
     setShowConfirm(false);
