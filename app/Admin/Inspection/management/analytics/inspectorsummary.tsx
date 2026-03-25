@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { FiClipboard, FiX, FiSearch, FiArrowUp, FiArrowDown } from "react-icons/fi";
-
+import ReviewModal from "../Modal/reviewModal";
 
 type RecordType = {
   assigned_inspector: string | null;
   "Business Identification Number": string | null;
   "Business Name": string | null;
   scheduled_date: string | null;
+  schedule_time: string | null;
   updated_at?: string | null;
 };
 
@@ -52,6 +53,22 @@ function formatDate(dateValue: string | number | null) {
     year: "numeric",
     month: "short",
     day: "numeric",
+  });
+}
+
+function formatTime(timeValue: string | null) {
+  if (!timeValue) return "-";
+
+  const normalized = timeValue.trim();
+  if (!normalized) return "-";
+
+  const timeDate = new Date(`1970-01-01T${normalized}`);
+
+  if (Number.isNaN(timeDate.getTime())) return normalized;
+
+  return timeDate.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -111,8 +128,19 @@ export default function InspectorSummary() {
   const [modalSortAsc, setModalSortAsc] = useState(true);
   const [modalMonth, setModalMonth] = useState("");
 
+  const [reviewRecord, setReviewRecord] = useState<any | null>(null);
+  const [loadingBin, setLoadingBin] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   async function fetchData() {
@@ -123,6 +151,7 @@ export default function InspectorSummary() {
         "Business Identification Number",
         "Business Name",
         scheduled_date,
+        schedule_time,
         updated_at
       `);
 
@@ -132,6 +161,64 @@ export default function InspectorSummary() {
 
     setRecords(data || []);
   }
+
+  const handleOpenReview = useCallback(async (bin: string | null) => {
+    if (!bin) return;
+
+    setLoadingBin(bin);
+
+    const { data, error } = await supabase
+      .from("business_records")
+      .select("*")
+      .eq("Business Identification Number", bin)
+      .single();
+
+    setLoadingBin(null);
+
+    if (error || !data) {
+      console.error("Failed to fetch record:", error);
+      return;
+    }
+
+    setReviewRecord(data);
+  }, []);
+
+  const handleReviewSave = async (reviewData: {
+    reviewActions: string[];
+    violations: string[];
+    assignedInspector?: string;
+    scheduledDate?: string;
+    scheduledTime?: string;
+    location?: { lat: number; lng: number; accuracy: number };
+    photo?: File;
+    photoUrl?: string;
+    reviewedBy?: string;
+  }) => {
+    if (!reviewRecord) return;
+
+    const updates: Record<string, any> = {
+      review_action: reviewData.reviewActions.join(", ") || null,
+      violation: reviewData.violations.join(", ") || null,
+      status: reviewData.reviewActions[reviewData.reviewActions.length - 1]?.toLowerCase().replace(/ /g, "_") ?? null,
+      review_date: new Date().toISOString(),
+      reviewed_by: reviewData.reviewedBy ?? null,
+      assigned_inspector: reviewData.assignedInspector ?? null,
+      scheduled_date: reviewData.scheduledDate ?? null,
+      schedule_time: reviewData.scheduledTime ?? null,
+      latitude: reviewData.location?.lat?.toString() ?? null,
+      longitude: reviewData.location?.lng?.toString() ?? null,
+      accuracy: reviewData.location?.accuracy?.toString() ?? null,
+      photo: reviewData.photoUrl ?? null,
+    };
+
+    await supabase
+      .from("business_records")
+      .update(updates)
+      .eq("Business Identification Number", reviewRecord["Business Identification Number"]);
+
+    setReviewRecord(null);
+    await fetchData();
+  };
 
   const inspectors = useMemo(() => {
     const grouped: Record<string, InspectorCount> = {};
@@ -218,16 +305,13 @@ export default function InspectorSummary() {
 
             {/* Left side — tighter */}
             <div className="flex items-center gap-2">
-              {/* icon box: h-10 w-10 → h-7 w-7, rounded-2xl → rounded-lg */}
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 shrink-0">
                 <FiClipboard size={13} className="text-white" />
               </div>
               <div>
-                {/* text-lg → text-sm */}
                 <h2 className="text-sm font-semibold text-slate-900 leading-tight">
                   Inspector Workload
                 </h2>
-                {/* text-[12px] → text-[10px] */}
                 <p className="text-[10px] text-slate-500 leading-tight">
                   Tap an inspector to view records
                 </p>
@@ -259,7 +343,7 @@ export default function InspectorSummary() {
         </div>
 
         {/* Scrollable Inspector List — tighter rows */}
-        <div className="flex-1 overflow-y-auto p-2" style={{ maxHeight: '220px' }}>
+        <div className="flex-1 overflow-y-auto p-2" style={{ maxHeight: "220px" }}>
           {inspectors.length > 0 ? (
             <div className="space-y-0.5">
               {inspectors.map((inspector, index) => {
@@ -271,25 +355,20 @@ export default function InspectorSummary() {
                   <button
                     key={inspector.name}
                     onClick={() => setSelectedInspector(inspector.name)}
-                    // rounded-2xl → rounded-xl, px-3 py-3 → px-2 py-1.5
                     className={`w-full rounded-xl px-2 py-1.5 text-left transition-all duration-200 ${
                       isSelected ? "bg-slate-100" : "hover:bg-slate-50"
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      {/* name column: w-28 md:w-44 → w-24 md:w-36 */}
                       <div className="w-24 md:w-36 shrink-0">
-                        {/* text-sm → text-xs */}
                         <div className="truncate text-xs font-medium text-slate-900">
                           {inspector.name}
                         </div>
-                        {/* text-[11px] → text-[9px] */}
                         <div className="text-[9px] text-slate-400 leading-tight">
                           {formatDate(inspector.latest)}
                         </div>
                       </div>
 
-                      {/* bar: h-2.5 → h-1.5 */}
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                         <div
                           className={`h-full rounded-full ${barTheme} transition-all duration-300`}
@@ -297,7 +376,6 @@ export default function InspectorSummary() {
                         />
                       </div>
 
-                      {/* count: text-sm → text-xs */}
                       <span className="w-6 shrink-0 text-right text-xs font-semibold text-slate-700">
                         {inspector.total}
                       </span>
@@ -314,7 +392,7 @@ export default function InspectorSummary() {
         </div>
       </div>
 
-      {/* Modal — unchanged, already good size */}
+      {/* Modal — inspector records */}
       {selectedInspector && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
           <div className="flex max-h-[90vh] w-full max-w-[95%] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
@@ -365,23 +443,36 @@ export default function InspectorSummary() {
                     <th className="p-3 text-left font-medium text-slate-600">BIN</th>
                     <th className="p-3 text-left font-medium text-slate-600">Business Name</th>
                     <th className="p-3 text-left font-medium text-slate-600">Scheduled Date</th>
+                    <th className="p-3 text-left font-medium text-slate-600">Scheduled Time</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRecords.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="border-b border-slate-100 transition-colors hover:bg-slate-50"
-                    >
-                      <td className="p-3">{row["Business Identification Number"] || "-"}</td>
-                      <td className="p-3">{row["Business Name"] || "-"}</td>
-                      <td className="p-3">{formatDate(row.scheduled_date)}</td>
-                    </tr>
-                  ))}
+                  {filteredRecords.map((row, i) => {
+                    const bin = row["Business Identification Number"];
+
+                    return (
+                      <tr
+                        key={i}
+                        onClick={() => handleOpenReview(bin)}
+                        className={`border-b border-slate-100 transition-colors hover:bg-slate-50 ${
+                          bin ? "cursor-pointer" : ""
+                        }`}
+                      >
+                        <td className="p-3">
+                          <span className="font-medium text-blue-600 hover:underline">
+                            {bin || "-"}
+                          </span>
+                        </td>
+                        <td className="p-3">{row["Business Name"] || "-"}</td>
+                        <td className="p-3">{formatDate(row.scheduled_date)}</td>
+                        <td className="p-3">{formatTime(row.schedule_time)}</td>
+                      </tr>
+                    );
+                  })}
 
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="p-6 text-center text-slate-400">
+                      <td colSpan={4} className="p-6 text-center text-slate-400">
                         No records found
                       </td>
                     </tr>
@@ -391,6 +482,19 @@ export default function InspectorSummary() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Review Modal — opens when BIN is clicked */}
+      {reviewRecord && (
+        <ReviewModal
+          selectedRow={reviewRecord}
+          showReviewModal={true}
+          isMobile={isMobile}
+          onClose={() => setReviewRecord(null)}
+          onSave={handleReviewSave}
+          onRecordUpdated={(updated) => setReviewRecord(updated)}
+          onRecordDeleted={() => setReviewRecord(null)}
+        />
       )}
     </>
   );

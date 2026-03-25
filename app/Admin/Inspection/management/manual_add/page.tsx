@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, KeyboardEvent } from "react";
+import { useEffect, useState, useRef, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -16,8 +16,6 @@ import {
     FiChevronDown
 } from "react-icons/fi";
 import ProtectedRoute from "../../../../../components/ProtectedRoute";
-
-
 
 const BIN_FIELD = "Business Identification Number";
 const BUSINESS_NAME_FIELD = "Business Name";
@@ -53,44 +51,63 @@ function ManualAddBusinessContent() {
     // custom notifications
     const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-    /* ---------- LOAD ADMIN USERS FOR INSPECTOR DROPDOWN ---------- */
-useEffect(() => {
-    const loadAdminUsers = async () => {
-        try {
-            // Fetch users with role = 'admin'
-            const { data, error } = await supabase
-                .from("users")
-                .select("full_name, role")
-                .order("full_name", { ascending: true });
+    // confirmation modal
+    const [showProceedModal, setShowProceedModal] = useState(false);
+    const confirmResolveRef = useRef<((value: boolean) => void) | null>(null);
 
-            // Log for debugging
-            console.log("Supabase fetch error:", error);
-            console.log("Fetched admin users:", data);
+    const openProceedModal = () => {
+        return new Promise<boolean>((resolve) => {
+            confirmResolveRef.current = resolve;
+            setShowProceedModal(true);
+        });
+    };
 
-            if (error) {
-                throw new Error(error.message);
-            }
-
-            if (!data || data.length === 0) {
-                console.warn("No admin users found.");
-                setAdminUsers([]);
-                return;
-            }
-
-            // Filter out empty names and trim spaces
-            const names = data
-                .map((item) => String(item.full_name ?? "").trim())
-                .filter((name) => name.length > 0);
-
-            setAdminUsers(names);
-        } catch (err: any) {
-            console.error("Failed to load admin users:", err.message || err);
-            setAdminUsers([]);
+    const handleProceedModalChoice = (choice: boolean) => {
+        setShowProceedModal(false);
+        if (confirmResolveRef.current) {
+            confirmResolveRef.current(choice);
+            confirmResolveRef.current = null;
         }
     };
 
-    loadAdminUsers();
-}, []);
+    /* ---------- LOAD ADMIN USERS FOR INSPECTOR DROPDOWN ---------- */
+    useEffect(() => {
+        const loadAdminUsers = async () => {
+            try {
+                // Fetch users with role = 'admin'
+                const { data, error } = await supabase
+                    .from("users")
+                    .select("full_name, role")
+                    .order("full_name", { ascending: true });
+
+                // Log for debugging
+                console.log("Supabase fetch error:", error);
+                console.log("Fetched users:", data);
+
+                if (error) {
+                    throw new Error(error.message);
+                }
+
+                if (!data || data.length === 0) {
+                    console.warn("No users found.");
+                    setAdminUsers([]);
+                    return;
+                }
+
+                // Filter out empty names and trim spaces
+                const names = data
+                    .map((item) => String(item.full_name ?? "").trim())
+                    .filter((name) => name.length > 0);
+
+                setAdminUsers(names);
+            } catch (err: any) {
+                console.error("Failed to load users:", err.message || err);
+                setAdminUsers([]);
+            }
+        };
+
+        loadAdminUsers();
+    }, []);
 
     /* ---------- TOASTS ---------- */
     const addToast = (type: ToastType, message: string) => {
@@ -111,9 +128,9 @@ useEffect(() => {
         let v = value;
 
         // BIN must be digits only
-if (label === BIN_FIELD) {
-    v = normalizeDigits(value).slice(0, 12); // LIMIT to 12 digits
-}
+        if (label === BIN_FIELD) {
+            v = normalizeDigits(value).slice(0, 12); // LIMIT to 12 digits
+        }
 
         if (v === "") v = null;
 
@@ -165,17 +182,17 @@ if (label === BIN_FIELD) {
 
         const emailLabels = ["Requestor Email"];
 
-if (label === BIN_FIELD) {
-    if (!/^\d+$/.test(v)) return "BIN must contain only numbers.";
+        if (label === BIN_FIELD) {
+            if (!/^\d+$/.test(v)) return "BIN must contain only numbers.";
 
-    if (v.length < 9 || v.length > 12) {
-        return "BIN must be 9 to 12 digits only.";
-    }
+            if (v.length < 9 || v.length > 12) {
+                return "BIN must be 9 to 12 digits only.";
+            }
 
-    if (binDuplicate) return "BIN already exists.";
+            if (binDuplicate) return "BIN already exists.";
 
-    return null;
-}
+            return null;
+        }
 
         if (integerOnlyLabels.includes(label)) {
             if (!/^\d+$/.test(v)) return `${label} must contain only numbers (no letters or symbols).`;
@@ -231,10 +248,10 @@ if (label === BIN_FIELD) {
         } else {
             const binVal = String(form[BIN_FIELD]).trim();
             if (!/^\d+$/.test(binVal)) {
-    foundErrors[BIN_FIELD] = "BIN must contain only numbers.";
-} else if (binVal.length < 9 || binVal.length > 12) {
-    foundErrors[BIN_FIELD] = "BIN must be 9 to 12 digits only.";
-} else {
+                foundErrors[BIN_FIELD] = "BIN must contain only numbers.";
+            } else if (binVal.length < 9 || binVal.length > 12) {
+                foundErrors[BIN_FIELD] = "BIN must be 9 to 12 digits only.";
+            } else {
                 const isDup = await checkBinDuplicateNow(binVal);
                 if (isDup) foundErrors[BIN_FIELD] = "BIN already exists.";
             }
@@ -382,9 +399,23 @@ if (label === BIN_FIELD) {
         }
 
         addToast("success", "Record saved successfully.");
-        setTimeout(() => {
-            router.push("/Admin/Inspection/management/review");
-        }, 700);
+
+        // --- Modal confirmation prompt ---
+        const proceedToScheduling = await openProceedModal();
+
+if (proceedToScheduling) {
+    router.push("/Admin/Inspection/management/review");
+} else {
+    // ✅ CLEAR FORM INSTEAD OF REDIRECT
+    setForm({});
+    setInspectorList([]);
+    setInspectorInput("");
+    setSelectedAdminInspector("");
+    setErrors({});
+    setBinDuplicate(false);
+
+    addToast("info", "Form cleared. You can add another record.");
+}
     };
 
     /* ---------- SAVE BUTTON CLICK ---------- */
@@ -421,6 +452,50 @@ if (label === BIN_FIELD) {
                 ))}
             </div>
 
+            {/* CONFIRMATION MODAL */}
+            {showProceedModal && (
+                <div
+                    className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4"
+                    onClick={() => handleProceedModalChoice(false)}
+                >
+                    <div
+                        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-green-100"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-green-100 text-green-900">
+                                <FiCheckCircle className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-green-900">Record Saved</h2>
+                                <p className="text-sm text-gray-600">What would you like to do next?</p>
+                            </div>
+                        </div>
+
+                        <p className="text-sm text-gray-700 mb-6">
+                            Do you want to proceed to scheduling, or go to review instead?
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => handleProceedModalChoice(false)}
+                                className="px-5 py-2 rounded-lg border border-green-900 text-green-900 hover:bg-green-50 transition w-full sm:w-auto"
+                            >
+                                Add more
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleProceedModalChoice(true)}
+                                className="px-5 py-2 rounded-lg bg-green-900 text-white hover:bg-green-800 transition w-full sm:w-auto"
+                            >
+                                Proceed to Scheduling
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* HEADER */}
             <div className="bg-white border-b border-green-100 px-4 sm:px-6 py-4 flex items-center gap-3 sm:gap-4">
                 <button
@@ -443,24 +518,24 @@ if (label === BIN_FIELD) {
                     collapsible={false}
                     note="Main fields only"
                 >
-<Input
-    label={BIN_FIELD}
-    value={form[BIN_FIELD] ?? ""}
-    onChange={handleChange}
-    error={errors[BIN_FIELD]}
-    inputMode="numeric"
-    placeholder="9 to 12 digits"
-helperText={
-    binChecking
-        ? "Checking BIN..."
-        : binDuplicate
-        ? "This BIN already exists."
-        : (form[BIN_FIELD]?.length || 0) < 9
-        ? `Minimum 9 digits (${(form[BIN_FIELD] ?? "").length}/12)`
-        : `${(form[BIN_FIELD] ?? "").length}/12 digits`
-}
-    required
-/>
+                    <Input
+                        label={BIN_FIELD}
+                        value={form[BIN_FIELD] ?? ""}
+                        onChange={handleChange}
+                        error={errors[BIN_FIELD]}
+                        inputMode="numeric"
+                        placeholder="9 to 12 digits"
+                        helperText={
+                            binChecking
+                                ? "Checking BIN..."
+                                : binDuplicate
+                                ? "This BIN already exists."
+                                : (form[BIN_FIELD]?.length || 0) < 9
+                                ? `Minimum 9 digits (${(form[BIN_FIELD] ?? "").length}/12)`
+                                : `${(form[BIN_FIELD] ?? "").length}/12 digits`
+                        }
+                        required
+                    />
                     <Input
                         label={BUSINESS_NAME_FIELD}
                         value={form[BUSINESS_NAME_FIELD] ?? ""}
@@ -486,7 +561,7 @@ helperText={
                                     }}
                                     className="border rounded-lg px-3 py-2 text-black outline-none w-full sm:w-[260px] transition border-green-100 focus:ring-2 focus:ring-green-900"
                                 >
-                                    <option value="">Select admin name</option>
+                                    <option value="">Select users name</option>
                                     {adminUsers.map((name) => (
                                         <option key={name} value={name}>
                                             {name}

@@ -10,6 +10,8 @@ import { handlePhotoAndLocationUpload } from "@/lib/photoUpload";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import ActivityLogModal from "./Activitylogmodal";
+import { useRouter } from "next/navigation";
+
 
 interface BusinessRecord {
   id: string;
@@ -144,6 +146,8 @@ export default function ReviewModal({
     }, 300); // delay para sure rendered na
   }
 }, [showReviewModal, isMobile]);
+
+
 
   // ── Fetch current user's full_name from localStorage → users table ────────
   useEffect(() => {
@@ -586,6 +590,7 @@ export default function ReviewModal({
   className={`${isMobile ? "w-full" : "lg:col-span-1 lg:h-full"}`}
 >
                 <ReviewForm
+                
                   initialActions={selectedRow.review_action ? selectedRow.review_action.split(",").map((a) => a.trim()) : []}
                   initialViolations={selectedRow.violation ? selectedRow.violation.split(",").map((v) => v.trim()) : []}
                   initialInspector={selectedRow.assigned_inspector ?? undefined}
@@ -879,7 +884,31 @@ function ReviewForm({
   const [reviewActions, setReviewActions]         = useState<string[]>(initialActions);
   const [violations, setViolations]               = useState<string[]>(initialViolations);
   const [violationText, setViolationText]         = useState(initialViolations.join(", "));
-  const [assignedInspector, setAssignedInspector] = useState(initialInspector || "");
+  const [assignedInspectors, setAssignedInspectors] = useState<string[]>(
+  initialInspector ? [initialInspector] : []
+);
+
+const addInspector = (name: string) => {
+  setAssignedInspectors((prev) =>
+    prev.includes(name) ? prev : [...prev, name]
+  );
+};
+const router = useRouter();
+const [manualName, setManualName] = useState("");
+
+const addManualInspector = () => {
+  if (!manualName.trim()) return;
+
+  setAssignedInspectors((prev) => [...prev, manualName.trim()]);
+  setManualName("");
+};
+
+const removeInspector = (index: number) => {
+  setAssignedInspectors((prev) =>
+    prev.filter((_, i) => i !== index)
+  );
+};
+
   const [scheduledDate, setScheduledDate]         = useState(initialScheduledDate || "");
   const [scheduledTime, setScheduledTime]         = useState(initialScheduledTime || "");
   const [isSaving, setIsSaving]                   = useState(false);
@@ -895,6 +924,27 @@ function ReviewForm({
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef   = useRef<HTMLInputElement>(null);
+  const [inspectors, setInspectors] = useState<string[]>([]);
+
+  useEffect(() => {
+  const fetchInspectors = async () => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("full_name");
+
+    if (error) {
+      console.error("Failed to fetch users:", error);
+      return;
+    }
+
+    if (data) {
+      setInspectors(data.map((u) => u.full_name));
+    }
+  };
+
+  fetchInspectors();
+}, []);
+
 
   const captureLocation = () => {
     if (!navigator.geolocation) { setLocationStatus("error"); return; }
@@ -949,26 +999,37 @@ function ReviewForm({
     setViolations(text.split(",").map((v) => v.trim()).filter((v) => v.length > 0));
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      let photoUrl: string | undefined;
-      if (photoFile) {
-        const url = await onUploadPhoto(photoFile, location ?? undefined);
-        if (url) photoUrl = url;
-      }
-      onSave({
-        reviewActions,
-        violations,
-        assignedInspector: assignedInspector || undefined,
-        scheduledDate: scheduledDate || undefined,
-        scheduledTime: scheduledTime || undefined,
-        location: location || undefined,
-        photo: photoFile || undefined,
-        photoUrl,
-      });
-    } finally { setIsSaving(false); }
-  };
+const handleSave = async () => {
+  setIsSaving(true);
+  try {
+    let photoUrl: string | undefined;
+
+    if (photoFile) {
+      const url = await onUploadPhoto(photoFile, location ?? undefined);
+      if (url) photoUrl = url;
+    }
+
+    onSave({
+      reviewActions,
+      violations,
+      assignedInspector:
+        assignedInspectors.length > 0
+          ? assignedInspectors.join(", ")
+          : undefined,
+      scheduledDate: scheduledDate || undefined,
+      scheduledTime: scheduledTime || undefined,
+      location: location || undefined,
+      photo: photoFile || undefined,
+      photoUrl,
+    });
+
+    // ✅ REDIRECT HERE
+    router.push("/Admin/Inspection/management/analytics");
+
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   const showInspectorFields = reviewActions.includes("For Inspection");
 
@@ -1179,42 +1240,120 @@ function ReviewForm({
           )}
         </div>
 
-        {/* Inspector Assignment */}
         {showInspectorFields && (
-          <div className="bg-white rounded-xl p-4 border border-gray-200">
-            <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
-              <FiUser className="w-4 h-4 mr-2 text-blue-600" /> Inspection Assignment
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Assigned Inspector</label>
-                <div className="relative">
-                  <input type="text" value={assignedInspector} onChange={(e) => setAssignedInspector(e.target.value)}
-                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors text-black"
-                    placeholder="Enter inspector name..." />
-                  <FiUser className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled Date</label>
-                <div className="relative">
-                  <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)}
-                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors" />
-                  <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Scheduled Time</label>
-                <div className="relative">
-                  <input type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
-                    className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors" />
-                  <FiClock className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+  <div className="bg-white rounded-xl text-black p-4 border border-gray-200">
+    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center">
+      <FiUser className="w-4 h-4 mr-2 text-blue-600" /> Inspection Assignment
+    </h3>
 
+    {/* OPTION 1: Dropdown from users */}
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Select Inspector
+      </label>
+      <select
+        onChange={(e) => addInspector(e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        defaultValue=""
+      >
+        <option value="" disabled>
+          Select from users...
+        </option>
+        {inspectors.map((name, i) => (
+          <option key={i} value={name}>
+            {name}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* OPTION 2: Manual input */}
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Add Manual Inspector
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={manualName}
+          onChange={(e) => setManualName(e.target.value)}
+          placeholder="Enter name..."
+          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        />
+        <button
+          type="button"
+          onClick={addManualInspector}
+          className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+
+    {/* Selected inspectors */}
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Assigned Inspectors
+      </label>
+
+      <div className="min-h-[50px] p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        {assignedInspectors.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {assignedInspectors.map((name, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+              >
+                {name}
+                <button
+                  onClick={() => removeInspector(index)}
+                  className="ml-2 text-blue-600 hover:text-blue-800"
+                >
+                  <FiX className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-400 text-sm">No inspectors assigned</p>
+        )}
+      </div>
+    </div>
+
+{/* ✅ SCHEDULE DATE */}
+<div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Scheduled Date
+  </label>
+  <div className="relative">
+    <input
+      type="date"
+      value={scheduledDate}
+      onChange={(e) => setScheduledDate(e.target.value)}
+      min={new Date().toISOString().split("T")[0]} // ✅ only current & future dates
+      className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
+    />
+    <FiCalendar className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+  </div>
+</div>
+
+    {/* ✅ SCHEDULE TIME */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Scheduled Time
+      </label>
+      <div className="relative">
+        <input
+          type="time"
+          value={scheduledTime}
+          onChange={(e) => setScheduledTime(e.target.value)}
+          className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-black transition-colors"
+        />
+        <FiClock className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+      </div>
+    </div>
+  </div>
+)}
         {/* Action Buttons */}
         <div className="pt-4 border-t border-gray-200 flex flex-col gap-2">
           <button onClick={handleSave} disabled={isSaving}

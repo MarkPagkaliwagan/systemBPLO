@@ -1,11 +1,9 @@
-// app/module-2-inspection/Review Modal/AddBusinessRecordModal.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import ConfirmScheduleModal from "./Confirmschedulemodal";
-
+import { useRouter } from "next/navigation";
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface BusinessRecord {
   "Business Identification Number": string;
@@ -78,13 +76,13 @@ export interface BusinessRecord {
   assigned_inspector: string | null;
   scheduled_date: string | null;
   file_id: string | null;
+  
 }
 
 interface AddBusinessRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: (record: BusinessRecord) => void;
-  onSchedule?: (record: BusinessRecord) => void;
 }
 
 // ── Section Component ─────────────────────────────────────────────────────────
@@ -224,15 +222,49 @@ const emptyRecord = () => ({
 });
 
 // ── Main Component ────────────────────────────────────────────────────────────
-const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBusinessRecordModalProps) => {
+const AddBusinessRecordModal = ({ isOpen, onClose, onSaved }: AddBusinessRecordModalProps) => {
   const [form, setForm] = useState(emptyRecord());
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showScheduleConfirm, setShowScheduleConfirm] = useState(false);
+  const [checkingBin, setCheckingBin] = useState(false);
+  const [binExists, setBinExists] = useState(false);
+
+  const [showProceedPrompt, setShowProceedPrompt] = useState(false);
   const [savedRecord, setSavedRecord] = useState<BusinessRecord | null>(null);
+
+  const router = useRouter();
+
+  useEffect(() => {
+    const bin = form["Business Identification Number"];
+
+    if (!bin || bin.length < 9) {
+      setBinExists(false);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      setCheckingBin(true);
+
+      const { data, error } = await supabase
+        .from("business_records")
+        .select("Business Identification Number")
+        .eq("Business Identification Number", bin)
+        .maybeSingle();
+
+      if (data) {
+        setBinExists(true);
+      } else {
+        setBinExists(false);
+      }
+
+      setCheckingBin(false);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [form["Business Identification Number"]]);
 
   useEffect(() => {
     if (isOpen) {
@@ -240,7 +272,7 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
       setErrors({});
       setSaveError(null);
       setShowSuccess(false);
-      setShowScheduleConfirm(false);
+      setShowProceedPrompt(false);
       setSavedRecord(null);
       setTimeout(() => setVisible(true), 10);
     } else {
@@ -257,19 +289,79 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
   const validate = () => {
     const e: Partial<Record<string, string>> = {};
     const bin = form["Business Identification Number"].trim();
+
     if (!bin) {
       e["bin"] = "BIN is required.";
-    } else if (!/^[0-9-]+$/.test(bin)) {
-      e["bin"] = "BIN must contain numbers only (e.g. 2024-00123).";
+    } else if (!/^\d+$/.test(bin)) {
+      e["bin"] = "BIN must be numbers only.";
+    } else if (bin.length < 9 || bin.length > 12) {
+      e["bin"] = "BIN must be 9 to 12 digits.";
     }
-    if (!form["Business Name"].trim()) e["name"] = "Business Name is required.";
+
+    if (!form["Business Name"].trim()) {
+      e["name"] = "Business Name is required.";
+    }
+
     return e;
+  };
+
+  const clearAfterNo = () => {
+    setShowProceedPrompt(false);
+    setShowSuccess(false);
+    setSaveError(null);
+    setErrors({});
+    setSavedRecord(null);
+    setCheckingBin(false);
+    setBinExists(false);
+    setForm(emptyRecord());
+    setVisible(true);
+  };
+
+  const handleProceedYes = () => {
+    if (!savedRecord) return;
+
+    const bin = savedRecord["Business Identification Number"];
+
+    setShowProceedPrompt(false);
+    setShowSuccess(false);
+    setVisible(false);
+
+    onSaved(savedRecord);
+
+    setTimeout(() => {
+      onClose();
+      router.push(`/Admin/Inspection/management/review?bin=${encodeURIComponent(bin)}`);
+    }, 250);
+  };
+
+  const handleProceedNo = () => {
+    clearAfterNo();
   };
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     const e = validate();
-    if (Object.keys(e).length > 0) { setErrors(e); return; }
+
+    if (Object.keys(e).length > 0) {
+      setErrors(e);
+      return;
+    }
+
+    if (checkingBin) {
+      setErrors(prev => ({
+        ...prev,
+        bin: "Please wait, checking BIN...",
+      }));
+      return;
+    }
+
+    if (binExists) {
+      setErrors(prev => ({
+        ...prev,
+        bin: "BIN already exists.",
+      }));
+      return;
+    }
 
     setSaving(true);
     setSaveError(null);
@@ -289,13 +381,15 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
         return;
       }
 
-      // ── Show success toast then ask about scheduling ───────────────────────
-      setSavedRecord(data as BusinessRecord);
+      const saved = data as BusinessRecord;
+
+      setSavedRecord(saved);
       setShowSuccess(true);
+      setShowProceedPrompt(true);
+
       setTimeout(() => {
         setShowSuccess(false);
-        setShowScheduleConfirm(true);
-      }, 1500);
+      }, 2500);
 
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
@@ -305,26 +399,9 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
   };
 
   const handleClose = () => {
+    if (showProceedPrompt) return;
     setVisible(false);
     setTimeout(onClose, 300);
-  };
-
-  // ── Schedule confirm handlers ─────────────────────────────────────────────
-  const handleConfirmSchedule = () => {
-    setShowScheduleConfirm(false);
-    if (savedRecord) {
-      onSaved(savedRecord);       // notify parent record was saved
-      onSchedule?.(savedRecord);  // open ReviewModal with this record
-    }
-    handleClose();
-  };
-
-  const handleSkipSchedule = () => {
-    setShowScheduleConfirm(false);
-    if (savedRecord) {
-      onSaved(savedRecord);
-    }
-    handleClose();
   };
 
   if (!isOpen) return null;
@@ -357,9 +434,56 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
         </div>
       )}
 
+      {/* ── Proceed Prompt ── */}
+      {showProceedPrompt && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 backdrop-blur-sm px-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl border border-slate-100 p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+                <CheckCircle size={20} className="text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Saved successfully</h3>
+                <p className="text-xs text-slate-500">Proceed to Scheduling?</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-3 mb-4">
+              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">BIN</p>
+              <p className="text-sm font-bold text-slate-800 mt-1">
+                {savedRecord?.["Business Identification Number"] ?? "-"}
+              </p>
+              <p className="text-xs text-slate-500 mt-2">
+                Y = open review modal by BIN
+              </p>
+              <p className="text-xs text-slate-500">
+                N = stay here and clear the form
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleProceedNo}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+              >
+                N
+              </button>
+              <button
+                type="button"
+                onClick={handleProceedYes}
+                className="px-4 py-2.5 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors shadow-md shadow-green-200"
+              >
+                Y
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Backdrop */}
       <div
-        onClick={saving ? undefined : handleClose}
+        onClick={saving || showProceedPrompt ? undefined : handleClose}
         className="fixed inset-0 z-[60] transition-all duration-300"
         style={{
           background: visible ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
@@ -427,18 +551,32 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
             <Field label="Business Identification Number (BIN)" required error={errors["bin"]}>
               <input
                 type="text"
-                placeholder="e.g. 2024-00123"
+                placeholder="Enter 9–12 digit BIN"
                 value={form["Business Identification Number"]}
                 onChange={e => {
                   const val = e.target.value;
-                  if (/^[0-9-]*$/.test(val)) {
+
+                  // allow numbers only
+                  if (/^\d*$/.test(val)) {
                     setForm(p => ({ ...p, "Business Identification Number": val }));
-                    if (errors["bin"]) setErrors(prev => ({ ...prev, bin: undefined }));
+
+                    if (errors["bin"]) {
+                      setErrors(prev => ({ ...prev, bin: undefined }));
+                    }
                   }
                 }}
-                className={inputCls(!!errors["bin"])}
+                className={inputCls(!!errors["bin"] || binExists)}
               />
             </Field>
+            {checkingBin && (
+              <p className="text-xs text-slate-400 mt-1">Checking BIN...</p>
+            )}
+
+            {binExists && (
+              <p className="text-xs text-red-500 mt-1">
+                ⚠ BIN already exists.
+              </p>
+            )}
             <Field label="Business Name" required error={errors["name"]}>
               <input
                 type="text"
@@ -779,14 +917,6 @@ const AddBusinessRecordModal = ({ isOpen, onClose, onSaved, onSchedule }: AddBus
           <div className="h-8" />
         </div>
       </div>
-
-      {/* ── Confirm Schedule Modal ── */}
-      <ConfirmScheduleModal
-        isOpen={showScheduleConfirm}
-        businessName={savedRecord?.["Business Name"] ?? ""}
-        onConfirm={handleConfirmSchedule}
-        onSkip={handleSkipSchedule}
-      />
     </>
   );
 };
