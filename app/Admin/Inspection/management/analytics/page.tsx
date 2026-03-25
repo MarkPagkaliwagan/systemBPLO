@@ -674,10 +674,10 @@ function DashboardPageContent() {
   ];
 
   const noticeStats = [
+    { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, iconColor: "text-orange-400" },
     { title: "Notice 1 Sent",  value: String(notice1Count),     icon: Mail,  iconColor: "text-indigo-400" },
     { title: "Notice 2 Sent",  value: String(notice2Count),     icon: Mail,  iconColor: "text-purple-400" },
     { title: "Notice 3 Sent",  value: String(notice3Count),     icon: Mail,  iconColor: "text-pink-400" },
-    { title: "Active Cases",   value: String(activeCasesCount), icon: Gavel, iconColor: "text-orange-400" },
     { title: "Cease & Desist", value: String(ceaseDesistCount), icon: Ban,   iconColor: "text-red-400" },
   ];
 
