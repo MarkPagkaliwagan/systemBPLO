@@ -247,27 +247,13 @@ export default function ReviewModal({
     if (logErr) console.error("❌ activity log error:", logErr);
   });
 
-  // ✅ Create updated record to pass to parent
-  const updatedRecord = {
-    ...selectedRow,
-    review_action: reviewData.reviewActions.join(", ") || null,
-    violation: reviewData.violations.join(", ") || null,
-    status: reviewData.reviewActions[reviewData.reviewActions.length - 1]?.toLowerCase().replace(/ /g, "_") ?? null,
-    review_date: new Date().toISOString(),
-    reviewed_by: reviewData.reviewedBy ?? null,
-    assigned_inspector: reviewData.assignedInspector ?? null,
-    scheduled_date: reviewData.scheduledDate ?? null,
-    schedule_time: reviewData.scheduledTime ?? null,
-    latitude: reviewData.location?.lat?.toString() ?? null,
-    longitude: reviewData.location?.lng?.toString() ?? null,
-    accuracy: reviewData.location?.accuracy?.toString() ?? null,
-    photo: reviewData.photoUrl ?? null,
-  };
-
-  // ✅ Update parent with the new record
-  onRecordUpdated?.(updatedRecord);
-
   setShowSavedToast(true);
+
+  // ❌ REMOVE: Don't show confirm modal after save
+  setTimeout(() => {
+    setShowSavedToast(false);
+    onClose(); // Just close the review modal
+  }, 1500);
 };
 
   const onUploadPhoto = async (
