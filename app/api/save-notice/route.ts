@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     console.log("BODY:", body); // ✅ debug
 
     // ✅ SAFE CHECK
-    const violationId = body?.initialData?.id;
+    const violationId = body?.initialDataId;
 
     if (!violationId) {
       return NextResponse.json(
