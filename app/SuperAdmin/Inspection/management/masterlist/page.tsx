@@ -23,6 +23,9 @@ interface CSVFile {
   errors?: string[];
 }
 
+// Distinctive header used to locate the header row in any CSV layout
+const KNOWN_HEADERS = ['Business Identification Number'];
+
 function CSVManagerContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
@@ -82,11 +85,20 @@ function CSVManagerContent() {
               derivedStatus = 'completed';
             }
 
+            let formattedSize = '-';
+            if (upload.file_size) {
+              if (upload.file_size < 1024 * 1024) {
+                formattedSize = `${(upload.file_size / 1024).toFixed(1)} KB`;
+              } else {
+                formattedSize = `${(upload.file_size / (1024 * 1024)).toFixed(1)} MB`;
+              }
+            }
+
             return {
               id: upload.id,
               name: upload.file_name,
               uploadDate: new Date(upload.uploaded_at).toLocaleString(),
-              size: '-',
+              size: formattedSize,
               rows: total,
               successCount: total,
               status: derivedStatus,
@@ -124,11 +136,15 @@ function CSVManagerContent() {
   const handleFile = (file: File) => {
     const tempId = Date.now().toString();
 
+    const formattedSize = file.size < 1024 * 1024
+      ? `${(file.size / 1024).toFixed(1)} KB`
+      : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+
     const newCSV: CSVFile = {
       id: tempId,
       name: file.name,
       uploadDate: new Date().toLocaleString(),
-      size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+      size: formattedSize,
       rows: 0,
       status: 'processing',
     };
@@ -140,11 +156,15 @@ function CSVManagerContent() {
       skipEmptyLines: true,
       beforeFirstChunk: (chunk) => {
         const lines = chunk.split('\n');
-        const firstLine = lines[0].trim().replace(/\r/g, '');
-        if (firstLine.startsWith('Business Identification Number')) {
-          return chunk;
+        // Scan every line to find where the actual headers are
+        const headerRowIndex = lines.findIndex((line) =>
+          KNOWN_HEADERS.some((h) => line.includes(h))
+        );
+        // Strip any preamble rows above the header row
+        if (headerRowIndex > 0) {
+          return lines.slice(headerRowIndex).join('\n');
         }
-        return lines.slice(5).join('\n');
+        return chunk;
       },
       transformHeader: (header: string) => {
         return header.trim().replace(/\r/g, '').replace(/\s+/g, ' ');
@@ -157,7 +177,7 @@ function CSVManagerContent() {
           const res = await fetch("/api/business-records", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rows, fileName: file.name }),
+            body: JSON.stringify({ rows, fileName: file.name, fileSize: file.size }),
           });
 
           const data = await res.json();
@@ -314,7 +334,7 @@ function CSVManagerContent() {
 
           {/* Upload Progress Banner */}
           <div className={`transition-all duration-300 overflow-hidden ${uploadProgress ? 'mb-4 max-h-24 opacity-100' : 'mb-0 max-h-0 opacity-0'}`}>
-            tsx{uploadProgress && (
+            {uploadProgress && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-blue-800">
@@ -410,7 +430,6 @@ function CSVManagerContent() {
                   ) : (
                     paginatedFiles.map((file) => (
                       <div key={file.id}>
-                        {/* ── No onClick on card anymore ── */}
                         <div className="p-4 transition-colors">
 
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -427,10 +446,12 @@ function CSVManagerContent() {
                             )}
                           </div>
 
-                          <p className="text-xs text-gray-400 flex items-center gap-1 mb-2">
+                          <p className="text-xs text-gray-400 flex items-center gap-1 mb-1">
                             <FiClock className="w-3 h-3" />
                             {file.uploadDate}
                           </p>
+
+                          <p className="text-xs text-gray-400 mb-2">{file.size}</p>
 
                           <div className="flex flex-wrap gap-1.5 mb-3">
                             {file.status === 'processing' && !file.successCount ? (
@@ -446,7 +467,7 @@ function CSVManagerContent() {
                                 )}
                                 {file.skippedCount != null && file.skippedCount > 0 && (
                                   <span className="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-xs rounded-full">
-                                    ⟳ {file.skippedCount} skipped
+                                    ⟳ {file.skippedCount} skipped. It is already exist.
                                   </span>
                                 )}
                                 {file.errorCount != null && file.errorCount > 0 && (
@@ -459,13 +480,6 @@ function CSVManagerContent() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => handleDownload(e, file)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors active:scale-95"
-                            >
-                              <FiDownload className="w-3.5 h-3.5" />
-                              Download
-                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
                               className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded-lg hover:bg-red-100 transition-colors active:scale-95"
@@ -520,7 +534,6 @@ function CSVManagerContent() {
                       ) : (
                         paginatedFiles.map((file) => (
                           <React.Fragment key={file.id}>
-                            {/* ── No onClick on row anymore ── */}
                             <tr className="hover:bg-gray-50">
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center">
@@ -541,7 +554,7 @@ function CSVManagerContent() {
                                       <div className="text-green-600 text-xs">✓ {file.successCount} inserted</div>
                                     )}
                                     {file.skippedCount != null && file.skippedCount > 0 && (
-                                      <div className="text-yellow-600 text-xs">⟳ {file.skippedCount} skipped</div>
+                                      <div className="text-yellow-600 text-xs">⟳ {file.skippedCount} skipped. It is already exist.</div>
                                     )}
                                     {file.errorCount != null && file.errorCount > 0 && (
                                       <div className="text-red-500 text-xs">✗ {file.errorCount} failed</div>
@@ -558,12 +571,6 @@ function CSVManagerContent() {
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                 <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                    className="text-gray-600 hover:text-gray-900 p-1"
-                                    onClick={(e) => handleDownload(e, file)}
-                                  >
-                                    <FiDownload className="w-4 h-4" />
-                                  </button>
                                   <button
                                     className="text-red-600 hover:text-red-900 p-1"
                                     onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
@@ -656,7 +663,6 @@ function CSVManagerContent() {
     </>
   );
 }
-
 export default function CSVManager() {
   return (
     <ProtectedRoute requiredRole="admin">

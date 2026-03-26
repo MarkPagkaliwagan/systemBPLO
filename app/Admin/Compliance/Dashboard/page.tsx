@@ -1302,6 +1302,10 @@ function ViolationsPageContent() {
 
                       <StatusBadge v={v} />
                     </div>
+                    {/* Violation (ADD THIS) */}
+<div className="text-sm text-gray-800 font-medium">
+  {v.violation}
+</div>
 
                     {/* Violation Text */}
                     <div
@@ -1371,6 +1375,7 @@ function ViolationsPageContent() {
       <input
         type="number"
         value={intervalValue}
+        onClick={(e) => e.stopPropagation()}
         onChange={(e) => setIntervalValue(Number(e.target.value))}
         className="w-16 border rounded px-1 py-0.5 text-xs"
       />

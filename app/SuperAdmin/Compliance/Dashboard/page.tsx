@@ -15,7 +15,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import Sidebar from "../../../components/sidebar";
 import ProtectedRoute from "../../../../components/ProtectedRoute";
-import CalendarPage from "./calendar";
+import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
 import DetailsForBusinessFormModal from "./DetailsForBusinessFormModal";
 
 type Violation = {
@@ -856,7 +856,7 @@ function ViolationsPageContent() {
                         <button
                           onClick={() =>
                             (window.location.href =
-                              "/SuperAdmin/Inspection/management/review")
+                              "/Admin/Inspection/management/review")
                           }
                           className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                         >
@@ -1264,7 +1264,7 @@ function ViolationsPageContent() {
                   <button
                     onClick={() =>
                       (window.location.href =
-                        "/SuperAdmin/Inspection/management/review")
+                        "/Admin/Inspection/management/review")
                     }
                     className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                   >
@@ -1302,6 +1302,10 @@ function ViolationsPageContent() {
 
                       <StatusBadge v={v} />
                     </div>
+                    {/* Violation (ADD THIS) */}
+<div className="text-sm text-gray-800 font-medium">
+  {v.violation}
+</div>
 
                     {/* Violation Text */}
                     <div
@@ -1371,6 +1375,7 @@ function ViolationsPageContent() {
       <input
         type="number"
         value={intervalValue}
+        onClick={(e) => e.stopPropagation()}
         onChange={(e) => setIntervalValue(Number(e.target.value))}
         className="w-16 border rounded px-1 py-0.5 text-xs"
       />
