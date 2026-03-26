@@ -7,31 +7,56 @@ const supabase = createClient(
 );
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-const { error } = await supabase
-  .from("notice_forms")
-  .insert([
-    {
-      violation_id: body.initialData.id,
-      taxpayer: body.taxpayer,
-      address: body.address,
-      nature: body.nature,
-      notice_no: body.noticeNo,
-      data: body,
-      signatures: body.signatures,
-    },
-  ]);
+    console.log("BODY:", body); // ✅ debug
 
-if (error) {
-  return NextResponse.json({ error: error.message });
-}
+    // ✅ SAFE CHECK
+    const violationId = body?.initialData?.id;
 
-// ✅ update ONLY if success
-await supabase
-  .from("business_violations")
-  .update({ signed: true })
-  .eq("id", body.initialData.id);
+    if (!violationId) {
+      return NextResponse.json(
+        { error: "Missing initialData.id" },
+        { status: 400 }
+      );
+    }
 
-return NextResponse.json({ success: true });
+    // ✅ INSERT
+    const { error: insertError } = await supabase
+      .from("notice_forms")
+      .insert([
+        {
+          violation_id: violationId,
+          taxpayer: body.taxpayer,
+          address: body.address,
+          nature: body.nature,
+          notice_no: body.noticeNo,
+          data: body,
+          signatures: body.signatures,
+        },
+      ]);
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message });
+    }
+
+    // ✅ UPDATE AFTER INSERT
+    const { error: updateError } = await supabase
+      .from("business_violations")
+      .update({ signed: true })
+      .eq("id", violationId);
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message });
+    }
+
+    return NextResponse.json({ success: true });
+
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || "Server error" },
+      { status: 500 }
+    );
+  }
 }

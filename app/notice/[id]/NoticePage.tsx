@@ -77,7 +77,7 @@ if (!sig1.current || sig1.current.isEmpty()) {
 
   const payload = {
     ...form,
-    initialData,
+    initialDataId: initialData?.id,
     signatures: {
       inspectedBy: sig1Data,
       receivedBy: sig2Data,
