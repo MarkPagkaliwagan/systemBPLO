@@ -70,23 +70,7 @@ function CSVManagerContent() {
               .select('*', { count: 'exact', head: true })
               .eq('file_id', upload.id);
 
-            const { count: reviewedCount } = await supabase
-              .from('business_records')
-              .select('*', { count: 'exact', head: true })
-              .eq('file_id', upload.id)
-              .in('status', ['compliant', 'non_compliant', 'for_inspection', 'active']);
-
             const total = totalCount ?? 0;
-            const reviewed = reviewedCount ?? 0;
-
-            let derivedStatus: string;
-            if (total === 0 || reviewed === 0) {
-              derivedStatus = 'not_reviewed';
-            } else if (reviewed < total) {
-              derivedStatus = 'processing';
-            } else {
-              derivedStatus = 'completed';
-            }
 
             let formattedSize = '-';
             if (upload.file_size) {
@@ -104,7 +88,7 @@ function CSVManagerContent() {
               size: formattedSize,
               rows: total,
               successCount: total,
-              status: derivedStatus,
+              status: 'uploaded',
             };
           })
         );
@@ -159,11 +143,9 @@ function CSVManagerContent() {
       skipEmptyLines: true,
       beforeFirstChunk: (chunk) => {
         const lines = chunk.split('\n');
-        // Scan every line to find where the actual headers are
         const headerRowIndex = lines.findIndex((line) =>
           KNOWN_HEADERS.some((h) => line.includes(h))
         );
-        // Strip any preamble rows above the header row
         if (headerRowIndex > 0) {
           return lines.slice(headerRowIndex).join('\n');
         }
@@ -175,7 +157,6 @@ function CSVManagerContent() {
       complete: async (results) => {
         const rows = results.data as Record<string, any>[];
 
-        // Drop rows with no BIN — these are blank/footer rows that slipped through
         const validRows = rows.filter((row) => {
           const bin = row['Business Identification Number'];
           return bin !== undefined && bin !== null && String(bin).trim() !== '';
@@ -210,7 +191,6 @@ function CSVManagerContent() {
           if (!initRes.ok) throw new Error(initData.error ?? "Failed to initialise upload");
           fileId = initData.fileId;
 
-          // Replace the temp card id with the real fileId right away
           setCSVFiles(prev => prev.map(f =>
             f.id === tempId ? { ...f, id: fileId } : f
           ));
@@ -256,7 +236,6 @@ function CSVManagerContent() {
             allErrors.push(err.message);
           }
 
-          // Update progress bar after each chunk
           setUploadProgress({
             current: Math.min(i + CHUNK_SIZE, validRows.length),
             total: validRows.length,
@@ -268,7 +247,7 @@ function CSVManagerContent() {
           f.id === fileId
             ? {
               ...f,
-              status: totalErrors > 0 && totalSuccess === 0 ? 'error' : 'not_reviewed',
+              status: totalErrors > 0 && totalSuccess === 0 ? 'error' : 'uploaded',
               rows: totalSuccess,
               successCount: totalSuccess,
               skippedCount: totalSkipped,
@@ -343,11 +322,19 @@ function CSVManagerContent() {
 
   const getStatusStyle = (status?: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
+      case 'uploaded': return 'bg-green-100 text-green-800';
       case 'processing': return 'bg-yellow-100 text-yellow-800';
-      case 'not_reviewed': return 'bg-gray-100 text-gray-800';
       case 'error': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'uploaded': return 'Uploaded';
+      case 'processing': return 'Processing';
+      case 'error': return 'Error';
+      default: return status ?? '';
     }
   };
 
@@ -479,9 +466,9 @@ function CSVManagerContent() {
                       className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
                     >
                       <option value="">All Status</option>
-                      <option value="not_reviewed">Not Reviewed</option>
+                      <option value="uploaded">Uploaded</option>
                       <option value="processing">Processing</option>
-                      <option value="completed">Completed</option>
+                      <option value="error">Error</option>
                     </select>
                   </div>
                   <span className="text-xs text-gray-400 shrink-0 min-w-[48px] text-right">
@@ -514,7 +501,7 @@ function CSVManagerContent() {
                             </div>
                             {file.status && (
                               <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(file.status)}`}>
-                                {file.status.replace(/_/g, ' ').toUpperCase()}
+                                {getStatusLabel(file.status)}
                               </span>
                             )}
                           </div>
@@ -527,7 +514,7 @@ function CSVManagerContent() {
                           <p className="text-xs text-gray-400 mb-2">{file.size}</p>
 
                           <div className="flex flex-wrap gap-1.5 mb-3">
-                            {file.status === 'processing' && !file.successCount ? (
+                            {file.status === 'processing' ? (
                               <span className="text-xs text-gray-400 flex items-center gap-1">
                                 <FiClock className="w-3 h-3" /> Processing...
                               </span>
@@ -617,7 +604,7 @@ function CSVManagerContent() {
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.uploadDate}</td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.size}</td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                {file.status === 'processing' && !file.successCount ? (
+                                {file.status === 'processing' ? (
                                   <span className="text-gray-400 flex items-center">
                                     <FiClock className="w-3 h-3 mr-1" /> Processing...
                                   </span>
@@ -638,7 +625,7 @@ function CSVManagerContent() {
                               <td className="px-4 py-3 whitespace-nowrap">
                                 {file.status && (
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusStyle(file.status)}`}>
-                                    {file.status.replace(/_/g, ' ').toUpperCase()}
+                                    {getStatusLabel(file.status)}
                                   </span>
                                 )}
                               </td>

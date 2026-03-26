@@ -159,11 +159,9 @@ function CSVManagerContent() {
       skipEmptyLines: true,
       beforeFirstChunk: (chunk) => {
         const lines = chunk.split('\n');
-        // Scan every line to find where the actual headers are
         const headerRowIndex = lines.findIndex((line) =>
           KNOWN_HEADERS.some((h) => line.includes(h))
         );
-        // Strip any preamble rows above the header row
         if (headerRowIndex > 0) {
           return lines.slice(headerRowIndex).join('\n');
         }
@@ -175,7 +173,6 @@ function CSVManagerContent() {
       complete: async (results) => {
         const rows = results.data as Record<string, any>[];
 
-        // Drop rows with no BIN — these are blank/footer rows that slipped through
         const validRows = rows.filter((row) => {
           const bin = row['Business Identification Number'];
           return bin !== undefined && bin !== null && String(bin).trim() !== '';
@@ -193,7 +190,6 @@ function CSVManagerContent() {
 
         setUploadProgress({ current: 0, total: validRows.length });
 
-        // ── Step 1: Create the upload record to get a stable fileId ──────────
         let fileId: string = tempId;
         try {
           const initRes = await fetch("/api/business-records", {
@@ -210,7 +206,6 @@ function CSVManagerContent() {
           if (!initRes.ok) throw new Error(initData.error ?? "Failed to initialise upload");
           fileId = initData.fileId;
 
-          // Replace the temp card id with the real fileId right away
           setCSVFiles(prev => prev.map(f =>
             f.id === tempId ? { ...f, id: fileId } : f
           ));
@@ -222,7 +217,6 @@ function CSVManagerContent() {
           return;
         }
 
-        // ── Step 2: Send rows in chunks ───────────────────────────────────────
         let totalSuccess = 0;
         let totalSkipped = 0;
         let totalErrors = 0;
@@ -256,14 +250,12 @@ function CSVManagerContent() {
             allErrors.push(err.message);
           }
 
-          // Update progress bar after each chunk
           setUploadProgress({
             current: Math.min(i + CHUNK_SIZE, validRows.length),
             total: validRows.length,
           });
         }
 
-        // ── Step 3: Update the card with final totals ─────────────────────────
         setCSVFiles(prev => prev.map(f =>
           f.id === fileId
             ? {
@@ -313,41 +305,6 @@ function CSVManagerContent() {
       console.error('❌ Exception in handleDeleteConfirm:', err);
     } finally {
       setIsDeleting(false);
-    }
-  };
-
-  const handleDownload = async (e: React.MouseEvent, file: CSVFile) => {
-    e.stopPropagation();
-    try {
-      const { data, error } = await supabase
-        .from('business_records')
-        .select('*')
-        .eq('file_id', file.id);
-
-      if (error || !data) { console.error('❌ download fetch error:', error); return; }
-
-      const csv = Papa.unparse(data);
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${file.name.replace('.csv', '')}_with_review.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('❌ Exception in handleDownload:', err);
-    }
-  };
-
-  const getStatusStyle = (status?: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'processing': return 'bg-yellow-100 text-yellow-800';
-      case 'not_reviewed': return 'bg-gray-100 text-gray-800';
-      case 'error': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -504,7 +461,6 @@ function CSVManagerContent() {
                     paginatedFiles.map((file) => (
                       <div key={file.id}>
                         <div className="p-4 transition-colors">
-
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <FiFile className="w-4 h-4 text-green-600 shrink-0" />
@@ -512,13 +468,6 @@ function CSVManagerContent() {
                                 {file.name}
                               </p>
                             </div>
-                            {/*
-                            {file.status && (
-                              <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(file.status)}`}>
-                                {file.status.replace(/_/g, ' ').toUpperCase()}
-                              </span>
-                            )}
-                              */}
                           </div>
 
                           <p className="text-xs text-gray-400 flex items-center gap-1 mb-1">
@@ -553,18 +502,6 @@ function CSVManagerContent() {
                               </>
                             )}
                           </div>
-
-                          {/* 
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded-lg hover:bg-red-100 transition-colors active:scale-95"
-                            >
-                              <FiTrash2 className="w-3.5 h-3.5" />
-                              Delete
-                            </button>
-                          </div>
-                          */}
                         </div>
 
                         {file.errors && file.errors.length > 0 && (
@@ -597,14 +534,12 @@ function CSVManagerContent() {
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Results</th>
-                     
-                  
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {paginatedFiles.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">
+                          <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400">
                             No files uploaded yet. Upload a CSV file to get started.
                           </td>
                         </tr>
@@ -639,27 +574,10 @@ function CSVManagerContent() {
                                   </div>
                                 )}
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                {file.status && (
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusStyle(file.status)}`}>
-                                    {file.status.replace(/_/g, ' ').toUpperCase()}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                    className="text-red-600 hover:text-red-900 p-1"
-                                    onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
-                                  >
-                                    <FiTrash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </td>
                             </tr>
                             {file.errors && file.errors.length > 0 && (
                               <tr className="bg-red-50">
-                                <td colSpan={6} className="px-4 py-2">
+                                <td colSpan={4} className="px-4 py-2">
                                   <div className="flex items-start space-x-2">
                                     <FiAlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                                     <div>
@@ -736,7 +654,6 @@ function CSVManagerContent() {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setFileToDelete(null)}
       />
-
     </>
   );
 }
