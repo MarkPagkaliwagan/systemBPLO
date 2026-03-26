@@ -512,11 +512,13 @@ function CSVManagerContent() {
                                 {file.name}
                               </p>
                             </div>
+                            {/*
                             {file.status && (
                               <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(file.status)}`}>
                                 {file.status.replace(/_/g, ' ').toUpperCase()}
                               </span>
                             )}
+                              */}
                           </div>
 
                           <p className="text-xs text-gray-400 flex items-center gap-1 mb-1">
@@ -595,7 +597,7 @@ function CSVManagerContent() {
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Results</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                     
                   
                       </tr>
                     </thead>

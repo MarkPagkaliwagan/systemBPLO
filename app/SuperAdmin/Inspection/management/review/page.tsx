@@ -108,8 +108,6 @@ function CSVReviewContent() {
   const [selectedRow, setSelectedRow] = useState<BusinessRecord | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  const [pendingCount, setPendingCount] = useState<number | null>(null);
-
   // ── Responsive ────────────────────────────────────────────────────────────
   useEffect(() => {
     const checkMobile = () => {
@@ -180,18 +178,6 @@ function CSVReviewContent() {
     fetchRecords();
   }, [currentPage, debouncedSearch, showScheduledOnly]);
 
-  // ── Fetch pending count ───────────────────────────────────────────────────
-  useEffect(() => {
-    const fetchPending = async () => {
-      const { count } = await supabase
-        .from('business_records')
-        .select('*', { count: 'exact', head: true })
-        .or('status.eq.not reviewed,status.is.null');
-      setPendingCount(count ?? 0);
-    };
-    fetchPending();
-  }, [csvData]);
-
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -206,7 +192,7 @@ function CSVReviewContent() {
   };
 
   const getRowStatusLabel = (status: string | null) => {
-    if (!status || status === 'not reviewed') return 'PENDING';
+    if (!status || status === 'not reviewed' || status === 'not_reviewed') return 'NOT REVIEWED';
     return status.replace(/_/g, ' ').toUpperCase();
   };
 
@@ -383,13 +369,6 @@ function CSVReviewContent() {
               Scheduling
             </h1>
             <p className="text-sm text-gray-500">Reviewing and Scheduling</p>
-            <div className="mt-2 h-7 flex items-center">
-              {pendingCount !== null && pendingCount > 0 && (
-                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                  {pendingCount.toLocaleString()} records pending review
-                </div>
-              )}
-            </div>
           </div>
 
           {/* ── Table ── */}
@@ -442,7 +421,7 @@ function CSVReviewContent() {
                     {searchTerm && (
                       <div
                         className="mt-4 px-6 py-3 bg-green-100 cursor-pointer rounded-lg text-green-900 font-semibold hover:bg-green-200 transition-colors text-sm"
-                        onClick={() => router.push(`/SuperAdmin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                        onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
                       >
                         + Add "{searchTerm}"
                       </div>
@@ -524,7 +503,7 @@ function CSVReviewContent() {
                     ) && (
                         <div
                           className="p-4 bg-green-50 cursor-pointer text-green-900 font-semibold text-sm text-center hover:bg-green-100 transition-colors active:bg-green-200"
-                          onClick={() => router.push(`/SuperAdmin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                          onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
                         >
                           + Add "{searchTerm}"
                         </div>
@@ -640,7 +619,7 @@ function CSVReviewContent() {
                         ) && (
                             <tr
                               className="bg-green-100 cursor-pointer hover:bg-green-200 transition-colors"
-                              onClick={() => router.push(`/SuperAdmin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
+                              onClick={() => router.push(`/Admin/Inspection/management/manual_add?name=${encodeURIComponent(searchTerm)}`)}
                             >
                               <td colSpan={40} className="text-center text-green-900 font-semibold py-3">
                                 + Add "{searchTerm}"
@@ -692,7 +671,7 @@ function CSVReviewContent() {
       />
       {!isMobile && (
         <Link
-          href="/SuperAdmin/Inspection/management/manual_add"
+          href="/Admin/Inspection/management/manual_add"
           title="Manual Add Record"
           className="fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
         >
@@ -702,7 +681,6 @@ function CSVReviewContent() {
     </>
   );
 }
-
 export default function CSVReview() {
   return (
     <ProtectedRoute requiredRole="admin">
