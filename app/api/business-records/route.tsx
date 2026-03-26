@@ -74,36 +74,15 @@ export async function POST(req: NextRequest) {
     }
 
     const fileId = existingFileId;
-
-    // Check duplicates only against the BINs present in this chunk —
-    // avoids loading the entire table on every request.
-    const chunkBINs = rows
-      .map((row: any) => v(row['Business Identification Number']))
-      .filter(Boolean) as string[];
-
-    const { data: existing } = await supabase
-      .from('business_records')
-      .select('"Business Identification Number"')
-      .in('"Business Identification Number"', chunkBINs);
-
-    const existingBINs = new Set(
-      (existing ?? []).map((r: any) => r['Business Identification Number'])
-    );
-
-    const newRows = rows.filter((row: any) => {
-      const bin = v(row['Business Identification Number']);
-      return bin && !existingBINs.has(bin);
-    });
-
-    const skippedCount = rows.length - newRows.length;
     let successCount = 0;
+    let skippedCount = 0;
     let errorCount = 0;
     const errors: string[] = [];
 
     const BATCH_SIZE = 100;
 
-    for (let i = 0; i < newRows.length; i += BATCH_SIZE) {
-      const batch = newRows.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batch = rows.slice(i, i + BATCH_SIZE);
 
       const records = batch.map((row: any) => ({
         "Business Identification Number": v(row['Business Identification Number']),
@@ -168,20 +147,44 @@ export async function POST(req: NextRequest) {
         "Actual Closure Date":            vDate(row['Actual Closure Date']),
         "Retirement Reason":              v(row['Retirement Reason']),
         "Source Type":                    v(row['Source Type']),
-        // Any extra columns in the Supabase table that are NOT listed here
-        // will simply be omitted — Supabase uses their default value (null).
-        "status":  'not reviewed',
-        "file_id": fileId,
+        "status":                         'not reviewed',
+        "file_id":                        fileId,
       }));
 
-      const { error } = await supabase.from('business_records').insert(records);
+      // Snapshot how many of this batch's BINs already exist before the upsert,
+      // so we can accurately split inserted vs skipped counts afterward.
+      const chunkBINs = records
+        .map((r: any) => r['Business Identification Number'])
+        .filter(Boolean) as string[];
+
+      const { count: beforeCount } = await supabase
+        .from('business_records')
+        .select('*', { count: 'exact', head: true })
+        .in('Business Identification Number', chunkBINs);
+
+      // Upsert with ignoreDuplicates:true — existing BINs are silently skipped
+      const { error } = await supabase
+        .from('business_records')
+        .upsert(records, {
+          onConflict: 'Business Identification Number',
+          ignoreDuplicates: true,
+        });
 
       if (error) {
         errorCount += batch.length;
         if (errors.length < 10) errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
-      } else {
-        successCount += batch.length;
+        continue;
       }
+
+      // Diff the before/after count to derive exactly how many were inserted vs skipped.
+      const { count: afterCount } = await supabase
+        .from('business_records')
+        .select('*', { count: 'exact', head: true })
+        .in('Business Identification Number', chunkBINs);
+
+      const inserted = (afterCount ?? 0) - (beforeCount ?? 0);
+      successCount += inserted;
+      skippedCount += batch.length - inserted;
     }
 
     // Update the upload record after every chunk so the final state is correct
