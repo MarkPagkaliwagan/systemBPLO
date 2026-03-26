@@ -1375,6 +1375,7 @@ function ViolationsPageContent() {
       <input
         type="number"
         value={intervalValue}
+        onClick={(e) => e.stopPropagation()}
         onChange={(e) => setIntervalValue(Number(e.target.value))}
         className="w-16 border rounded px-1 py-0.5 text-xs"
       />
@@ -1639,7 +1640,7 @@ function ViolationsPageContent() {
 
 export default function ComplianceDashboardPage() {
   return (
-    <ProtectedRoute requiredRole="staff">
+    <ProtectedRoute requiredRole="admin">
       <ViolationsPageContent />
     </ProtectedRoute>
   );
