@@ -23,6 +23,9 @@ interface CSVFile {
   errors?: string[];
 }
 
+// Distinctive header used to locate the header row in any CSV layout
+const KNOWN_HEADERS = ['Business Identification Number'];
+
 function CSVManagerContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
@@ -82,7 +85,6 @@ function CSVManagerContent() {
               derivedStatus = 'completed';
             }
 
-            // ── Format file_size from Supabase ──────────────────────────────
             let formattedSize = '-';
             if (upload.file_size) {
               if (upload.file_size < 1024 * 1024) {
@@ -134,7 +136,6 @@ function CSVManagerContent() {
   const handleFile = (file: File) => {
     const tempId = Date.now().toString();
 
-    // Format size for immediate display on the temp card
     const formattedSize = file.size < 1024 * 1024
       ? `${(file.size / 1024).toFixed(1)} KB`
       : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
@@ -155,11 +156,15 @@ function CSVManagerContent() {
       skipEmptyLines: true,
       beforeFirstChunk: (chunk) => {
         const lines = chunk.split('\n');
-        const firstLine = lines[0].trim().replace(/\r/g, '');
-        if (firstLine.startsWith('Business Identification Number')) {
-          return chunk;
+        // Scan every line to find where the actual headers are
+        const headerRowIndex = lines.findIndex((line) =>
+          KNOWN_HEADERS.some((h) => line.includes(h))
+        );
+        // Strip any preamble rows above the header row
+        if (headerRowIndex > 0) {
+          return lines.slice(headerRowIndex).join('\n');
         }
-        return lines.slice(5).join('\n');
+        return chunk;
       },
       transformHeader: (header: string) => {
         return header.trim().replace(/\r/g, '').replace(/\s+/g, ' ');
@@ -172,7 +177,6 @@ function CSVManagerContent() {
           const res = await fetch("/api/business-records", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            // ── Send fileSize (in bytes) to the API ──────────────────────────
             body: JSON.stringify({ rows, fileName: file.name, fileSize: file.size }),
           });
 
@@ -447,7 +451,6 @@ function CSVManagerContent() {
                             {file.uploadDate}
                           </p>
 
-                          {/* ── File size display ── */}
                           <p className="text-xs text-gray-400 mb-2">{file.size}</p>
 
                           <div className="flex flex-wrap gap-1.5 mb-3">
@@ -477,13 +480,6 @@ function CSVManagerContent() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => handleDownload(e, file)}
-                              className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors active:scale-95"
-                            >
-                              <FiDownload className="w-3.5 h-3.5" />
-                              Download
-                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
                               className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded-lg hover:bg-red-100 transition-colors active:scale-95"
@@ -546,7 +542,6 @@ function CSVManagerContent() {
                                 </div>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.uploadDate}</td>
-                              {/* ── File size column ── */}
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.size}</td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm">
                                 {file.status === 'processing' && !file.successCount ? (
@@ -576,12 +571,6 @@ function CSVManagerContent() {
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                 <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                    className="text-gray-600 hover:text-gray-900 p-1"
-                                    onClick={(e) => handleDownload(e, file)}
-                                  >
-                                    <FiDownload className="w-4 h-4" />
-                                  </button>
                                   <button
                                     className="text-red-600 hover:text-red-900 p-1"
                                     onClick={(e) => { e.stopPropagation(); setFileToDelete(file); }}
@@ -674,7 +663,6 @@ function CSVManagerContent() {
     </>
   );
 }
-
 export default function CSVManager() {
   return (
     <ProtectedRoute requiredRole="admin">
