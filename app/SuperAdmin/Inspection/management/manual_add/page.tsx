@@ -781,7 +781,7 @@ function Input({
 
 export default function ManualAddBusiness() {
     return (
-        <ProtectedRoute requiredRole="staff">
+        <ProtectedRoute requiredRole="admin">
             <ManualAddBusinessContent />
         </ProtectedRoute>
     );
