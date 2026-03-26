@@ -46,13 +46,13 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
     },
     {
       id: "scheduling",
-      label: "Scheduling",
+      label: "Registry",
       icon: <FiBookOpen className="w-5 h-5" />,
       href: "/Admin/Inspection/management/review",
     },
     {
       id: "business-registry",
-      label: "Business Registry",
+      label: "CSV File Manager",
       icon: <FiBookOpen className="w-5 h-5" />,
       href: "/Admin/Inspection/management/masterlist",
     },
@@ -73,13 +73,13 @@ const getSidebarItems = (userRole: string): SidebarItem[] => {
     },
     {
       id: "scheduling",
-      label: "Scheduling",
+      label: "Registry",
       icon: <FiBookOpen className="w-5 h-5" />,
       href: "/SuperAdmin/Inspection/management/review",
     },
     {
       id: "business-registry",
-      label: "Business Registry",
+      label: "CSV File Manager",
       icon: <FiBookOpen className="w-5 h-5" />,
       href: "/SuperAdmin/Inspection/management/masterlist",
     },
@@ -109,8 +109,8 @@ const getCurrentPageLabel = (pathname: string, items: SidebarItem[]): string => 
       }
     }
   }
-  if (pathname.includes("/review")) return "Scheduling";
-  if (pathname.includes("/masterlist")) return "Business Registry";
+  if (pathname.includes("/review")) return "Registry";
+  if (pathname.includes("/masterlist")) return "CSV File Manager";
   if (pathname.includes("/analytics")) return "Dashboard";
   if (pathname.includes("/Compliance")) return "Compliance Notice";
   if (pathname.includes("/users")) return "User Management";
