@@ -216,7 +216,7 @@ export const generateEmailVerificationTemplate = (verificationCode: string, user
       </div>
       
       <div class="footer">
-        <p>© 2024 Business Permit and Licensing Office</p>
+        <p>© 2026 Business Permit and Licensing Office</p>
         <p>This is an automated message. Please do not reply to this email.</p>
       </div>
     </body>
@@ -302,7 +302,7 @@ export const generateVerificationSuccessTemplate = (userName: string): string =>
       </div>
       
       <div class="footer">
-        <p>© 2024 Business Permit and Licensing Office</p>
+        <p>© 2026 Business Permit and Licensing Office</p>
         <p>This is an automated message. Please do not reply to this email.</p>
       </div>
     </body>
