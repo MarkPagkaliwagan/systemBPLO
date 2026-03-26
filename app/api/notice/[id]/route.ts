@@ -8,15 +8,14 @@ const supabase = createClient(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await context.params; // ✅ await is REQUIRED
 
   const { data, error } = await supabase
     .from("business_violations")
     .select("*")
-    .eq("id", id)
-    .single();
+    .eq("id", Number(id)); // ✅ convert to number
 
   if (error) {
     return NextResponse.json({ error: error.message });
