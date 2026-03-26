@@ -108,8 +108,6 @@ function CSVReviewContent() {
   const [selectedRow, setSelectedRow] = useState<BusinessRecord | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  const [pendingCount, setPendingCount] = useState<number | null>(null);
-
   // ── Responsive ────────────────────────────────────────────────────────────
   useEffect(() => {
     const checkMobile = () => {
@@ -180,18 +178,6 @@ function CSVReviewContent() {
     fetchRecords();
   }, [currentPage, debouncedSearch, showScheduledOnly]);
 
-  // ── Fetch pending count ───────────────────────────────────────────────────
-  useEffect(() => {
-    const fetchPending = async () => {
-      const { count } = await supabase
-        .from('business_records')
-        .select('*', { count: 'exact', head: true })
-        .or('status.eq.not reviewed,status.is.null');
-      setPendingCount(count ?? 0);
-    };
-    fetchPending();
-  }, [csvData]);
-
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -206,7 +192,7 @@ function CSVReviewContent() {
   };
 
   const getRowStatusLabel = (status: string | null) => {
-    if (!status || status === 'not reviewed') return 'PENDING';
+    if (!status || status === 'not reviewed' || status === 'not_reviewed') return 'NOT REVIEWED';
     return status.replace(/_/g, ' ').toUpperCase();
   };
 
@@ -383,13 +369,6 @@ function CSVReviewContent() {
               Scheduling
             </h1>
             <p className="text-sm text-gray-500">Reviewing and Scheduling</p>
-            <div className="mt-2 h-7 flex items-center">
-              {pendingCount !== null && pendingCount > 0 && (
-                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                  {pendingCount.toLocaleString()} records pending review
-                </div>
-              )}
-            </div>
           </div>
 
           {/* ── Table ── */}
