@@ -31,12 +31,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Violation not found" });
 
   const v = violations[0];
+
+  if (!v.requestor_email) {
+  return NextResponse.json({
+    success: false,
+    error: "No email found",
+  });
+}
+
+  if (v.signed) {
+  return NextResponse.json({
+    success: false,
+    error: "Already signed",
+  });
+}
+
   if (v.cease_flag) {
   return NextResponse.json({ 
     success: false, 
     error: "All notices already sent / Cease & Desist" 
   });
 }
+
   const now = new Date();
   const interval = v.interval_days;
 
@@ -56,6 +72,7 @@ export async function POST(req: NextRequest) {
 
   // Determine notice level
   const noticeLevel = v.notice_level ?? 0;
+  const viewUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/notice/${v.id}`;
   let subjectText = "", textBody = "", htmlBody = "";
 
 switch (noticeLevel) {
@@ -87,6 +104,13 @@ switch (noticeLevel) {
 
             <p style="margin-top:20px;">Thank you for your cooperation.</p>
           </div>
+          <div style="text-align:center; margin-top:20px;">
+  <a href="${viewUrl}" 
+     style="background:#064e3b;color:white;padding:12px 20px;
+     text-decoration:none;border-radius:8px;">
+     View Notice & Sign
+  </a>
+</div>
 
           <!-- Footer -->
           <div style="background:#f9fafb; padding:15px; text-align:center; font-size:12px; color:#6b7280;">

@@ -5,6 +5,15 @@ import { verifySessionToken } from '@/lib/session';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+if (
+  pathname.startsWith('/notice') ||
+  pathname.startsWith('/api/save-notice')
+) {
+  return NextResponse.next();
+}
+
+console.log("PATH:", pathname);
+
   console.log('[MIDDLEWARE] Checking path:', pathname);
 
   // Skip middleware for static files
@@ -24,6 +33,9 @@ export async function middleware(request: NextRequest) {
     '/reset-password',
     '/api/auth',
     '/api/auth/logout',
+
+    '/notice',
+
   ];
 
   const isPublicRoute =
