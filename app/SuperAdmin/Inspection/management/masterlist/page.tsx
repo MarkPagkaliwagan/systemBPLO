@@ -26,6 +26,9 @@ interface CSVFile {
 // Distinctive header used to locate the header row in any CSV layout
 const KNOWN_HEADERS = ['Business Identification Number'];
 
+// Rows per API request — keeps each payload well under Next.js body limits
+const CHUNK_SIZE = 500;
+
 function CSVManagerContent() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean | null>(null);
@@ -171,41 +174,111 @@ function CSVManagerContent() {
       },
       complete: async (results) => {
         const rows = results.data as Record<string, any>[];
-        setUploadProgress({ current: 0, total: rows.length });
 
-        try {
-          const res = await fetch("/api/business-records", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rows, fileName: file.name, fileSize: file.size }),
-          });
+        // Drop rows with no BIN — these are blank/footer rows that slipped through
+        const validRows = rows.filter((row) => {
+          const bin = row['Business Identification Number'];
+          return bin !== undefined && bin !== null && String(bin).trim() !== '';
+        });
 
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error ?? "API error");
-
-          setUploadProgress({ current: rows.length, total: rows.length });
-
+        if (validRows.length === 0) {
           setCSVFiles(prev => prev.map(f =>
             f.id === tempId
-              ? {
-                ...f,
-                id: data.fileId ?? tempId,
-                status: data.errorCount === 0 ? 'not_reviewed' : data.successCount === 0 && data.skippedCount === 0 ? 'error' : 'not_reviewed',
-                rows: data.successCount,
-                successCount: data.successCount,
-                errorCount: data.errorCount,
-                skippedCount: data.skippedCount,
-                errors: data.errors?.length > 0 ? data.errors : undefined,
-              }
+              ? { ...f, status: 'error', errors: ['No valid rows found. Make sure the CSV has a "Business Identification Number" column.'] }
               : f
+          ));
+          setUploadProgress(null);
+          return;
+        }
+
+        setUploadProgress({ current: 0, total: validRows.length });
+
+        // ── Step 1: Create the upload record to get a stable fileId ──────────
+        let fileId: string = tempId;
+        try {
+          const initRes = await fetch("/api/business-records", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              init: true,
+              rows: [],
+              fileName: file.name,
+              fileSize: file.size,
+            }),
+          });
+          const initData = await initRes.json();
+          if (!initRes.ok) throw new Error(initData.error ?? "Failed to initialise upload");
+          fileId = initData.fileId;
+
+          // Replace the temp card id with the real fileId right away
+          setCSVFiles(prev => prev.map(f =>
+            f.id === tempId ? { ...f, id: fileId } : f
           ));
         } catch (err: any) {
           setCSVFiles(prev => prev.map(f =>
             f.id === tempId ? { ...f, status: 'error', errors: [err.message] } : f
           ));
-        } finally {
           setUploadProgress(null);
+          return;
         }
+
+        // ── Step 2: Send rows in chunks ───────────────────────────────────────
+        let totalSuccess = 0;
+        let totalSkipped = 0;
+        let totalErrors = 0;
+        const allErrors: string[] = [];
+
+        for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
+          const chunk = validRows.slice(i, i + CHUNK_SIZE);
+
+          try {
+            const res = await fetch("/api/business-records", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                rows: chunk,
+                fileName: file.name,
+                fileSize: file.size,
+                fileId,
+              }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error ?? "API error");
+
+            totalSuccess += data.successCount ?? 0;
+            totalSkipped += data.skippedCount ?? 0;
+            totalErrors += data.errorCount ?? 0;
+            if (data.errors?.length) allErrors.push(...data.errors);
+
+          } catch (err: any) {
+            totalErrors += chunk.length;
+            allErrors.push(err.message);
+          }
+
+          // Update progress bar after each chunk
+          setUploadProgress({
+            current: Math.min(i + CHUNK_SIZE, validRows.length),
+            total: validRows.length,
+          });
+        }
+
+        // ── Step 3: Update the card with final totals ─────────────────────────
+        setCSVFiles(prev => prev.map(f =>
+          f.id === fileId
+            ? {
+              ...f,
+              status: totalErrors > 0 && totalSuccess === 0 ? 'error' : 'not_reviewed',
+              rows: totalSuccess,
+              successCount: totalSuccess,
+              skippedCount: totalSkipped,
+              errorCount: totalErrors,
+              errors: allErrors.length > 0 ? allErrors.slice(0, 10) : undefined,
+            }
+            : f
+        ));
+
+        setUploadProgress(null);
       },
       error: (err) => {
         setCSVFiles(prev => prev.map(f =>
@@ -663,6 +736,7 @@ function CSVManagerContent() {
     </>
   );
 }
+
 export default function CSVManager() {
   return (
     <ProtectedRoute requiredRole="admin">
