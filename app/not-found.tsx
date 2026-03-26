@@ -2,9 +2,20 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function SessionExpiredPage() {
   const router = useRouter();
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    if (countdown <= 0) {
+      handleLogin();
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
   function handleLogin() {
     sessionStorage.clear();
@@ -66,21 +77,23 @@ export default function SessionExpiredPage() {
           margin-bottom: 32px;
         }
 
-        .divider {
-          width: 1px;
-          height: 32px;
-          background: rgba(255,255,255,0.2);
-          margin: 0 auto 28px;
+        /* Clock icon ring animation */
+        .icon-wrap {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.1);
+          border: 2px solid rgba(255,255,255,0.25);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 20px;
+          animation: pulse 2s ease-in-out infinite;
         }
 
-        .code-404 {
-          font-size: clamp(4.5rem, 14vw, 7rem);
-          font-weight: 700;
-          color: rgb(255, 255, 255);
-          line-height: 1;
-          letter-spacing: -3px;
-          margin-bottom: 16px;
-          user-select: none;
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(0.96); }
         }
 
         h1 {
@@ -121,8 +134,15 @@ export default function SessionExpiredPage() {
         .btn:hover { background: #f0fdf4; }
         .btn:active { transform: scale(0.98); background: #dcfce7; }
 
+        .countdown {
+          margin-top: 14px;
+          font-size: 0.72rem;
+          color: rgba(255,255,255,0.35);
+          letter-spacing: 0.04em;
+        }
+
         .footer-note {
-          margin-top: 20px;
+          margin-top: 12px;
           font-size: 0.68rem;
           color: rgba(255,255,255,0.25);
           letter-spacing: 0.04em;
@@ -138,9 +158,8 @@ export default function SessionExpiredPage() {
 
         @media (max-height: 640px) {
           .logo-wrap { width: 80px; height: 80px; margin-bottom: 12px; }
-          .divider { height: 20px; margin-bottom: 20px; }
           .office-sub { margin-bottom: 20px; }
-          .code-404 { font-size: 3.5rem; margin-bottom: 10px; }
+          .icon-wrap { width: 52px; height: 52px; margin-bottom: 14px; }
           h1 { font-size: 1.2rem; }
           .sub-msg { font-size: 0.78rem; margin-bottom: 20px; }
         }
@@ -160,12 +179,23 @@ export default function SessionExpiredPage() {
       <div className="office-name">Business Permit &amp; Licensing Office</div>
       <div className="office-sub">City of San Pablo</div>
 
+      {/* Animated clock icon */}
+      <div className="icon-wrap">
+        <svg
+          width={32} height={32}
+          fill="none" stroke="rgba(255,255,255,0.85)"
+          strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      </div>
 
-      <div className="code-404">404</div>
-
-      <h1>Page Not Found</h1>
+      <h1>Session Expired</h1>
       <p className="sub-msg">
-        You don't have access to this page.
+        Your session has timed out due to inactivity.<br />
+        Please log in again to continue.
       </p>
 
       <button className="btn" onClick={handleLogin}>
@@ -182,6 +212,7 @@ export default function SessionExpiredPage() {
         Back to Login
       </button>
 
+      <div className="countdown">Redirecting in {countdown}s…</div>
       <div className="footer-note">Access has expired or been revoked</div>
     </div>
   );
