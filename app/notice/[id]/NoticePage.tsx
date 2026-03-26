@@ -13,6 +13,8 @@ export default function NoticePage({ initialData }: Props) {
   const sig2 = useRef<any>(null);
   const sig3 = useRef<any>(null);
   const isSigned = initialData?.signed;
+  const violationId = initialData?.id;
+
 
   const [form, setForm] = useState({
     noticeNo: "",
@@ -59,17 +61,21 @@ export default function NoticePage({ initialData }: Props) {
     }));
   };
 
- const handleSubmit = async () => {
-
+const handleSubmit = async () => {
   if (!form.taxpayer || !form.inspectedBy) {
-  alert("Please fill required fields");
-  return;
-}
+    alert("Please fill required fields");
+    return;
+  }
 
-if (!sig1.current || sig1.current.isEmpty()) {
-  alert("Inspector signature required");
-  return;
-}
+  if (!violationId) {
+    alert("No violation ID found!");
+    return;
+  }
+
+  if (!sig1.current || sig1.current.isEmpty()) {
+    alert("Inspector signature required");
+    return;
+  }
 
   const sig1Data = sig1.current?.getTrimmedCanvas().toDataURL();
   const sig2Data = sig2.current?.getTrimmedCanvas().toDataURL();
@@ -77,7 +83,7 @@ if (!sig1.current || sig1.current.isEmpty()) {
 
   const payload = {
     ...form,
-    initialDataId: initialData?.id,
+    initialDataId: violationId,
     signatures: {
       inspectedBy: sig1Data,
       receivedBy: sig2Data,
@@ -85,22 +91,29 @@ if (!sig1.current || sig1.current.isEmpty()) {
     },
   };
 
+  console.log("SENDING:", payload); // ✅ debug
+
   const res = await fetch("/api/save-notice", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify(payload),
-});
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
 
   const data = await res.json();
+
+  console.log("RESPONSE:", data); // ✅ debug
 
   if (data.success) {
     alert("Saved successfully!");
   } else {
-    alert("Error saving");
+    alert(data.error || "Error saving");
   }
 };
+
+console.log("INITIAL DATA:", initialData);
+console.log("ID:", violationId);
 
   return (
     <div className="min-h-screen bg-linear-to-br text-black from-slate-100 via-gray-100 to-slate-200 p-4 md:p-8 flex justify-center">

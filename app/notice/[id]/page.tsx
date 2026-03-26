@@ -10,7 +10,7 @@ export default async function Page({ params }: { params: { id: string } }) {
   const { data } = await supabase
     .from("business_violations")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", Number(params.id))
     .single();
 
   return <NoticePage initialData={data} />;
