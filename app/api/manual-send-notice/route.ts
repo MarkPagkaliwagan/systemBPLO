@@ -39,13 +39,6 @@ export async function POST(req: NextRequest) {
   });
 }
 
-  if (v.signed) {
-  return NextResponse.json({
-    success: false,
-    error: "Already signed",
-  });
-}
-
   if (v.cease_flag) {
   return NextResponse.json({ 
     success: false, 
@@ -101,6 +94,14 @@ switch (noticeLevel) {
             </div>
 
             <p>Please resolve this within <strong>${interval} days</strong> to avoid further action.</p>
+
+                    <div style="text-align:center; margin-top:20px;">
+            <a href="${viewUrl}" 
+              style="background:#064e3b;color:white;padding:12px 20px;
+              text-decoration:none;border-radius:8px;">
+              View Notice & Sign
+            </a>
+          </div>
 
             <p style="margin-top:20px;">Thank you for your cooperation.</p>
           </div>
@@ -172,13 +173,7 @@ switch (noticeLevel) {
             <p style="color:#991b1b;">
               Failure to comply may result in <strong>Cease & Desist Order</strong> and further legal action.
             </p>
-          <div style="text-align:center; margin-top:20px;">
-            <a href="${viewUrl}" 
-              style="background:#064e3b;color:white;padding:12px 20px;
-              text-decoration:none;border-radius:8px;">
-              View Notice & Sign
-            </a>
-          </div>
+  
             <p>Please act immediately.</p>
           </div>
 
