@@ -961,9 +961,21 @@ function ViolationsPageContent() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 align-top">
-                          <NoticeBadge notice={1} v={v} />
-                        </td>
+                       <td className="px-6 py-4 align-top">
+                        <NoticeBadge notice={1} v={v} />
+
+                        {getNoticeStatus(1, v) === "Sent" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              alert("View Notice Form for " + v.business_id);
+                            }}
+                            className="block mt-1 text-xs text-blue-600 underline"
+                          >
+                            View Notice Form
+                          </button>
+                        )}
+                      </td>
 
                         <td className="px-6 py-4 align-top">
                           <NoticeBadge notice={2} v={v} />
