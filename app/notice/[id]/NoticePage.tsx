@@ -83,9 +83,14 @@ export default function NoticePage({ initialData }: Props) {
     }
   }, [isSigned]);
 
-  const closeModal = () => {
-    setModal((prev) => ({ ...prev, open: false }));
-  };
+ const closeModal = () => {
+  if (modal.type === "success") {
+    window.location.reload();
+    return;
+  }
+
+  setModal((prev) => ({ ...prev, open: false }));
+};
 
   const openModal = (type: ModalType, title: string, message: string) => {
     setModal({
@@ -194,13 +199,14 @@ export default function NoticePage({ initialData }: Props) {
     }
   };
 
-  return (
-    <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
+return (
+  <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
+    {!isSigned && (
       <div
         ref={formRef}
         className="relative bg-white w-full max-w-5xl mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden"
       >
-        <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-green-700 via-emerald-500 to-green-700" />
+        <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700" />
 
         {/* HEADER */}
         <div className="relative mb-8 pb-6 border-b">
@@ -349,7 +355,7 @@ export default function NoticePage({ initialData }: Props) {
               name="otherViolation"
               value={form.otherViolation}
               onChange={handleChange}
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-[110px] shadow-sm"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-27.5 shadow-sm"
               placeholder="Enter other violations..."
             />
           </div>
@@ -473,7 +479,7 @@ export default function NoticePage({ initialData }: Props) {
             name="actionTaken"
             value={form.actionTaken}
             onChange={handleChange}
-            className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-[120px] shadow-sm"
+            className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-30 shadow-sm"
             placeholder="Enter action taken..."
           />
           <p className="text-xs text-gray-500 mt-3">QFM-BPL-009 Rev 0 2022.02.18</p>
@@ -488,7 +494,7 @@ export default function NoticePage({ initialData }: Props) {
           {isSigned ? "Already Submitted" : loading ? "Saving..." : "Submit"}
         </button>
       </div>
-
+    )}
       {/* CUSTOM MODAL */}
       {modal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
