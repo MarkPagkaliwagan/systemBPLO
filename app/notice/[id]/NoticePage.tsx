@@ -7,6 +7,31 @@ type Props = {
   initialData?: any;
 };
 
+type ModalState = {
+  open: boolean;
+  title: string;
+  message: string;
+  type: "loading" | "success" | "error";
+};
+
+const getLocalDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getLocalDateTime = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export default function NoticePage({ initialData }: Props) {
   const formRef = useRef<HTMLDivElement>(null);
   const sig1 = useRef<any>(null);
@@ -15,6 +40,13 @@ export default function NoticePage({ initialData }: Props) {
   const isSigned = initialData?.signed;
   const violationId = initialData?.id;
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [modal, setModal] = useState<ModalState>({
+    open: false,
+    title: "",
+    message: "",
+    type: "loading",
+  });
 
   const [form, setForm] = useState({
     noticeNo: "",
@@ -61,59 +93,126 @@ export default function NoticePage({ initialData }: Props) {
     }));
   };
 
-const handleSubmit = async () => {
-  if (!form.taxpayer || !form.inspectedBy) {
-    alert("Please fill required fields");
-    return;
-  }
-
-  if (!violationId) {
-    alert("No violation ID found!");
-    return;
-  }
-
-  if (!sig1.current || sig1.current.isEmpty()) {
-    alert("Inspector signature required");
-    return;
-  }
-
-  const sig1Data = sig1.current?.getTrimmedCanvas().toDataURL();
-  const sig2Data = sig2.current?.getTrimmedCanvas().toDataURL();
-  const sig3Data = sig3.current?.getTrimmedCanvas().toDataURL();
-
-  const payload = {
-    ...form,
-    initialDataId: violationId,
-    signatures: {
-      inspectedBy: sig1Data,
-      receivedBy: sig2Data,
-      notedBy: sig3Data,
-    },
+  const showModal = (type: ModalState["type"], title: string, message: string) => {
+    setModal({
+      open: true,
+      type,
+      title,
+      message,
+    });
   };
 
-  console.log("SENDING:", payload); // ✅ debug
+  const closeModal = () => {
+    setModal((prev) => ({ ...prev, open: false }));
+  };
 
-  const res = await fetch("/api/save-notice", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const handleDateChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const target = e.target as HTMLInputElement;
 
-  const data = await res.json();
+    if (name === "date") {
+      const today = getLocalDate();
+      if (value > today) return;
+    }
 
-  console.log("RESPONSE:", data); // ✅ debug
+    if (name === "receivedAt") {
+      const now = getLocalDateTime();
+      if (value > now) return;
+    }
 
-  if (data.success) {
-    alert("Saved successfully!");
-  } else {
-    alert(data.error || "Error saving");
-  }
-};
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? target.checked : value,
+    }));
+  };
 
-console.log("INITIAL DATA:", initialData);
-console.log("ID:", violationId);
+  const handleSubmit = async () => {
+    if (!form.taxpayer || !form.inspectedBy) {
+      showModal("error", "Validation Error", "Please fill required fields.");
+      return;
+    }
+
+    if (!violationId) {
+      showModal("error", "Validation Error", "No violation ID found.");
+      return;
+    }
+
+    if (!form.date) {
+      showModal("error", "Validation Error", "Please select a valid date.");
+      return;
+    }
+
+    if (!form.receivedAt) {
+      showModal("error", "Validation Error", "Please select a valid received date and time.");
+      return;
+    }
+
+    const today = getLocalDate();
+    const now = getLocalDateTime();
+
+    if (form.date > today) {
+      showModal("error", "Invalid Date", "Future date is not allowed.");
+      return;
+    }
+
+    if (form.receivedAt > now) {
+      showModal("error", "Invalid Date & Time", "Future date and time is not allowed.");
+      return;
+    }
+
+    if (!sig1.current || sig1.current.isEmpty()) {
+      showModal("error", "Signature Required", "Inspector signature required.");
+      return;
+    }
+
+    setIsLoading(true);
+    showModal("loading", "Saving...", "Please wait while the notice is being saved.");
+
+    try {
+      const sig1Data = sig1.current?.getTrimmedCanvas().toDataURL();
+      const sig2Data = sig2.current?.getTrimmedCanvas().toDataURL();
+      const sig3Data = sig3.current?.getTrimmedCanvas().toDataURL();
+
+      const payload = {
+        ...form,
+        initialDataId: violationId,
+        signatures: {
+          inspectedBy: sig1Data,
+          receivedBy: sig2Data,
+          notedBy: sig3Data,
+        },
+      };
+
+      console.log("SENDING:", payload);
+
+      const res = await fetch("/api/save-notice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      console.log("RESPONSE:", data);
+
+      if (data.success) {
+        showModal("success", "Saved Successfully", "Your notice has been saved.");
+      } else {
+        showModal("error", "Save Failed", data.error || "Error saving.");
+      }
+    } catch (error) {
+      showModal("error", "Network Error", "Something went wrong while saving.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  console.log("INITIAL DATA:", initialData);
+  console.log("ID:", violationId);
 
   return (
     <div className="min-h-screen bg-linear-to-br text-black from-slate-100 via-gray-100 to-slate-200 p-4 md:p-8 flex justify-center">
@@ -169,7 +268,11 @@ console.log("ID:", violationId);
               type="date"
               name="date"
               value={form.date}
-              onChange={handleChange}
+              onChange={handleDateChange}
+              max={getLocalDate()}
+              readOnly
+              inputMode="none"
+              onKeyDown={(e) => e.preventDefault()}
               className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm"
             />
           </div>
@@ -330,7 +433,11 @@ console.log("ID:", violationId);
               type="datetime-local"
               name="receivedAt"
               value={form.receivedAt}
-              onChange={handleChange}
+              onChange={handleDateChange}
+              max={getLocalDateTime()}
+              readOnly
+              inputMode="none"
+              onKeyDown={(e) => e.preventDefault()}
               className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mt-3 rounded-xl shadow-sm"
             />
           </div>
@@ -364,14 +471,43 @@ console.log("ID:", violationId);
         </div>
 
         {/* BUTTON */}
-<button
-  onClick={handleSubmit}
-  disabled={isSigned}
-  className="bg-green-800 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl w-full font-semibold shadow-lg"
->
-  {isSigned ? "Already Submitted" : "Submit"}
-</button>
+        <button
+          onClick={handleSubmit}
+          disabled={isSigned || isLoading}
+          className="bg-green-800 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl w-full font-semibold shadow-lg"
+        >
+          {isSigned ? "Already Submitted" : isLoading ? "Saving..." : "Submit"}
+        </button>
       </div>
+
+      {/* CUSTOM MODAL */}
+      {modal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-gray-200">
+            <div className="flex items-center gap-3 mb-4">
+              {modal.type === "loading" ? (
+                <div className="h-6 w-6 rounded-full border-4 border-gray-300 border-t-green-700 animate-spin" />
+              ) : modal.type === "success" ? (
+                <div className="h-6 w-6 rounded-full bg-green-600" />
+              ) : (
+                <div className="h-6 w-6 rounded-full bg-red-600" />
+              )}
+              <h3 className="text-lg font-bold text-gray-800">{modal.title}</h3>
+            </div>
+
+            <p className="text-gray-600 leading-relaxed">{modal.message}</p>
+
+            {modal.type !== "loading" && (
+              <button
+                onClick={closeModal}
+                className="mt-6 w-full rounded-xl bg-green-800 px-4 py-3 font-semibold text-white shadow-lg"
+              >
+                OK
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

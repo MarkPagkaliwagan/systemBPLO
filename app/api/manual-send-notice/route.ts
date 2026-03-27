@@ -104,13 +104,6 @@ switch (noticeLevel) {
 
             <p style="margin-top:20px;">Thank you for your cooperation.</p>
           </div>
-          <div style="text-align:center; margin-top:20px;">
-  <a href="${viewUrl}" 
-     style="background:#064e3b;color:white;padding:12px 20px;
-     text-decoration:none;border-radius:8px;">
-     View Notice & Sign
-  </a>
-</div>
 
           <!-- Footer -->
           <div style="background:#f9fafb; padding:15px; text-align:center; font-size:12px; color:#6b7280;">
@@ -179,7 +172,13 @@ switch (noticeLevel) {
             <p style="color:#991b1b;">
               Failure to comply may result in <strong>Cease & Desist Order</strong> and further legal action.
             </p>
-
+          <div style="text-align:center; margin-top:20px;">
+            <a href="${viewUrl}" 
+              style="background:#064e3b;color:white;padding:12px 20px;
+              text-decoration:none;border-radius:8px;">
+              View Notice & Sign
+            </a>
+          </div>
             <p>Please act immediately.</p>
           </div>
 
