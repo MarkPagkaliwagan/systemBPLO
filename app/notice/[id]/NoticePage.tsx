@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import SignatureCanvas from "react-signature-canvas";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, KeyboardEvent } from "react";
 
 type Props = {
   initialData?: any;
@@ -118,7 +118,7 @@ export default function NoticePage({ initialData }: Props) {
     }));
   };
 
-  const preventManualInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const preventManualInput = (e: KeyboardEvent<HTMLInputElement>) => {
     e.preventDefault();
   };
 
@@ -195,46 +195,57 @@ export default function NoticePage({ initialData }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-4 md:p-8 flex justify-center text-black">
+    <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
       <div
         ref={formRef}
-        className="relative bg-white w-full max-w-5xl p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden"
+        className="relative bg-white w-full max-w-5xl mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden"
       >
         <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-green-700 via-emerald-500 to-green-700" />
 
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 text-center md:text-left mb-8 pb-6 border-b">
-          <div className="shrink-0 rounded-2xl bg-white border border-gray-200 shadow-sm p-3">
-            <Image
-              src="/vercel.svg"
-              alt="Logo"
-              width={72}
-              height={72}
-              className="h-16 w-16 md:h-20 md:w-20 object-contain"
-              priority
-            />
-          </div>
-
-          <div className="flex-1">
-            <p className="font-semibold text-gray-700">Republic of the Philippines</p>
-            <p className="text-gray-600">City Government of San Pablo</p>
-            <p className="text-gray-600">City Hall Compound, San Pablo City 4000</p>
-            <p className="text-gray-500 text-sm">
-              Tel No. (049) 503-3481 / Email add. bplospc@gmail.com
-            </p>
-            <h2 className="font-bold text-xl mt-3 tracking-wide text-green-900">
-              BUSINESS PERMITS AND LICENSING OFFICE
-            </h2>
-
-            <div className="mt-5 flex flex-col items-center md:items-start gap-2">
-              <label className="font-semibold text-gray-700">APPREHENSION NOTICE NO:</label>
-              <input
-                name="noticeNo"
-                value={form.noticeNo}
-                onChange={handleChange}
-                placeholder="Enter Apprehension Notice No."
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full max-w-sm text-center font-medium shadow-sm bg-white"
+        <div className="relative mb-8 pb-6 border-b">
+          <div className="flex flex-col items-center gap-4 md:block">
+            {/* LOGO LEFT (RESPONSIVE) */}
+            <div className="relative flex justify-center md:block md:absolute md:left-6 md:top-6">
+              <Image
+                src="/vercel.svg"
+                alt="Logo"
+                width={110}
+                height={110}
+                className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 object-contain"
+                priority
               />
+            </div>
+
+            {/* CENTERED TEXT */}
+            <div className="text-center w-full px-2 sm:px-6 md:px-32 md:pt-0">
+              <p className="font-semibold text-gray-700 text-sm sm:text-base">
+                Republic of the Philippines
+              </p>
+              <p className="text-gray-600 text-sm sm:text-base">City Government of San Pablo</p>
+              <p className="text-gray-600 text-sm sm:text-base">
+                City Hall Compound, San Pablo City 4000
+              </p>
+              <p className="text-gray-500 text-xs sm:text-sm">
+                Tel No. (049) 503-3481 / Email add. bplospc@gmail.com
+              </p>
+
+              <h2 className="font-bold text-lg sm:text-xl mt-3 tracking-wide text-green-900">
+                BUSINESS PERMITS AND LICENSING OFFICE
+              </h2>
+
+              <div className="mt-5 flex flex-col items-center gap-2">
+                <label className="font-semibold text-gray-700 text-sm sm:text-base">
+                  APPREHENSION NOTICE NO:
+                </label>
+                <input
+                  name="noticeNo"
+                  value={form.noticeNo}
+                  onChange={handleChange}
+                  placeholder="Enter Apprehension Notice No."
+                  className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-2 rounded-xl w-full max-w-sm text-center font-medium shadow-sm"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -312,7 +323,7 @@ export default function NoticePage({ initialData }: Props) {
 
         {/* CARD NOTICE */}
         <div className="bg-green-50 border-l-4 border-green-700 p-5 rounded-2xl mb-5 shadow-sm">
-          <p className="text-gray-700 leading-relaxed">
+          <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
             Please be informed that inspection was conducted at your establishment by the
             undersigned Inspector of this office and found out the following
             violations/findings mentioned under The Revised Revenue Code of San Pablo.
@@ -338,7 +349,7 @@ export default function NoticePage({ initialData }: Props) {
               name="otherViolation"
               value={form.otherViolation}
               onChange={handleChange}
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-27.5 shadow-sm"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-[110px] shadow-sm"
               placeholder="Enter other violations..."
             />
           </div>
@@ -363,35 +374,35 @@ export default function NoticePage({ initialData }: Props) {
               value={form.owner}
               onChange={handleChange}
               placeholder="NAME OF OWNER"
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
             />
             <input
               name="rent"
               value={form.rent}
               onChange={handleChange}
               placeholder="Cost of Rent P"
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
             />
             <input
               name="ownerAddress"
               value={form.ownerAddress}
               onChange={handleChange}
               placeholder="OWNER'S ADDRESS"
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
             />
             <input
               name="contact"
               value={form.contact}
               onChange={handleChange}
               placeholder="Contact No."
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
             />
           </div>
         </div>
 
         {/* DIRECTIVE */}
         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-2xl mb-6 shadow-sm">
-          <p className="text-gray-700 leading-relaxed">
+          <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
             DIRECTIVE: The business establishment owner is directed to personally appear
             before the Office of the City Mayor, Business Permits and Licensing Division
             within three (3) working days from the receipt of this notice and to show cause
@@ -411,7 +422,7 @@ export default function NoticePage({ initialData }: Props) {
               placeholder="Name"
             />
             <div className="border rounded-xl overflow-hidden bg-white">
-              <SignatureCanvas ref={sig1} canvasProps={{ className: "w-full h-28" }} />
+              <SignatureCanvas ref={sig1} canvasProps={{ className: "w-full h-28 touch-none" }} />
             </div>
           </div>
 
@@ -425,7 +436,7 @@ export default function NoticePage({ initialData }: Props) {
               placeholder="Name"
             />
             <div className="border rounded-xl overflow-hidden bg-white">
-              <SignatureCanvas ref={sig2} canvasProps={{ className: "w-full h-28" }} />
+              <SignatureCanvas ref={sig2} canvasProps={{ className: "w-full h-28 touch-none" }} />
             </div>
             <input
               type="datetime-local"
@@ -450,7 +461,7 @@ export default function NoticePage({ initialData }: Props) {
               placeholder="Name"
             />
             <div className="border rounded-xl overflow-hidden bg-white">
-              <SignatureCanvas ref={sig3} canvasProps={{ className: "w-full h-28" }} />
+              <SignatureCanvas ref={sig3} canvasProps={{ className: "w-full h-28 touch-none" }} />
             </div>
           </div>
         </div>
@@ -462,7 +473,7 @@ export default function NoticePage({ initialData }: Props) {
             name="actionTaken"
             value={form.actionTaken}
             onChange={handleChange}
-            className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-30 shadow-sm"
+            className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-[120px] shadow-sm"
             placeholder="Enter action taken..."
           />
           <p className="text-xs text-gray-500 mt-3">QFM-BPL-009 Rev 0 2022.02.18</p>
