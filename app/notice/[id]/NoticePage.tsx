@@ -9,26 +9,26 @@ type Props = {
 
 type ModalState = {
   open: boolean;
+  type: "loading" | "success" | "error" | "info";
   title: string;
   message: string;
-  type: "loading" | "success" | "error";
 };
 
-const getLocalDate = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+const pad = (n: number) => String(n).padStart(2, "0");
+
+const getLocalDate = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
   return `${year}-${month}-${day}`;
 };
 
-const getLocalDateTime = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
+const getLocalDateTime = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
@@ -40,12 +40,15 @@ export default function NoticePage({ initialData }: Props) {
   const isSigned = initialData?.signed;
   const violationId = initialData?.id;
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAlreadySubmittedModal, setShowAlreadySubmittedModal] = useState(
+    Boolean(isSigned)
+  );
   const [modal, setModal] = useState<ModalState>({
     open: false,
+    type: "info",
     title: "",
     message: "",
-    type: "loading",
   });
 
   const [form, setForm] = useState({
@@ -69,6 +72,9 @@ export default function NoticePage({ initialData }: Props) {
     actionTaken: "",
   });
 
+  const currentDate = getLocalDate();
+  const currentDateTime = getLocalDateTime();
+
   useEffect(() => {
     if (!initialData) return;
 
@@ -80,6 +86,12 @@ export default function NoticePage({ initialData }: Props) {
       noticeNo: initialData.notice_no ?? prev.noticeNo,
     }));
   }, [initialData]);
+
+  useEffect(() => {
+    if (isSigned) {
+      setShowAlreadySubmittedModal(true);
+    }
+  }, [isSigned]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -93,7 +105,11 @@ export default function NoticePage({ initialData }: Props) {
     }));
   };
 
-  const showModal = (type: ModalState["type"], title: string, message: string) => {
+  const openModal = (
+    type: ModalState["type"],
+    title: string,
+    message: string
+  ) => {
     setModal({
       open: true,
       type,
@@ -103,90 +119,67 @@ export default function NoticePage({ initialData }: Props) {
   };
 
   const closeModal = () => {
-    setModal((prev) => ({ ...prev, open: false }));
-  };
-
-  const handleDateChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target;
-    const target = e.target as HTMLInputElement;
-
-    if (name === "date") {
-      const today = getLocalDate();
-      if (value > today) return;
-    }
-
-    if (name === "receivedAt") {
-      const now = getLocalDateTime();
-      if (value > now) return;
-    }
-
-    setForm((prev) => ({
+    setModal((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? target.checked : value,
+      open: false,
     }));
   };
 
   const handleSubmit = async () => {
-    if (!form.taxpayer || !form.inspectedBy) {
-      showModal("error", "Validation Error", "Please fill required fields.");
-      return;
-    }
+    if (isSubmitting) return;
 
-    if (!violationId) {
-      showModal("error", "Validation Error", "No violation ID found.");
+    if (!form.taxpayer || !form.inspectedBy) {
+      openModal("error", "Validation", "Please fill required fields.");
       return;
     }
 
     if (!form.date) {
-      showModal("error", "Validation Error", "Please select a valid date.");
+      openModal("error", "Validation", "Please select the date.");
       return;
     }
 
-    if (!form.receivedAt) {
-      showModal("error", "Validation Error", "Please select a valid received date and time.");
+    if (form.date !== currentDate) {
+      openModal("error", "Validation", "Only the current date can be selected.");
       return;
     }
 
-    const today = getLocalDate();
-    const now = getLocalDateTime();
-
-    if (form.date > today) {
-      showModal("error", "Invalid Date", "Future date is not allowed.");
+    if (form.receivedAt && form.receivedAt < currentDateTime) {
+      openModal(
+        "error",
+        "Validation",
+        "Received At must be current time or later."
+      );
       return;
     }
 
-    if (form.receivedAt > now) {
-      showModal("error", "Invalid Date & Time", "Future date and time is not allowed.");
+    if (!violationId) {
+      openModal("error", "Error", "No violation ID found!");
       return;
     }
 
     if (!sig1.current || sig1.current.isEmpty()) {
-      showModal("error", "Signature Required", "Inspector signature required.");
+      openModal("error", "Validation", "Inspector signature required.");
       return;
     }
 
-    setIsLoading(true);
-    showModal("loading", "Saving...", "Please wait while the notice is being saved.");
+    const sig1Data = sig1.current?.getTrimmedCanvas().toDataURL();
+    const sig2Data = sig2.current?.getTrimmedCanvas().toDataURL();
+    const sig3Data = sig3.current?.getTrimmedCanvas().toDataURL();
+
+    const payload = {
+      ...form,
+      initialDataId: violationId,
+      signatures: {
+        inspectedBy: sig1Data,
+        receivedBy: sig2Data,
+        notedBy: sig3Data,
+      },
+    };
+
+    setIsSubmitting(true);
+    openModal("loading", "Saving...", "Please wait while your notice is being saved.");
 
     try {
-      const sig1Data = sig1.current?.getTrimmedCanvas().toDataURL();
-      const sig2Data = sig2.current?.getTrimmedCanvas().toDataURL();
-      const sig3Data = sig3.current?.getTrimmedCanvas().toDataURL();
-
-      const payload = {
-        ...form,
-        initialDataId: violationId,
-        signatures: {
-          inspectedBy: sig1Data,
-          receivedBy: sig2Data,
-          notedBy: sig3Data,
-        },
-      };
-
-      console.log("SENDING:", payload);
-
       const res = await fetch("/api/save-notice", {
         method: "POST",
         headers: {
@@ -197,18 +190,20 @@ export default function NoticePage({ initialData }: Props) {
 
       const data = await res.json();
 
-      console.log("RESPONSE:", data);
-
       if (data.success) {
-        showModal("success", "Saved Successfully", "Your notice has been saved.");
+        openModal("success", "Saved Successfully", "Your notice has been submitted.");
       } else {
-        showModal("error", "Save Failed", data.error || "Error saving.");
+        openModal("error", "Error", data.error || "Error saving");
       }
     } catch (error) {
-      showModal("error", "Network Error", "Something went wrong while saving.");
+      openModal("error", "Error", "Something went wrong while saving.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
+  };
+
+  const blockTyping = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
   };
 
   console.log("INITIAL DATA:", initialData);
@@ -218,10 +213,18 @@ export default function NoticePage({ initialData }: Props) {
     <div className="min-h-screen bg-linear-to-br text-black from-slate-100 via-gray-100 to-slate-200 p-4 md:p-8 flex justify-center">
       <div
         ref={formRef}
-        className="bg-white w-full max-w-5xl p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200"
+        className="relative bg-white w-full max-w-5xl p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200"
       >
         {/* HEADER */}
-        <div className="text-center mb-8 pb-6 border-b">
+        <div className="relative text-center mb-8 pb-6 border-b">
+          <div className="absolute right-0 top-0 hidden md:block">
+            <img
+              src="/vercel.svg"
+              alt="Logo"
+              className="h-14 w-14 object-contain"
+            />
+          </div>
+
           <p className="font-semibold text-gray-700">Republic of the Philippines</p>
           <p className="text-gray-600">City Government of San Pablo</p>
           <p className="text-gray-600">City Hall Compound, San Pablo City 4000</p>
@@ -268,11 +271,12 @@ export default function NoticePage({ initialData }: Props) {
               type="date"
               name="date"
               value={form.date}
-              onChange={handleDateChange}
-              max={getLocalDate()}
-              readOnly
+              onChange={handleChange}
+              min={currentDate}
+              max={currentDate}
               inputMode="none"
-              onKeyDown={(e) => e.preventDefault()}
+              onKeyDown={blockTyping}
+              onPaste={(e) => e.preventDefault()}
               className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm"
             />
           </div>
@@ -284,8 +288,9 @@ export default function NoticePage({ initialData }: Props) {
               name="taxpayer"
               value={form.taxpayer}
               onChange={handleChange}
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm"
-              placeholder="Enter name"
+              disabled
+              className="border border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed px-4 py-3 rounded-xl w-full shadow-sm"
+              placeholder="Automatically filled"
             />
           </div>
         </div>
@@ -433,11 +438,11 @@ export default function NoticePage({ initialData }: Props) {
               type="datetime-local"
               name="receivedAt"
               value={form.receivedAt}
-              onChange={handleDateChange}
-              max={getLocalDateTime()}
-              readOnly
+              onChange={handleChange}
+              min={currentDateTime}
               inputMode="none"
-              onKeyDown={(e) => e.preventDefault()}
+              onKeyDown={blockTyping}
+              onPaste={(e) => e.preventDefault()}
               className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mt-3 rounded-xl shadow-sm"
             />
           </div>
@@ -473,38 +478,66 @@ export default function NoticePage({ initialData }: Props) {
         {/* BUTTON */}
         <button
           onClick={handleSubmit}
-          disabled={isSigned || isLoading}
+          disabled={isSigned || isSubmitting}
           className="bg-green-800 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl w-full font-semibold shadow-lg"
         >
-          {isSigned ? "Already Submitted" : isLoading ? "Saving..." : "Submit"}
+          {isSigned ? "Already Submitted" : isSubmitting ? "Saving..." : "Submit"}
         </button>
       </div>
 
       {/* CUSTOM MODAL */}
       {modal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-gray-200">
-            <div className="flex items-center gap-3 mb-4">
-              {modal.type === "loading" ? (
-                <div className="h-6 w-6 rounded-full border-4 border-gray-300 border-t-green-700 animate-spin" />
-              ) : modal.type === "success" ? (
+            <div className="flex items-center gap-3">
+              {modal.type === "loading" && (
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-green-700" />
+              )}
+              {modal.type === "success" && (
                 <div className="h-6 w-6 rounded-full bg-green-600" />
-              ) : (
+              )}
+              {modal.type === "error" && (
                 <div className="h-6 w-6 rounded-full bg-red-600" />
+              )}
+              {modal.type === "info" && (
+                <div className="h-6 w-6 rounded-full bg-blue-600" />
               )}
               <h3 className="text-lg font-bold text-gray-800">{modal.title}</h3>
             </div>
 
-            <p className="text-gray-600 leading-relaxed">{modal.message}</p>
+            <p className="mt-4 text-gray-600 leading-relaxed">{modal.message}</p>
 
             {modal.type !== "loading" && (
               <button
                 onClick={closeModal}
-                className="mt-6 w-full rounded-xl bg-green-800 px-4 py-3 font-semibold text-white shadow-lg"
+                className="mt-6 w-full rounded-xl bg-green-800 px-4 py-3 font-semibold text-white"
               >
                 OK
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ALREADY SUBMITTED MODAL */}
+      {showAlreadySubmittedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-green-600" />
+              <h3 className="text-lg font-bold text-gray-800">Already Submitted</h3>
+            </div>
+
+            <p className="mt-4 text-gray-600 leading-relaxed">
+              This notice has already been submitted.
+            </p>
+
+            <button
+              onClick={() => setShowAlreadySubmittedModal(false)}
+              className="mt-6 w-full rounded-xl bg-green-800 px-4 py-3 font-semibold text-white"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
