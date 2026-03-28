@@ -6,7 +6,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
 if (
-  pathname.startsWith('/notice') ||
+  pathname === '/notice' || // exact match lang
   pathname.startsWith('/api/save-notice')
 ) {
   return NextResponse.next();
