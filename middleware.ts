@@ -33,9 +33,6 @@ console.log("PATH:", pathname);
     '/reset-password',
     '/api/auth',
     '/api/auth/logout',
-
-    '/notice',
-
   ];
 
   const isPublicRoute =
