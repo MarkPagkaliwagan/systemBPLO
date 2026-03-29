@@ -6,13 +6,13 @@ export default function Loading() {
           <div className="h-14 w-14 rounded-full border-4 border-slate-200 border-t-slate-900 animate-spin" />
         </div>
 
-        <h1 className="mt-4 text-center text-xl font-semibold text-slate-900">
-          Loading notice form
-        </h1>
+<h1 className="mt-4 text-center text-xl font-semibold text-slate-900">
+  Loading...
+</h1>
 
-        <p className="mt-2 text-center text-sm text-slate-600">
-          Please wait, Data Loading...
-        </p>
+<p className="mt-2 text-center text-sm text-slate-600">
+  We’re preparing your notice form. This may take a moment.
+</p>
       </div>
     </main>
   );

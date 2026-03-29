@@ -22,12 +22,12 @@ function NoticeNotFound() {
         </div>
 
         <h1 className="mt-4 text-center text-xl font-semibold text-slate-900">
-          Notice form not found
-        </h1>
+  No notice available
+</h1>
 
-        <p className="mt-2 text-center text-sm text-slate-600">
-          Notice form not found for this Record.
-        </p>
+<p className="mt-2 text-center text-sm text-slate-600">
+  There’s currently no notice form linked to this record. You may go back or check again later.
+</p>
 
         <div className="mt-6 flex gap-3">
           <Link
