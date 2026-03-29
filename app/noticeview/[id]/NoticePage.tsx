@@ -53,7 +53,7 @@ export default function NoticePage({ initialData }: Props) {
     window.print();
   };
 
-  const handleDownloadPdf = async () => {
+ const handleDownloadPdf = async () => {
   try {
     const element = cardRef.current;
     if (!element) return;
@@ -62,59 +62,68 @@ export default function NoticePage({ initialData }: Props) {
     const { jsPDF } = await import("jspdf");
 
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 3,
       useCORS: true,
       backgroundColor: "#ffffff",
+      width: element.scrollWidth,
+      height: element.scrollHeight,
+      windowWidth: element.scrollWidth,
+      windowHeight: element.scrollHeight,
+      scrollX: 0,
+      scrollY: 0,
+      onclone: (doc) => {
+        const all = doc.querySelectorAll("*");
 
-     onclone: (doc) => {
-  const all = doc.querySelectorAll("*");
+        all.forEach((el: any) => {
+          const style = window.getComputedStyle(el);
 
-  all.forEach((el: any) => {
-    const style = window.getComputedStyle(el);
+          if (style.backgroundImage && style.backgroundImage !== "none") {
+            el.style.backgroundImage = "none";
+          }
 
-    // 🔥 REMOVE gradients (fix sa lab/oklch error)
-    if (style.backgroundImage && style.backgroundImage !== "none") {
-      el.style.backgroundImage = "none";
-    }
+          el.style.backgroundColor = "#ffffff";
+          el.style.color = "#000000";
+          el.style.borderColor = "#000000";
+          el.style.boxShadow = "none";
+          el.style.textShadow = "none";
 
-    // 🔥 SAFE COLORS
-    el.style.backgroundColor = "#ffffff";
-    el.style.color = "#000000";
-    el.style.borderColor = "#000000";
+          // ✅ IMPORTANT: prevent text cut
+          el.style.wordBreak = "break-word";
+          el.style.overflowWrap = "break-word";
+        });
 
-    // 🔥 REMOVE shadows
-    el.style.boxShadow = "none";
-    el.style.textShadow = "none";
-  });
+        const clonedCard = doc.querySelector(".print-card") as HTMLElement | null;
+        if (clonedCard) {
+          clonedCard.style.overflow = "visible";
+          clonedCard.style.maxWidth = "none";
+          clonedCard.style.width = "100%";
+          clonedCard.style.height = "auto";
+        }
 
-  // ✅ FIX: SELECT (Type dropdown)
-  const selects = doc.querySelectorAll("select");
+        const selects = doc.querySelectorAll("select");
 
-  selects.forEach((select: any) => {
-    const selectedText =
-      select.options[select.selectedIndex]?.text || "";
+        selects.forEach((select: any) => {
+          const selectedText = select.options[select.selectedIndex]?.text || "";
 
-    const div = doc.createElement("div");
+          const div = doc.createElement("div");
+          div.innerText = selectedText;
 
-    div.innerText = selectedText;
+          div.style.border = "1px solid #000";
+          div.style.padding = "12px";
+          div.style.borderRadius = "12px";
+          div.style.fontSize = "14px";
+          div.style.width = "100%";
+          div.style.boxSizing = "border-box";
 
-    // copy visual style para same itsura
-    div.style.border = "1px solid #000";
-    div.style.padding = "12px";
-    div.style.borderRadius = "12px";
-    div.style.fontSize = "14px";
-    div.style.width = "100%";
-    div.style.boxSizing = "border-box";
+          // ✅ allow wrap instead of cut
+          div.style.whiteSpace = "normal";
+          div.style.wordBreak = "break-word";
 
-    // 🔥 IMPORTANT: prevent text breaking
-    div.style.whiteSpace = "nowrap";
-    div.style.overflow = "hidden";
-    div.style.textOverflow = "ellipsis";
+          select.parentNode.replaceChild(div, select);
+        });
+      },
+    });
 
-    select.parentNode.replaceChild(div, select);
-  });
-}
-}); // ✅ THIS WAS MISSING
     const imgData = canvas.toDataURL("image/png");
 
     const pdf = new jsPDF({
@@ -126,16 +135,17 @@ export default function NoticePage({ initialData }: Props) {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    // ✅ PRESERVE RATIO (no stretch, no cut)
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
 
-    let finalWidth = imgWidth;
-    let finalHeight = imgHeight;
+    const ratio = Math.min(
+      pageWidth / imgWidth,
+      pageHeight / imgHeight
+    );
 
-    if (imgHeight > pageHeight) {
-      finalHeight = pageHeight;
-      finalWidth = (canvas.width * finalHeight) / canvas.height;
-    }
+    const finalWidth = imgWidth * ratio;
+    const finalHeight = imgHeight * ratio;
 
     const x = (pageWidth - finalWidth) / 2;
     const y = (pageHeight - finalHeight) / 2;
