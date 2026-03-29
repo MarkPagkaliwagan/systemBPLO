@@ -53,112 +53,131 @@ export default function NoticePage({ initialData }: Props) {
     window.print();
   };
 
- const handleDownloadPdf = async () => {
-  try {
-    const element = cardRef.current;
-    if (!element) return;
+  const handleDownloadPdf = async () => {
+    try {
+      const element = cardRef.current;
+      if (!element) return;
 
-    const html2canvas = (await import("html2canvas")).default;
-    const { jsPDF } = await import("jspdf");
+      const html2canvas = (await import("html2canvas")).default;
+      const { jsPDF } = await import("jspdf");
 
-    const canvas = await html2canvas(element, {
-      scale: 3,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      width: element.scrollWidth,
-      height: element.scrollHeight,
-      windowWidth: element.scrollWidth,
-      windowHeight: element.scrollHeight,
-      scrollX: 0,
-      scrollY: 0,
-      onclone: (doc) => {
-        const all = doc.querySelectorAll("*");
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (doc) => {
+          const all = doc.querySelectorAll("*");
 
-        all.forEach((el: any) => {
-          const style = window.getComputedStyle(el);
+          all.forEach((el: any) => {
+            const style = doc.defaultView?.getComputedStyle(el);
 
-          if (style.backgroundImage && style.backgroundImage !== "none") {
-            el.style.backgroundImage = "none";
+            if (style && style.backgroundImage && style.backgroundImage !== "none") {
+              el.style.backgroundImage = "none";
+            }
+
+            el.style.backgroundColor = "#ffffff";
+            el.style.color = "#000000";
+            el.style.borderColor = "#000000";
+            el.style.boxShadow = "none";
+            el.style.textShadow = "none";
+
+            el.style.wordBreak = "break-word";
+            el.style.overflowWrap = "break-word";
+            el.style.whiteSpace = "normal";
+          });
+
+          const clonedCard = doc.querySelector(".print-card") as HTMLElement | null;
+          if (clonedCard) {
+            clonedCard.style.overflow = "visible";
+            clonedCard.style.maxWidth = "none";
+            clonedCard.style.width = "100%";
+            clonedCard.style.height = "auto";
           }
 
-          el.style.backgroundColor = "#ffffff";
-          el.style.color = "#000000";
-          el.style.borderColor = "#000000";
-          el.style.boxShadow = "none";
-          el.style.textShadow = "none";
+          const fields = doc.querySelectorAll("input, textarea, select");
 
-          // ✅ IMPORTANT: prevent text cut
-          el.style.wordBreak = "break-word";
-          el.style.overflowWrap = "break-word";
-        });
+          fields.forEach((field: any) => {
+            const type = (field.getAttribute("type") || "").toLowerCase();
 
-        const clonedCard = doc.querySelector(".print-card") as HTMLElement | null;
-        if (clonedCard) {
-          clonedCard.style.overflow = "visible";
-          clonedCard.style.maxWidth = "none";
-          clonedCard.style.width = "100%";
-          clonedCard.style.height = "auto";
-        }
+            if (type === "checkbox" || type === "radio") {
+              return;
+            }
 
-        const selects = doc.querySelectorAll("select");
+            let value = "";
 
-        selects.forEach((select: any) => {
-          const selectedText = select.options[select.selectedIndex]?.text || "";
+            if (field.tagName === "SELECT") {
+              value = field.options?.[field.selectedIndex]?.text || "";
+            } else {
+              value = field.value ?? "";
+            }
 
-          const div = doc.createElement("div");
-          div.innerText = selectedText;
+            const div = doc.createElement("div");
+            div.innerText = value || "";
 
-          div.style.border = "1px solid #000";
-          div.style.padding = "12px";
-          div.style.borderRadius = "12px";
-          div.style.fontSize = "14px";
-          div.style.width = "100%";
-          div.style.boxSizing = "border-box";
+            const computed = doc.defaultView?.getComputedStyle(field);
 
-          // ✅ allow wrap instead of cut
-          div.style.whiteSpace = "normal";
-          div.style.wordBreak = "break-word";
+            div.style.border = computed?.border || "1px solid #000";
+            div.style.padding = computed?.padding || "12px";
+            div.style.borderRadius = computed?.borderRadius || "12px";
+            div.style.fontSize = computed?.fontSize || "14px";
+            div.style.fontFamily = computed?.fontFamily || "inherit";
+            div.style.width = computed?.width || "100%";
+            div.style.boxSizing = "border-box";
+            div.style.backgroundColor = "#ffffff";
+            div.style.color = "#000000";
+            div.style.whiteSpace = "normal";
+            div.style.wordBreak = "break-word";
+            div.style.overflowWrap = "break-word";
+            div.style.minHeight = computed?.minHeight || "auto";
+            div.style.display = "block";
 
-          select.parentNode.replaceChild(div, select);
-        });
-      },
-    });
+            field.parentNode?.replaceChild(div, field);
+          });
+        },
+      });
 
-    const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL("image/png");
 
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "pt",
-      format: "letter",
-    });
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "letter",
+      });
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
 
-    // ✅ PRESERVE RATIO (no stretch, no cut)
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
 
-    const ratio = Math.min(
-      pageWidth / imgWidth,
-      pageHeight / imgHeight
-    );
+      const ratio = pageWidth / imgWidth;
+      const scaledHeight = imgHeight * ratio;
 
-    const finalWidth = imgWidth * ratio;
-    const finalHeight = imgHeight * ratio;
+      let remainingHeight = scaledHeight;
+      let position = 0;
 
-    const x = (pageWidth - finalWidth) / 2;
-    const y = (pageHeight - finalHeight) / 2;
+      pdf.addImage(imgData, "PNG", 0, position, pageWidth, scaledHeight);
+      remainingHeight -= pageHeight;
 
-    pdf.addImage(imgData, "PNG", x, y, finalWidth, finalHeight);
-    pdf.save(
-      `Apprehension_Notice_${initialData?.notice_no || "document"}.pdf`
-    );
-  } catch (error) {
-    console.error("PDF download failed:", error);
-    alert("Failed to download PDF. Please try again.");
-  }
-};
+      while (remainingHeight > 0) {
+        position = remainingHeight - scaledHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pageWidth, scaledHeight);
+        remainingHeight -= pageHeight;
+      }
+
+      pdf.save(`Apprehension_Notice_${initialData?.notice_no || "document"}.pdf`);
+    } catch (error) {
+      console.error("PDF download failed:", error);
+      alert("Failed to download PDF. Please try again.");
+    }
+  };
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black print:bg-white print:p-0">
