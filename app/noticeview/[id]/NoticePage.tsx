@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 type NoticeFormData = {
@@ -40,348 +40,196 @@ function getSignatureSrc(signature?: string) {
   return `data:image/png;base64,${signature}`;
 }
 
-function formatValueForPdf(value: unknown) {
-  if (value === null || value === undefined) return "";
-  return String(value).trim();
-}
+function Modal({
+  open,
+  title,
+  children,
+  footer,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  children: ReactNode;
+  footer: ReactNode;
+  onClose: () => void;
+}) {
+  if (!open) return null;
 
-function isTextFieldElement(
-  el: Element
-): el is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
-  const tag = el.tagName.toLowerCase();
-  return tag === "input" || tag === "textarea" || tag === "select";
-}
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4 py-6 print:hidden">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-gray-200"
+      >
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <h3 id="modal-title" className="text-lg font-bold text-gray-900">
+            {title}
+          </h3>
 
-function createPdfSafeTextBlock(
-  doc: Document,
-  source: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-) {
-  const block = doc.createElement("div");
-  const computed = doc.defaultView?.getComputedStyle(source as Element);
-  const rect = source.getBoundingClientRect();
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full px-2 py-1 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
 
-  block.className = source.className;
-  block.textContent = "";
+        <div className="text-sm leading-6 text-gray-600">{children}</div>
 
-  block.style.boxSizing = "border-box";
-  block.style.width = `${Math.max(rect.width, 40)}px`;
-  block.style.minHeight = `${Math.max(rect.height, 24)}px`;
-  block.style.height = "auto";
-  block.style.padding = "12px 16px";
-  block.style.border = "1px solid #000";
-  block.style.borderRadius = "12px";
-  block.style.backgroundColor = "#fff";
-  block.style.color = "#000";
-  block.style.fontSize = computed?.fontSize || "14px";
-  block.style.fontFamily = computed?.fontFamily || "sans-serif";
-  block.style.fontWeight = computed?.fontWeight || "400";
-  block.style.lineHeight = "1.5";
-  block.style.textAlign = computed?.textAlign || "left";
-  block.style.whiteSpace = "pre-wrap";
-  block.style.wordBreak = "break-word";
-  block.style.overflowWrap = "anywhere";
-  block.style.overflow = "visible";
-  block.style.textShadow = "none";
-  block.style.boxShadow = "none";
-
-  let text = "";
-
-  if (source.tagName.toLowerCase() === "select") {
-    const select = source as HTMLSelectElement;
-    text = select.options[select.selectedIndex]?.text || "";
-  } else {
-    const input = source as HTMLInputElement | HTMLTextAreaElement;
-    text = formatValueForPdf(input.value);
-  }
-
-  block.textContent = text || "";
-  return block;
-}
-
-function normalizePdfHeader(doc: Document) {
-  const header = doc.querySelector(".pdf-header-section") as HTMLElement | null;
-  const logoWrap = doc.querySelector(".pdf-header-logo") as HTMLElement | null;
-  const textWrap = doc.querySelector(".pdf-header-text") as HTMLElement | null;
-
-  if (header) {
-    header.style.display = "flex";
-    header.style.flexDirection = "column";
-    header.style.alignItems = "center";
-    header.style.justifyContent = "center";
-    header.style.gap = "12px";
-    header.style.position = "relative";
-    header.style.paddingTop = "12px";
-    header.style.overflow = "visible";
-    header.style.minHeight = "auto";
-  }
-
-  if (logoWrap) {
-    logoWrap.style.position = "static";
-    logoWrap.style.left = "auto";
-    logoWrap.style.top = "auto";
-    logoWrap.style.margin = "0 auto";
-    logoWrap.style.display = "flex";
-    logoWrap.style.justifyContent = "center";
-    logoWrap.style.alignItems = "center";
-    logoWrap.style.flex = "0 0 auto";
-  }
-
-  if (textWrap) {
-    textWrap.style.padding = "0 16px";
-    textWrap.style.maxWidth = "100%";
-    textWrap.style.overflow = "visible";
-    textWrap.style.whiteSpace = "normal";
-    textWrap.style.wordBreak = "break-word";
-    textWrap.style.overflowWrap = "anywhere";
-    textWrap.style.lineHeight = "1.45";
-  }
-
-  const textLines = doc.querySelectorAll(
-    ".pdf-header-text p, .pdf-header-text h2, .pdf-header-text label"
+        <div className="mt-6 flex justify-end gap-3">{footer}</div>
+      </div>
+    </div>
   );
-
-  textLines.forEach((line) => {
-    const node = line as HTMLElement;
-    node.style.whiteSpace = "normal";
-    node.style.wordBreak = "break-word";
-    node.style.overflowWrap = "anywhere";
-    node.style.lineHeight = "1.45";
-    node.style.marginTop = node.style.marginTop || "0";
-    node.style.marginBottom = node.style.marginBottom || "0";
-  });
 }
 
-function copyParentStylesToIframe(iframeDoc: Document) {
-  const parentHead = document.head;
-  const styles = parentHead.querySelectorAll('style, link[rel="stylesheet"]');
+function LoadingOverlay({
+  open,
+  message = "Preparing document...",
+}: {
+  open: boolean;
+  message?: string;
+}) {
+  if (!open) return null;
 
-  styles.forEach((node) => {
-    iframeDoc.head.appendChild(node.cloneNode(true));
-  });
+  return (
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm print:hidden">
+      <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-6 py-5 shadow-2xl border border-gray-200">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-green-700" />
+        <p className="text-sm font-medium text-gray-700">{message}</p>
+      </div>
+    </div>
+  );
 }
 
-function replaceFieldsInPdfClone(doc: Document) {
-  const all = doc.querySelectorAll("*");
-
-  all.forEach((el) => {
-    const node = el as HTMLElement;
-    const computed = doc.defaultView?.getComputedStyle(node);
-
-    if (computed?.backgroundImage && computed.backgroundImage !== "none") {
-      node.style.backgroundImage = "none";
-    }
-
-    node.style.backgroundColor = "#ffffff";
-    node.style.color = "#000000";
-    node.style.borderColor = "#000000";
-    node.style.boxShadow = "none";
-    node.style.textShadow = "none";
-    node.style.overflow = "visible";
-    node.style.maxWidth = "none";
-    node.style.wordBreak = "break-word";
-    node.style.overflowWrap = "anywhere";
-    node.style.whiteSpace = "normal";
-  });
-
-  const clonedCard = doc.querySelector(".print-card") as HTMLElement | null;
-  if (clonedCard) {
-    clonedCard.style.overflow = "visible";
-    clonedCard.style.maxWidth = "none";
-    clonedCard.style.width = "100%";
-    clonedCard.style.height = "auto";
-  }
-
-  normalizePdfHeader(doc);
-
-  const fields = doc.querySelectorAll("input, textarea, select");
-
-  fields.forEach((field) => {
-    if (!isTextFieldElement(field)) return;
-
-    const tag = field.tagName.toLowerCase();
-    const input = field as HTMLInputElement;
-
-    if (tag === "input" && (input.type === "checkbox" || input.type === "radio")) {
-      return;
-    }
-
-    const safeBlock = createPdfSafeTextBlock(
-      doc,
-      field as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    );
-
-    field.parentNode?.replaceChild(safeBlock, field);
-  });
-
-  const images = doc.querySelectorAll("img");
-  images.forEach((img) => {
-    const node = img as HTMLImageElement;
-    node.style.objectFit = "contain";
-  });
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <label className="block font-semibold text-gray-700 mb-2">{children}</label>;
 }
 
-function openPrintWindowFromClone(sourceElement: HTMLElement) {
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
-  iframe.style.opacity = "0";
-  iframe.style.pointerEvents = "none";
+function ReadOnlyInput({
+  value,
+  className = "",
+  placeholder,
+  type = "text",
+}: {
+  value?: string;
+  className?: string;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value ?? ""}
+      readOnly
+      placeholder={placeholder}
+      className={`border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-50 print:bg-white print:shadow-none ${className}`}
+    />
+  );
+}
 
-  document.body.appendChild(iframe);
+function ReadOnlyTextArea({
+  value,
+  className = "",
+  placeholder,
+}: {
+  value?: string;
+  className?: string;
+  placeholder?: string;
+}) {
+  return (
+    <textarea
+      value={value ?? ""}
+      readOnly
+      placeholder={placeholder}
+      className={`border border-gray-300 w-full p-3 rounded-xl shadow-sm bg-gray-50 print:bg-white print:shadow-none ${className}`}
+    />
+  );
+}
 
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!iframeDoc) {
-    iframe.remove();
-    return;
-  }
+function SignatureBox({
+  label,
+  name,
+  signature,
+}: {
+  label: string;
+  name?: string;
+  signature?: string;
+}) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm print:shadow-none">
+      <p className="font-semibold text-gray-700 mb-3">{label}</p>
 
-  iframeDoc.open();
-  iframeDoc.write(`
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>Notice PDF</title>
-        <style>
-          @page {
-            size: letter portrait;
-            margin: 0;
-          }
+      <ReadOnlyInput value={name} placeholder="Name" className="mb-3" />
 
-          html,
-          body {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100%;
-            height: 100%;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          * {
-            box-sizing: border-box;
-          }
-
-          body {
-            background: #ffffff;
-            color: #000000;
-          }
-
-          .print-hide {
-            display: none !important;
-          }
-
-          .print-card {
-            position: relative;
-            width: 100% !important;
-            margin: 0 !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            overflow: visible !important;
-          }
-
-          .pdf-header-section {
-            break-inside: avoid;
-            page-break-inside: avoid;
-            overflow: visible !important;
-          }
-
-          .pdf-header-logo {
-            position: static !important;
-          }
-
-          .pdf-header-text {
-            overflow: visible !important;
-            white-space: normal !important;
-            word-break: break-word !important;
-            overflow-wrap: anywhere !important;
-          }
-
-          input,
-          textarea,
-          select {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-        </style>
-      </head>
-      <body>
-        <div id="print-root"></div>
-      </body>
-    </html>
-  `);
-  iframeDoc.close();
-
-  copyParentStylesToIframe(iframeDoc);
-
-  const root = iframeDoc.getElementById("print-root");
-  if (!root) {
-    iframe.remove();
-    return;
-  }
-
-  const clone = sourceElement.cloneNode(true) as HTMLElement;
-  replaceFieldsInPdfClone(iframeDoc);
-  root.appendChild(clone);
-
-  const cleanup = () => {
-    try {
-      iframe.remove();
-    } catch {
-      // ignore
-    }
-  };
-
-  iframe.contentWindow?.addEventListener("afterprint", cleanup, { once: true });
-
-  setTimeout(() => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } catch (error) {
-      console.error("Print/PDF failed:", error);
-      cleanup();
-    }
-
-    setTimeout(cleanup, 1500);
-  }, 300);
+      <div className="border rounded-xl overflow-hidden bg-white h-28 flex items-center justify-center print:border-gray-300">
+        {signature ? (
+          <img
+            src={getSignatureSrc(signature)}
+            alt={`${label} Signature`}
+            className="h-full w-full object-contain"
+          />
+        ) : (
+          <span className="text-gray-400">No Signature</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function NoticePage({ initialData }: Props) {
   const router = useRouter();
-  const cardRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPrintConfirm, setShowPrintConfirm] = useState(false);
+  const [isPreparingPrint, setIsPreparingPrint] = useState(false);
 
   useEffect(() => {
     setIsLoading(false);
   }, []);
 
-  const handlePrint = () => {
-    window.print();
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsPreparingPrint(false);
+      setShowPrintConfirm(false);
+    };
+
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => window.removeEventListener("afterprint", handleAfterPrint);
+  }, []);
+
+  const handleOpenPrintConfirm = () => {
+    setShowPrintConfirm(true);
   };
 
-  const handleDownloadPdf = async () => {
-    try {
-      const element = cardRef.current;
-      if (!element) return;
+  const handleClosePrintConfirm = () => {
+    if (!isPreparingPrint) {
+      setShowPrintConfirm(false);
+    }
+  };
 
+  const handleConfirmPrint = async () => {
+    setShowPrintConfirm(false);
+    setIsPreparingPrint(true);
+
+    try {
       if (document.fonts?.ready) {
         await document.fonts.ready;
       }
 
-      openPrintWindowFromClone(element);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      window.print();
     } catch (error) {
-      console.error("PDF download failed:", error);
-      alert("Failed to download PDF. Please try again.");
+      console.error("Print failed:", error);
+      alert("Failed to open print dialog. Please try again.");
+      setIsPreparingPrint(false);
     }
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black print:bg-white print:p-0">
+    <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black print:bg-white print:p-0 print:overflow-visible">
       <style jsx global>{`
         @page {
           size: letter portrait;
@@ -393,8 +241,9 @@ export default function NoticePage({ initialData }: Props) {
           body {
             margin: 0 !important;
             padding: 0 !important;
-            width: 100%;
-            height: 100%;
+            width: 100% !important;
+            min-height: 100% !important;
+            overflow: visible !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
@@ -409,13 +258,16 @@ export default function NoticePage({ initialData }: Props) {
           }
 
           .print-card {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100vw !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
             border-radius: 0 !important;
             box-shadow: none !important;
+            border: none !important;
             overflow: visible !important;
           }
 
@@ -446,19 +298,51 @@ export default function NoticePage({ initialData }: Props) {
             word-break: break-word !important;
             overflow-wrap: anywhere !important;
           }
+
+          .print-card input,
+          .print-card textarea,
+          .print-card select {
+            background: #fff !important;
+          }
         }
       `}</style>
 
-      {isLoading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm print:hidden">
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-6 py-5 shadow-2xl border border-gray-200">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-green-700" />
-            <p className="text-sm font-medium text-gray-700">Loading...</p>
-          </div>
-        </div>
-      )}
+      <LoadingOverlay
+        open={isLoading || isPreparingPrint}
+        message={isPreparingPrint ? "Opening print dialog..." : "Loading..."}
+      />
 
-      <div className="w-full max-w-5xl mx-auto">
+      <Modal
+        open={showPrintConfirm}
+        title="Print / Save PDF"
+        onClose={handleClosePrintConfirm}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={handleClosePrintConfirm}
+              className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmPrint}
+              className="rounded-xl border border-green-700 bg-green-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-800"
+            >
+              Continue
+            </button>
+          </>
+        }
+      >
+        <p>
+          This will open the browser print dialog. From there, you can choose{" "}
+          <span className="font-semibold text-gray-900">Print</span> or{" "}
+          <span className="font-semibold text-gray-900">Save to PDF</span>.
+        </p>
+      </Modal>
+
+      <div className="w-full max-w-5xl mx-auto print:w-full print:max-w-none">
         <div className="mb-4 flex flex-wrap gap-3 justify-start print-hide">
           <button
             type="button"
@@ -471,23 +355,14 @@ export default function NoticePage({ initialData }: Props) {
 
           <button
             type="button"
-            onClick={handleDownloadPdf}
+            onClick={handleOpenPrintConfirm}
             className="inline-flex items-center gap-2 rounded-xl border border-green-700 bg-green-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-800 active:scale-[0.99] print:hidden"
           >
-            Download PDF
-          </button>
-
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 rounded-xl border border-blue-700 bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-blue-800 active:scale-[0.99] print:hidden"
-          >
-            Print
+            Print / Save PDF
           </button>
         </div>
 
         <div
-          ref={cardRef}
           className="print-card relative bg-white w-full mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden print:shadow-none print:rounded-none print:border-none print:max-w-none print:w-full"
         >
           <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700 print:hidden" />
@@ -527,10 +402,9 @@ export default function NoticePage({ initialData }: Props) {
                   <label className="font-semibold text-gray-700 text-sm sm:text-base">
                     APPREHENSION NOTICE NO:
                   </label>
-                  <input
-                    value={initialData?.notice_no ?? ""}
-                    readOnly
-                    className="border border-gray-300 px-4 py-2 rounded-xl w-full max-w-sm text-center font-medium shadow-sm bg-gray-50 print:bg-white print:shadow-none"
+                  <ReadOnlyInput
+                    value={initialData?.notice_no}
+                    className="max-w-sm text-center font-medium"
                   />
                 </div>
               </div>
@@ -538,7 +412,7 @@ export default function NoticePage({ initialData }: Props) {
           </div>
 
           <div className="mb-5">
-            <label className="block font-semibold text-gray-700 mb-2">Type:</label>
+            <SectionTitle>Type:</SectionTitle>
             <select
               value={initialData?.type ?? ""}
               disabled
@@ -553,43 +427,24 @@ export default function NoticePage({ initialData }: Props) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
             <div>
-              <label className="block font-semibold text-gray-700 mb-2">DATE:</label>
-              <input
-                type="date"
-                value={initialData?.date ?? ""}
-                readOnly
-                className="border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-50 print:bg-white print:shadow-none"
-              />
+              <SectionTitle>DATE:</SectionTitle>
+              <ReadOnlyInput value={initialData?.date} type="date" />
             </div>
 
             <div>
-              <label className="block font-semibold text-gray-700 mb-2">
-                BUSINESS AND TAX PAYER NAME:
-              </label>
-              <input
-                value={initialData?.business_name ?? ""}
-                readOnly
-                className="border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-100 print:bg-white print:shadow-none"
-              />
+              <SectionTitle>BUSINESS AND TAX PAYER NAME:</SectionTitle>
+              <ReadOnlyInput value={initialData?.business_name} className="bg-gray-100" />
             </div>
           </div>
 
           <div className="mb-5">
-            <label className="block font-semibold text-gray-700 mb-2">BUSINESS ADDRESS:</label>
-            <input
-              value={initialData?.address ?? ""}
-              readOnly
-              className="border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-50 print:bg-white print:shadow-none"
-            />
+            <SectionTitle>BUSINESS ADDRESS:</SectionTitle>
+            <ReadOnlyInput value={initialData?.address} />
           </div>
 
           <div className="mb-6">
-            <label className="block font-semibold text-gray-700 mb-2">NATURE OF BUSINESS:</label>
-            <input
-              value={initialData?.nature_of_business ?? ""}
-              readOnly
-              className="border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-50 print:bg-white print:shadow-none"
-            />
+            <SectionTitle>NATURE OF BUSINESS:</SectionTitle>
+            <ReadOnlyInput value={initialData?.nature_of_business} />
           </div>
 
           <div className="bg-green-50 border-l-4 border-green-700 p-5 rounded-2xl mb-5 shadow-sm print:bg-white print:shadow-none">
@@ -612,11 +467,10 @@ export default function NoticePage({ initialData }: Props) {
             </label>
 
             <div className="mt-4">
-              <label className="block font-semibold text-gray-700 mb-2">OTHER VIOLATIONS:</label>
-              <textarea
-                value={initialData?.otherViolation ?? ""}
-                readOnly
-                className="border border-gray-300 w-full p-3 rounded-xl min-h-27.5 shadow-sm bg-gray-50 print:bg-white print:shadow-none"
+              <SectionTitle>OTHER VIOLATIONS:</SectionTitle>
+              <ReadOnlyTextArea
+                value={initialData?.otherViolation}
+                className="min-h-[110px]"
                 placeholder="Enter other violations..."
               />
             </div>
@@ -634,30 +488,10 @@ export default function NoticePage({ initialData }: Props) {
             </label>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                value={initialData?.owner ?? ""}
-                readOnly
-                placeholder="NAME OF OWNER"
-                className="border border-gray-300 px-4 py-3 rounded-xl shadow-sm w-full bg-gray-50 print:bg-white print:shadow-none"
-              />
-              <input
-                value={initialData?.rent ?? ""}
-                readOnly
-                placeholder="Cost of Rent P"
-                className="border border-gray-300 px-4 py-3 rounded-xl shadow-sm w-full bg-gray-50 print:bg-white print:shadow-none"
-              />
-              <input
-                value={initialData?.ownerAddress ?? ""}
-                readOnly
-                placeholder="OWNER'S ADDRESS"
-                className="border border-gray-300 px-4 py-3 rounded-xl shadow-sm w-full bg-gray-50 print:bg-white print:shadow-none"
-              />
-              <input
-                value={initialData?.contact ?? ""}
-                readOnly
-                placeholder="Contact No."
-                className="border border-gray-300 px-4 py-3 rounded-xl shadow-sm w-full bg-gray-50 print:bg-white print:shadow-none"
-              />
+              <ReadOnlyInput value={initialData?.owner} placeholder="NAME OF OWNER" />
+              <ReadOnlyInput value={initialData?.rent} placeholder="Cost of Rent P" />
+              <ReadOnlyInput value={initialData?.ownerAddress} placeholder="OWNER'S ADDRESS" />
+              <ReadOnlyInput value={initialData?.contact} placeholder="Contact No." />
             </div>
           </div>
 
@@ -671,35 +505,16 @@ export default function NoticePage({ initialData }: Props) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm print:shadow-none">
-              <p className="font-semibold text-gray-700 mb-3">INSPECTED BY:</p>
-              <input
-                value={initialData?.inspectedBy ?? ""}
-                readOnly
-                className="border border-gray-300 w-full p-3 mb-3 rounded-xl shadow-sm bg-gray-50 print:bg-white print:shadow-none"
-                placeholder="Name"
-              />
-              <div className="border rounded-xl overflow-hidden bg-white h-28 flex items-center justify-center print:border-gray-300">
-                {initialData?.signatures?.inspectedBy ? (
-                  <img
-                    src={getSignatureSrc(initialData.signatures.inspectedBy)}
-                    alt="Inspector Signature"
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <span className="text-gray-400">No Signature</span>
-                )}
-              </div>
-            </div>
+            <SignatureBox
+              label="INSPECTED BY:"
+              name={initialData?.inspectedBy}
+              signature={initialData?.signatures?.inspectedBy}
+            />
 
             <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm print:shadow-none">
               <p className="font-semibold text-gray-700 mb-3">RECEIVED BY:</p>
-              <input
-                value={initialData?.receivedBy ?? ""}
-                readOnly
-                className="border border-gray-300 w-full p-3 mb-3 rounded-xl shadow-sm bg-gray-50 print:bg-white print:shadow-none"
-                placeholder="Name"
-              />
+              <ReadOnlyInput value={initialData?.receivedBy} placeholder="Name" className="mb-3" />
+
               <div className="border rounded-xl overflow-hidden bg-white h-28 flex items-center justify-center print:border-gray-300">
                 {initialData?.signatures?.receivedBy ? (
                   <img
@@ -711,23 +526,19 @@ export default function NoticePage({ initialData }: Props) {
                   <span className="text-gray-400">No Signature</span>
                 )}
               </div>
-              <input
+
+              <ReadOnlyInput
                 type="datetime-local"
-                value={initialData?.receivedAt ?? ""}
-                readOnly
-                className="border border-gray-300 w-full p-3 mt-3 rounded-xl shadow-sm bg-gray-50 print:bg-white print:shadow-none"
+                value={initialData?.receivedAt}
+                className="mt-3"
               />
               <p className="text-xs text-gray-500 mt-2">Current date and time only.</p>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm md:col-span-2 print:shadow-none">
               <p className="font-semibold text-gray-700 mb-3">NOTED BY:</p>
-              <input
-                value={initialData?.notedBy ?? ""}
-                readOnly
-                className="border border-gray-300 w-full p-3 mb-3 rounded-xl shadow-sm bg-gray-50 print:bg-white print:shadow-none"
-                placeholder="Name"
-              />
+              <ReadOnlyInput value={initialData?.notedBy} placeholder="Name" className="mb-3" />
+
               <div className="border rounded-xl overflow-hidden bg-white h-28 flex items-center justify-center print:border-gray-300">
                 {initialData?.signatures?.notedBy ? (
                   <img
@@ -743,11 +554,10 @@ export default function NoticePage({ initialData }: Props) {
           </div>
 
           <div className="mb-6 bg-gray-50 border border-gray-200 p-5 rounded-2xl shadow-sm print:bg-white print:shadow-none">
-            <label className="block font-semibold text-gray-700 mb-2">ACTION TAKEN:</label>
-            <textarea
-              value={initialData?.actionTaken ?? ""}
-              readOnly
-              className="border border-gray-300 w-full p-3 rounded-xl min-h-30 shadow-sm bg-gray-50 print:bg-white print:shadow-none"
+            <SectionTitle>ACTION TAKEN:</SectionTitle>
+            <ReadOnlyTextArea
+              value={initialData?.actionTaken}
+              className="min-h-[120px]"
               placeholder="Enter action taken..."
             />
             <p className="text-xs text-gray-500 mt-3">QFM-BPL-009 Rev 0 2022.02.18</p>
