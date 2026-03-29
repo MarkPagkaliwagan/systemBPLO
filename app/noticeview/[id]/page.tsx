@@ -26,7 +26,7 @@ function NoticeNotFound() {
         </h1>
 
         <p className="mt-2 text-center text-sm text-slate-600">
-          Walang makita na notice form para sa record na ito.
+          Notice form not found for this Record.
         </p>
 
         <div className="mt-6 flex gap-3">
