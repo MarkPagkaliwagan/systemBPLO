@@ -40,6 +40,189 @@ function getSignatureSrc(signature?: string) {
   return `data:image/png;base64,${signature}`;
 }
 
+function formatValueForPdf(value: unknown) {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+}
+
+function isTextFieldElement(
+  el: Element
+): el is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+  const tag = el.tagName.toLowerCase();
+  return tag === "input" || tag === "textarea" || tag === "select";
+}
+
+function createPdfSafeTextBlock(
+  doc: Document,
+  source: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+) {
+  const block = doc.createElement("div");
+  const view = doc.defaultView;
+  const computed = view?.getComputedStyle(source as Element);
+
+  const rect = source.getBoundingClientRect();
+
+  block.className = source.className;
+  block.textContent = "";
+
+  block.style.boxSizing = "border-box";
+  block.style.width = `${Math.max(rect.width, 40)}px`;
+  block.style.minHeight = `${Math.max(rect.height, 24)}px`;
+  block.style.height = "auto";
+  block.style.padding = "12px 16px";
+  block.style.border = "1px solid #000";
+  block.style.borderRadius = "12px";
+  block.style.backgroundColor = "#fff";
+  block.style.color = "#000";
+  block.style.fontSize = computed?.fontSize || "14px";
+  block.style.fontFamily = computed?.fontFamily || "sans-serif";
+  block.style.fontWeight = computed?.fontWeight || "400";
+  block.style.lineHeight = "1.5";
+  block.style.textAlign = computed?.textAlign || "left";
+  block.style.whiteSpace = "pre-wrap";
+  block.style.wordBreak = "break-word";
+  block.style.overflowWrap = "anywhere";
+  block.style.overflow = "visible";
+  block.style.textShadow = "none";
+  block.style.boxShadow = "none";
+
+  let text = "";
+
+  if (source.tagName.toLowerCase() === "select") {
+    const select = source as HTMLSelectElement;
+    text = select.options[select.selectedIndex]?.text || "";
+  } else {
+    const input = source as HTMLInputElement | HTMLTextAreaElement;
+    text = formatValueForPdf(input.value);
+  }
+
+  block.textContent = text || "";
+  return block;
+}
+
+function replaceFieldsInPdfClone(doc: Document) {
+  const all = doc.querySelectorAll("*");
+
+  all.forEach((el) => {
+    const node = el as HTMLElement;
+    const computed = doc.defaultView?.getComputedStyle(node);
+
+    if (computed?.backgroundImage && computed.backgroundImage !== "none") {
+      node.style.backgroundImage = "none";
+    }
+
+    node.style.backgroundColor = "#ffffff";
+    node.style.color = "#000000";
+    node.style.borderColor = "#000000";
+    node.style.boxShadow = "none";
+    node.style.textShadow = "none";
+    node.style.overflow = "visible";
+    node.style.maxWidth = "none";
+    node.style.wordBreak = "break-word";
+    node.style.overflowWrap = "anywhere";
+    node.style.whiteSpace = "normal";
+  });
+
+  const clonedCard = doc.querySelector(".print-card") as HTMLElement | null;
+  if (clonedCard) {
+    clonedCard.style.overflow = "visible";
+    clonedCard.style.maxWidth = "none";
+    clonedCard.style.width = "100%";
+    clonedCard.style.height = "auto";
+  }
+
+  const fields = doc.querySelectorAll("input, textarea, select");
+
+  fields.forEach((field) => {
+    if (!isTextFieldElement(field)) return;
+
+    const tag = field.tagName.toLowerCase();
+    const input = field as HTMLInputElement;
+
+    if (tag === "input" && (input.type === "checkbox" || input.type === "radio")) {
+      return;
+    }
+
+    const safeBlock = createPdfSafeTextBlock(
+      doc,
+      field as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    );
+
+    field.parentNode?.replaceChild(safeBlock, field);
+  });
+
+  const images = doc.querySelectorAll("img");
+  images.forEach((img) => {
+    const node = img as HTMLImageElement;
+    node.style.objectFit = "contain";
+  });
+}
+
+async function canvasToPagedPdf(canvas: HTMLCanvasElement, fileName: string) {
+  const { jsPDF } = await import("jspdf");
+
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "pt",
+    format: "letter",
+  });
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  const imgWidth = canvas.width;
+  const imgHeight = canvas.height;
+
+  const ratio = pageWidth / imgWidth;
+  const sliceHeight = Math.floor(pageHeight / ratio);
+
+  const pageCanvas = document.createElement("canvas");
+  const pageCtx = pageCanvas.getContext("2d");
+
+  if (!pageCtx) {
+    throw new Error("Unable to create canvas context");
+  }
+
+  pageCanvas.width = imgWidth;
+  pageCanvas.height = sliceHeight;
+
+  let renderedHeight = 0;
+  let pageIndex = 0;
+
+  while (renderedHeight < imgHeight) {
+    const currentSliceHeight = Math.min(sliceHeight, imgHeight - renderedHeight);
+
+    pageCanvas.height = currentSliceHeight;
+    pageCtx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+    pageCtx.drawImage(
+      canvas,
+      0,
+      renderedHeight,
+      imgWidth,
+      currentSliceHeight,
+      0,
+      0,
+      imgWidth,
+      currentSliceHeight
+    );
+
+    const pageImgData = pageCanvas.toDataURL("image/png");
+    const renderHeightPt = currentSliceHeight * ratio;
+
+    if (pageIndex > 0) {
+      pdf.addPage();
+    }
+
+    pdf.addImage(pageImgData, "PNG", 0, 0, pageWidth, renderHeightPt);
+
+    renderedHeight += currentSliceHeight;
+    pageIndex += 1;
+  }
+
+  pdf.save(fileName);
+}
+
 export default function NoticePage({ initialData }: Props) {
   const router = useRouter();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -58,8 +241,11 @@ export default function NoticePage({ initialData }: Props) {
       const element = cardRef.current;
       if (!element) return;
 
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
       const html2canvas = (await import("html2canvas")).default;
-      const { jsPDF } = await import("jspdf");
 
       const canvas = await html2canvas(element, {
         scale: 3,
@@ -72,107 +258,14 @@ export default function NoticePage({ initialData }: Props) {
         scrollX: 0,
         scrollY: 0,
         onclone: (doc) => {
-          const all = doc.querySelectorAll("*");
-
-          all.forEach((el: any) => {
-            const style = doc.defaultView?.getComputedStyle(el);
-
-            if (style && style.backgroundImage && style.backgroundImage !== "none") {
-              el.style.backgroundImage = "none";
-            }
-
-            el.style.backgroundColor = "#ffffff";
-            el.style.color = "#000000";
-            el.style.borderColor = "#000000";
-            el.style.boxShadow = "none";
-            el.style.textShadow = "none";
-
-            el.style.wordBreak = "break-word";
-            el.style.overflowWrap = "break-word";
-            el.style.whiteSpace = "normal";
-          });
-
-          const clonedCard = doc.querySelector(".print-card") as HTMLElement | null;
-          if (clonedCard) {
-            clonedCard.style.overflow = "visible";
-            clonedCard.style.maxWidth = "none";
-            clonedCard.style.width = "100%";
-            clonedCard.style.height = "auto";
-          }
-
-          const fields = doc.querySelectorAll("input, textarea, select");
-
-          fields.forEach((field: any) => {
-            const type = (field.getAttribute("type") || "").toLowerCase();
-
-            if (type === "checkbox" || type === "radio") {
-              return;
-            }
-
-            let value = "";
-
-            if (field.tagName === "SELECT") {
-              value = field.options?.[field.selectedIndex]?.text || "";
-            } else {
-              value = field.value ?? "";
-            }
-
-            const div = doc.createElement("div");
-            div.innerText = value || "";
-
-            const computed = doc.defaultView?.getComputedStyle(field);
-
-            div.style.border = computed?.border || "1px solid #000";
-            div.style.padding = computed?.padding || "12px";
-            div.style.borderRadius = computed?.borderRadius || "12px";
-            div.style.fontSize = computed?.fontSize || "14px";
-            div.style.fontFamily = computed?.fontFamily || "inherit";
-            div.style.width = computed?.width || "100%";
-            div.style.boxSizing = "border-box";
-            div.style.backgroundColor = "#ffffff";
-            div.style.color = "#000000";
-            div.style.whiteSpace = "normal";
-            div.style.wordBreak = "break-word";
-            div.style.overflowWrap = "break-word";
-            div.style.minHeight = computed?.minHeight || "auto";
-            div.style.display = "block";
-
-            field.parentNode?.replaceChild(div, field);
-          });
+          replaceFieldsInPdfClone(doc);
         },
       });
 
-      const imgData = canvas.toDataURL("image/png");
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "pt",
-        format: "letter",
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-
-      const ratio = pageWidth / imgWidth;
-      const scaledHeight = imgHeight * ratio;
-
-      let remainingHeight = scaledHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, "PNG", 0, position, pageWidth, scaledHeight);
-      remainingHeight -= pageHeight;
-
-      while (remainingHeight > 0) {
-        position = remainingHeight - scaledHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pageWidth, scaledHeight);
-        remainingHeight -= pageHeight;
-      }
-
-      pdf.save(`Apprehension_Notice_${initialData?.notice_no || "document"}.pdf`);
+      await canvasToPagedPdf(
+        canvas,
+        `Apprehension_Notice_${initialData?.notice_no || "document"}.pdf`
+      );
     } catch (error) {
       console.error("PDF download failed:", error);
       alert("Failed to download PDF. Please try again.");
@@ -215,10 +308,18 @@ export default function NoticePage({ initialData }: Props) {
             margin: 0;
             border-radius: 0 !important;
             box-shadow: none !important;
+            overflow: visible !important;
           }
 
           .print-hide {
             display: none !important;
+          }
+
+          input,
+          textarea,
+          select {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         }
       `}</style>
