@@ -57,9 +57,7 @@ function createPdfSafeTextBlock(
   source: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
 ) {
   const block = doc.createElement("div");
-  const view = doc.defaultView;
-  const computed = view?.getComputedStyle(source as Element);
-
+  const computed = doc.defaultView?.getComputedStyle(source as Element);
   const rect = source.getBoundingClientRect();
 
   block.className = source.className;
@@ -100,6 +98,68 @@ function createPdfSafeTextBlock(
   return block;
 }
 
+function normalizePdfHeader(doc: Document) {
+  const header = doc.querySelector(".pdf-header-section") as HTMLElement | null;
+  const logoWrap = doc.querySelector(".pdf-header-logo") as HTMLElement | null;
+  const textWrap = doc.querySelector(".pdf-header-text") as HTMLElement | null;
+
+  if (header) {
+    header.style.display = "flex";
+    header.style.flexDirection = "column";
+    header.style.alignItems = "center";
+    header.style.justifyContent = "center";
+    header.style.gap = "12px";
+    header.style.position = "relative";
+    header.style.paddingTop = "12px";
+    header.style.overflow = "visible";
+    header.style.minHeight = "auto";
+  }
+
+  if (logoWrap) {
+    logoWrap.style.position = "static";
+    logoWrap.style.left = "auto";
+    logoWrap.style.top = "auto";
+    logoWrap.style.margin = "0 auto";
+    logoWrap.style.display = "flex";
+    logoWrap.style.justifyContent = "center";
+    logoWrap.style.alignItems = "center";
+    logoWrap.style.flex = "0 0 auto";
+  }
+
+  if (textWrap) {
+    textWrap.style.padding = "0 16px";
+    textWrap.style.maxWidth = "100%";
+    textWrap.style.overflow = "visible";
+    textWrap.style.whiteSpace = "normal";
+    textWrap.style.wordBreak = "break-word";
+    textWrap.style.overflowWrap = "anywhere";
+    textWrap.style.lineHeight = "1.45";
+  }
+
+  const textLines = doc.querySelectorAll(
+    ".pdf-header-text p, .pdf-header-text h2, .pdf-header-text label"
+  );
+
+  textLines.forEach((line) => {
+    const node = line as HTMLElement;
+    node.style.whiteSpace = "normal";
+    node.style.wordBreak = "break-word";
+    node.style.overflowWrap = "anywhere";
+    node.style.lineHeight = "1.45";
+    node.style.marginTop = node.style.marginTop || "0";
+    node.style.marginBottom = node.style.marginBottom || "0";
+  });
+}
+
+function copyParentStylesToIframe(iframeDoc: Document) {
+  const parentHead = document.head;
+  const styles = parentHead.querySelectorAll('style, link[rel="stylesheet"]');
+
+  styles.forEach((node) => {
+    iframeDoc.head.appendChild(node.cloneNode(true));
+  });
+}
+
 function replaceFieldsInPdfClone(doc: Document) {
   const all = doc.querySelectorAll("*");
 
@@ -131,6 +191,8 @@ function replaceFieldsInPdfClone(doc: Document) {
     clonedCard.style.height = "auto";
   }
 
+  normalizePdfHeader(doc);
+
   const fields = doc.querySelectorAll("input, textarea, select");
 
   fields.forEach((field) => {
@@ -158,69 +220,135 @@ function replaceFieldsInPdfClone(doc: Document) {
   });
 }
 
-async function canvasToPagedPdf(canvas: HTMLCanvasElement, fileName: string) {
-  const { jsPDF } = await import("jspdf");
+function openPrintWindowFromClone(sourceElement: HTMLElement) {
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
 
-  const pdf = new jsPDF({
-    orientation: "portrait",
-    unit: "pt",
-    format: "letter",
-  });
+  document.body.appendChild(iframe);
 
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-
-  const imgWidth = canvas.width;
-  const imgHeight = canvas.height;
-
-  const ratio = pageWidth / imgWidth;
-  const sliceHeight = Math.floor(pageHeight / ratio);
-
-  const pageCanvas = document.createElement("canvas");
-  const pageCtx = pageCanvas.getContext("2d");
-
-  if (!pageCtx) {
-    throw new Error("Unable to create canvas context");
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!iframeDoc) {
+    iframe.remove();
+    return;
   }
 
-  pageCanvas.width = imgWidth;
-  pageCanvas.height = sliceHeight;
+  iframeDoc.open();
+  iframeDoc.write(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Notice PDF</title>
+        <style>
+          @page {
+            size: letter portrait;
+            margin: 0;
+          }
 
-  let renderedHeight = 0;
-  let pageIndex = 0;
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100%;
+            height: 100%;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
 
-  while (renderedHeight < imgHeight) {
-    const currentSliceHeight = Math.min(sliceHeight, imgHeight - renderedHeight);
+          * {
+            box-sizing: border-box;
+          }
 
-    pageCanvas.height = currentSliceHeight;
-    pageCtx.clearRect(0, 0, pageCanvas.width, pageCanvas.height);
+          body {
+            background: #ffffff;
+            color: #000000;
+          }
 
-    pageCtx.drawImage(
-      canvas,
-      0,
-      renderedHeight,
-      imgWidth,
-      currentSliceHeight,
-      0,
-      0,
-      imgWidth,
-      currentSliceHeight
-    );
+          .print-hide {
+            display: none !important;
+          }
 
-    const pageImgData = pageCanvas.toDataURL("image/png");
-    const renderHeightPt = currentSliceHeight * ratio;
+          .print-card {
+            position: relative;
+            width: 100% !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+          }
 
-    if (pageIndex > 0) {
-      pdf.addPage();
+          .pdf-header-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            overflow: visible !important;
+          }
+
+          .pdf-header-logo {
+            position: static !important;
+          }
+
+          .pdf-header-text {
+            overflow: visible !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+          }
+
+          input,
+          textarea,
+          select {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="print-root"></div>
+      </body>
+    </html>
+  `);
+  iframeDoc.close();
+
+  copyParentStylesToIframe(iframeDoc);
+
+  const root = iframeDoc.getElementById("print-root");
+  if (!root) {
+    iframe.remove();
+    return;
+  }
+
+  const clone = sourceElement.cloneNode(true) as HTMLElement;
+  replaceFieldsInPdfClone(iframeDoc);
+  root.appendChild(clone);
+
+  const cleanup = () => {
+    try {
+      iframe.remove();
+    } catch {
+      // ignore
+    }
+  };
+
+  iframe.contentWindow?.addEventListener("afterprint", cleanup, { once: true });
+
+  setTimeout(() => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch (error) {
+      console.error("Print/PDF failed:", error);
+      cleanup();
     }
 
-    pdf.addImage(pageImgData, "PNG", 0, 0, pageWidth, renderHeightPt);
-
-    renderedHeight += currentSliceHeight;
-    pageIndex += 1;
-  }
-
-  pdf.save(fileName);
+    setTimeout(cleanup, 1500);
+  }, 300);
 }
 
 export default function NoticePage({ initialData }: Props) {
@@ -245,27 +373,7 @@ export default function NoticePage({ initialData }: Props) {
         await document.fonts.ready;
       }
 
-      const html2canvas = (await import("html2canvas")).default;
-
-      const canvas = await html2canvas(element, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        width: element.scrollWidth,
-        height: element.scrollHeight,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (doc) => {
-          replaceFieldsInPdfClone(doc);
-        },
-      });
-
-      await canvasToPagedPdf(
-        canvas,
-        `Apprehension_Notice_${initialData?.notice_no || "document"}.pdf`
-      );
+      openPrintWindowFromClone(element);
     } catch (error) {
       console.error("PDF download failed:", error);
       alert("Failed to download PDF. Please try again.");
@@ -321,6 +429,23 @@ export default function NoticePage({ initialData }: Props) {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
+
+          .pdf-header-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            overflow: visible !important;
+          }
+
+          .pdf-header-logo {
+            position: static !important;
+          }
+
+          .pdf-header-text {
+            overflow: visible !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+          }
         }
       `}</style>
 
@@ -367,9 +492,9 @@ export default function NoticePage({ initialData }: Props) {
         >
           <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700 print:hidden" />
 
-          <div className="relative mb-8 pb-6 border-b">
+          <div className="relative mb-8 pb-6 border-b pdf-header-section">
             <div className="flex flex-col items-center gap-4 md:block">
-              <div className="relative flex justify-center md:block md:absolute md:left-6 md:top-6">
+              <div className="relative flex justify-center md:block md:absolute md:left-6 md:top-6 pdf-header-logo">
                 <Image
                   src="/vercel.svg"
                   alt="Logo"
@@ -380,11 +505,13 @@ export default function NoticePage({ initialData }: Props) {
                 />
               </div>
 
-              <div className="text-center w-full px-2 sm:px-6 md:px-32 md:pt-0">
+              <div className="text-center w-full px-2 sm:px-6 md:px-32 md:pt-0 pdf-header-text">
                 <p className="font-semibold text-gray-700 text-sm sm:text-base">
                   Republic of the Philippines
                 </p>
-                <p className="text-gray-600 text-sm sm:text-base">City Government of San Pablo</p>
+                <p className="text-gray-600 text-sm sm:text-base">
+                  City Government of San Pablo
+                </p>
                 <p className="text-gray-600 text-sm sm:text-base">
                   City Hall Compound, San Pablo City 4000
                 </p>
