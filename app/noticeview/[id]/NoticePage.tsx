@@ -219,7 +219,7 @@ export default function NoticePage({ initialData }: Props) {
         await document.fonts.ready;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 250));
       window.print();
     } catch (error) {
       console.error("Print failed:", error);
@@ -248,6 +248,11 @@ export default function NoticePage({ initialData }: Props) {
             print-color-adjust: exact;
           }
 
+          body {
+            padding: 18px !important;
+            box-sizing: border-box !important;
+          }
+
           body * {
             visibility: hidden;
           }
@@ -258,17 +263,18 @@ export default function NoticePage({ initialData }: Props) {
           }
 
           .print-card {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 100vw !important;
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
+            width: 100% !important;
             max-width: none !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 28px !important;
             border-radius: 0 !important;
             box-shadow: none !important;
-            border: none !important;
+            border: 1px solid #d1d5db !important;
             overflow: visible !important;
+            background: #fff !important;
           }
 
           .print-hide {
@@ -336,7 +342,7 @@ export default function NoticePage({ initialData }: Props) {
         }
       >
         <p>
-          This will open the browser print dialog. From there, you can choose{" "}
+          This will open the browser print dialog. From there, choose{" "}
           <span className="font-semibold text-gray-900">Print</span> or{" "}
           <span className="font-semibold text-gray-900">Save to PDF</span>.
         </p>
@@ -362,9 +368,7 @@ export default function NoticePage({ initialData }: Props) {
           </button>
         </div>
 
-        <div
-          className="print-card relative bg-white w-full mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden print:shadow-none print:rounded-none print:border-none print:max-w-none print:w-full"
-        >
+        <div className="print-card relative bg-white w-full mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden print:shadow-none print:rounded-none print:border-none print:max-w-none print:w-full">
           <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700 print:hidden" />
 
           <div className="relative mb-8 pb-6 border-b pdf-header-section">
