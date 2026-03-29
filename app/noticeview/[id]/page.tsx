@@ -31,7 +31,7 @@ function NoticeNotFound() {
 
         <div className="mt-6 flex gap-3">
           <Link
-            href="/notice"
+            href="/Admin/Compliance/Dashboard"
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 transition"
           >
             <FiArrowLeft />
