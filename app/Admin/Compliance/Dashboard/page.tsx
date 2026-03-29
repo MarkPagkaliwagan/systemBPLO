@@ -1042,7 +1042,7 @@ function ViolationsPageContent() {
                                 }}
                                 className="ml-2 px-2 py-1 text-xs rounded font-medium bg-purple-600 text-white hover:bg-purple-700"
                               >
-                                View Letter
+                                View Form
                               </button>
                               <button
                                 onClick={(e) => {
@@ -1134,7 +1134,7 @@ function ViolationsPageContent() {
                                 }}
                                 className="ml-2 px-2 py-1 text-xs rounded font-medium bg-purple-600 text-white hover:bg-purple-700"
                               >
-                                View Letter
+                                View Form
                               </button>
 
                               <button
@@ -1449,118 +1449,82 @@ function ViolationsPageContent() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-1">
-                      {!v.resolved &&
-                        getStatusText(v) === "Cease and Desist" && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askMarkResolved(v);
-                              }}
-                              disabled={v.resolved}
-                              className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-                            >
-                              Mark Resolved
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewLetter(v.id);
-                              }}
-                              className="w-full px-2 py-1 text-xs rounded font-medium bg-purple-600 text-white hover:bg-purple-700"
-                            >
-                              View Letter
-                            </button>
+  {/* ✅ ALWAYS SHOW VIEW LETTER */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      handleViewLetter(v.id);
+    }}
+    className="w-full px-2 py-1 text-xs rounded font-medium bg-purple-600 text-white hover:bg-purple-700"
+  >
+    View From
+  </button>
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askDeleteViolation(v);
-                              }}
-                              className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
+  {(v.resolved || getStatusText(v) === "Cease and Desist") ? (
+    <>
+      {/* DELETE */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          askDeleteViolation(v);
+        }}
+        className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
+      >
+        Delete
+      </button>
+    </>
+  ) : (
+    <>
+      {/* SEND */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          askSendNotice(v);
+        }}
+        disabled={autoSend || !canSendNotice(v)}
+        className={`px-2 py-1 text-xs rounded font-medium ${
+          autoSend || !canSendNotice(v)
+            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+            : "bg-green-600 text-white hover:bg-green-700"
+        }`}
+      >
+        {sendingNoticeId === v.id ? "Sending..." : "Send Notice"}
+      </button>
 
-                      {!v.resolved &&
-                        getStatusText(v) !== "Cease and Desist" && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askSendNotice(v);
-                              }}
-                              disabled={autoSend || !canSendNotice(v)}
-                              className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`}
-                            >
-                              {sendingNoticeId === v.id ? (
-                                <span className="flex items-center gap-1">
-                                  <svg
-                                    className="animate-spin h-4 w-4 text-white"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <circle
-                                      className="opacity-25"
-                                      cx="12"
-                                      cy="12"
-                                      r="10"
-                                      stroke="currentColor"
-                                      strokeWidth="4"
-                                    />
-                                    <path
-                                      className="opacity-75"
-                                      fill="currentColor"
-                                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                    />
-                                  </svg>
-                                  Sending...
-                                </span>
-                              ) : (
-                                "Send Notice"
-                              )}
-                            </button>
+      {/* RESOLVE */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          askMarkResolved(v);
+        }}
+        className="w-full px-2 py-1 text-xs rounded font-medium bg-blue-600 text-white hover:bg-blue-700"
+      >
+        Mark Resolved
+      </button>
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askMarkResolved(v);
-                              }}
-                              disabled={v.resolved}
-                              className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-                            >
-                              Mark Resolved
-                            </button>
+      {/* DELETE */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          askDeleteViolation(v);
+        }}
+        className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
+      >
+        Delete
+      </button>
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askDeleteViolation(v);
-                              }}
-                              className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
-                            >
-                              Delete
-                            </button>
-
-                            {!canSendNotice(v) && v.last_sent_time && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Next send:{" "}
-                                {new Date(
-                                  new Date(v.last_sent_time).getTime() +
-                                    (v.interval_days ?? 7) *
-                                      24 *
-                                      60 *
-                                      60 *
-                                      1000,
-                                ).toLocaleString()}
-                              </div>
-                            )}
-                          </>
-                        )}
-                    </div>
+      {!canSendNotice(v) && v.last_sent_time && (
+        <div className="text-xs text-gray-500 mt-1">
+          Next send:{" "}
+          {new Date(
+            new Date(v.last_sent_time).getTime() +
+              (v.interval_days ?? 7) * 24 * 60 * 60 * 1000,
+          ).toLocaleString()}
+        </div>
+      )}
+    </>
+  )}
+</div>
                   </div>
                 ))
               )}
