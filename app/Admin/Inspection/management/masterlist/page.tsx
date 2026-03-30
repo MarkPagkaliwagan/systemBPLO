@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { FiUpload, FiFile, FiClock, FiDownload, FiTrash2, FiChevronLeft, FiChevronRight, FiAlertCircle, FiFilter, FiPlus } from "react-icons/fi";
+import { FiUpload, FiFile, FiClock, FiChevronLeft, FiChevronRight, FiAlertCircle } from "react-icons/fi";
 import Papa from "papaparse";
 import Sidebar from "../../../../components/sidebar";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
-import Link from "next/link";
 import ProtectedRoute from "../../../../../components/ProtectedRoute";
 
 interface CSVFile {
@@ -36,7 +35,6 @@ function CSVManagerContent() {
   const [csvFiles, setCSVFiles] = useState<CSVFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
@@ -70,23 +68,7 @@ function CSVManagerContent() {
               .select('*', { count: 'exact', head: true })
               .eq('file_id', upload.id);
 
-            const { count: reviewedCount } = await supabase
-              .from('business_records')
-              .select('*', { count: 'exact', head: true })
-              .eq('file_id', upload.id)
-              .in('status', ['compliant', 'non_compliant', 'for_inspection', 'active']);
-
             const total = totalCount ?? 0;
-            const reviewed = reviewedCount ?? 0;
-
-            let derivedStatus: string;
-            if (total === 0 || reviewed === 0) {
-              derivedStatus = 'not_reviewed';
-            } else if (reviewed < total) {
-              derivedStatus = 'processing';
-            } else {
-              derivedStatus = 'completed';
-            }
 
             let formattedSize = '-';
             if (upload.file_size) {
@@ -104,7 +86,7 @@ function CSVManagerContent() {
               size: formattedSize,
               rows: total,
               successCount: total,
-              status: derivedStatus,
+              status: 'uploaded',
             };
           })
         );
@@ -117,6 +99,26 @@ function CSVManagerContent() {
 
     fetchUploadedFiles();
   }, []);
+
+  const getStatusStyle = (status?: string) => {
+    switch (status) {
+      case 'uploaded': return 'bg-green-100 text-green-800';
+      case 'uploading': return 'bg-blue-100 text-blue-800';
+      case 'processing': return 'bg-yellow-100 text-yellow-800';
+      case 'error': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'uploaded': return 'Uploaded';
+      case 'uploading': return 'Processing';
+      case 'processing': return 'Processing';
+      case 'error': return 'Error';
+      default: return status ?? '';
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -149,7 +151,7 @@ function CSVManagerContent() {
       uploadDate: new Date().toLocaleString(),
       size: formattedSize,
       rows: 0,
-      status: 'processing',
+      status: 'uploading',
     };
 
     setCSVFiles(prev => [newCSV, ...prev]);
@@ -260,7 +262,7 @@ function CSVManagerContent() {
           f.id === fileId
             ? {
               ...f,
-              status: totalErrors > 0 && totalSuccess === 0 ? 'error' : 'not_reviewed',
+              status: totalErrors > 0 && totalSuccess === 0 ? 'error' : 'uploaded',
               rows: totalSuccess,
               successCount: totalSuccess,
               skippedCount: totalSkipped,
@@ -308,9 +310,7 @@ function CSVManagerContent() {
     }
   };
 
-  const filteredFiles = csvFiles.filter(file => {
-    return !selectedStatus || file.status === selectedStatus;
-  });
+  const filteredFiles = csvFiles;
 
   const totalPages = Math.ceil(filteredFiles.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -423,28 +423,13 @@ function CSVManagerContent() {
           {/* Files Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
-            {/* Header + Filter */}
+            {/* Header */}
             <div className="px-4 py-3 border-b border-gray-200">
-              <div className={`${isMobile ? 'space-y-2' : 'flex items-center justify-between'}`}>
+              <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900">Uploaded Files</h2>
-                <div className={`${isMobile ? 'flex items-center gap-2 w-full' : 'flex items-center gap-4'}`}>
-                  <div className="flex items-center gap-2 flex-1">
-                    <FiFilter className="w-4 h-4 text-gray-400 shrink-0" />
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-                      className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
-                    >
-                      <option value="">All Status</option>
-                      <option value="not_reviewed">Not Reviewed</option>
-                      <option value="processing">Processing</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                  <span className="text-xs text-gray-400 shrink-0 min-w-[48px] text-right">
-                    {filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
+                <span className="text-xs text-gray-400">
+                  {filteredFiles.length} file{filteredFiles.length !== 1 ? 's' : ''}
+                </span>
               </div>
             </div>
 
@@ -461,6 +446,7 @@ function CSVManagerContent() {
                     paginatedFiles.map((file) => (
                       <div key={file.id}>
                         <div className="p-4 transition-colors">
+
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="flex items-center gap-2 flex-1 min-w-0">
                               <FiFile className="w-4 h-4 text-green-600 shrink-0" />
@@ -468,6 +454,11 @@ function CSVManagerContent() {
                                 {file.name}
                               </p>
                             </div>
+                            {file.status && (
+                              <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(file.status)}`}>
+                                {getStatusLabel(file.status)}
+                              </span>
+                            )}
                           </div>
 
                           <p className="text-xs text-gray-400 flex items-center gap-1 mb-1">
@@ -478,7 +469,7 @@ function CSVManagerContent() {
                           <p className="text-xs text-gray-400 mb-2">{file.size}</p>
 
                           <div className="flex flex-wrap gap-1.5 mb-3">
-                            {file.status === 'processing' && !file.successCount ? (
+                            {file.status === 'uploading' ? (
                               <span className="text-xs text-gray-400 flex items-center gap-1">
                                 <FiClock className="w-3 h-3" /> Processing...
                               </span>
@@ -534,12 +525,13 @@ function CSVManagerContent() {
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Results</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {paginatedFiles.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400">
+                          <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">
                             No files uploaded yet. Upload a CSV file to get started.
                           </td>
                         </tr>
@@ -556,7 +548,7 @@ function CSVManagerContent() {
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.uploadDate}</td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{file.size}</td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                {file.status === 'processing' && !file.successCount ? (
+                                {file.status === 'uploading' ? (
                                   <span className="text-gray-400 flex items-center">
                                     <FiClock className="w-3 h-3 mr-1" /> Processing...
                                   </span>
@@ -574,10 +566,17 @@ function CSVManagerContent() {
                                   </div>
                                 )}
                               </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                {file.status && (
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusStyle(file.status)}`}>
+                                    {getStatusLabel(file.status)}
+                                  </span>
+                                )}
+                              </td>
                             </tr>
                             {file.errors && file.errors.length > 0 && (
                               <tr className="bg-red-50">
-                                <td colSpan={4} className="px-4 py-2">
+                                <td colSpan={5} className="px-4 py-2">
                                   <div className="flex items-start space-x-2">
                                     <FiAlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                                     <div>
