@@ -31,12 +31,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: "Violation not found" });
 
   const v = violations[0];
+
+  if (!v.requestor_email) {
+  return NextResponse.json({
+    success: false,
+    error: "No email found",
+  });
+}
+
   if (v.cease_flag) {
   return NextResponse.json({ 
     success: false, 
     error: "All notices already sent / Cease & Desist" 
   });
 }
+
   const now = new Date();
   const interval = v.interval_days;
 
@@ -56,6 +65,7 @@ export async function POST(req: NextRequest) {
 
   // Determine notice level
   const noticeLevel = v.notice_level ?? 0;
+  const viewUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/notice/${v.id}`;
   let subjectText = "", textBody = "", htmlBody = "";
 
 switch (noticeLevel) {
@@ -84,6 +94,14 @@ switch (noticeLevel) {
             </div>
 
             <p>Please resolve this within <strong>${interval} days</strong> to avoid further action.</p>
+
+                    <div style="text-align:center; margin-top:20px;">
+            <a href="${viewUrl}" 
+              style="background:#064e3b;color:white;padding:12px 20px;
+              text-decoration:none;border-radius:8px;">
+              View Notice & Sign
+            </a>
+          </div>
 
             <p style="margin-top:20px;">Thank you for your cooperation.</p>
           </div>
@@ -155,7 +173,7 @@ switch (noticeLevel) {
             <p style="color:#991b1b;">
               Failure to comply may result in <strong>Cease & Desist Order</strong> and further legal action.
             </p>
-
+  
             <p>Please act immediately.</p>
           </div>
 

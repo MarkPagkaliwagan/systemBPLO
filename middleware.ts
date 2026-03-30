@@ -5,6 +5,16 @@ import { verifySessionToken } from '@/lib/session';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+if (
+  pathname === '/notice' ||
+  pathname.startsWith('/notice/') || // ✅ allow /notice/123
+  pathname.startsWith('/api/save-notice')
+) {
+  return NextResponse.next();
+}
+
+console.log("PATH:", pathname);
+
   console.log('[MIDDLEWARE] Checking path:', pathname);
 
   // Skip middleware for static files

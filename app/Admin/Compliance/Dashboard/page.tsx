@@ -10,14 +10,14 @@ import {
   FiAlertCircle,
   FiCheckCircle,
   FiInfo,
-  FiTrash2
+  FiTrash2,
 } from "react-icons/fi";
 import { supabase } from "@/lib/supabaseClient";
 import Sidebar from "../../../components/sidebar";
 import ProtectedRoute from "../../../../components/ProtectedRoute";
 import CalendarPage from "../../../Admin/Compliance/Dashboard/calendar";
 import DetailsForBusinessFormModal from "./DetailsForBusinessFormModal";
-
+import { useRouter } from "next/navigation";
 type Violation = {
   id: number;
   business_id: string;
@@ -39,7 +39,10 @@ function ViolationsPageContent() {
   const [sortKey, setSortKey] = useState<keyof Violation | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
   const [loading, setLoading] = useState(false);
-
+  const router = useRouter();
+  const handleViewLetter = (id: number) => {
+    router.push(`/noticeview/${id}`);
+  };
   // Mobile state
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -510,7 +513,9 @@ function ViolationsPageContent() {
             console.error(error);
             openMessageModal("Error", "Failed to delete record.", "error");
           } else {
-            setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== v.id));
+            setSelectedIds((prev) =>
+              prev.filter((selectedId) => selectedId !== v.id),
+            );
             if (editingEmail === v.id) setEditingEmail(null);
             if (editingInterval === v.id) setEditingInterval(null);
             openMessageModal("Success", "Record deleted.", "success");
@@ -1027,9 +1032,18 @@ function ViolationsPageContent() {
                         </td>
 
                         <td className="px-6 py-4 align-top">
-                          {v.resolved ? null : getStatusText(v) ===
-                            "Cease and Desist" ? (
+                          {v.resolved ||
+                          getStatusText(v) === "Cease and Desist" ? (
                             <div className="flex flex-col gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewLetter(v.id);
+                                }}
+                                className="ml-2 px-2 py-1 text-xs rounded font-medium bg-purple-600 text-white hover:bg-purple-700"
+                              >
+                                View Form
+                              </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -1046,15 +1060,15 @@ function ViolationsPageContent() {
                               </button>
 
                               <button
-  onClick={(e) => {
-    e.stopPropagation();
-    askDeleteViolation(v);
-  }}
-  title="Delete"
-  className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
->
-  <FiTrash2 className="w-4 h-4" />
-</button>
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  askDeleteViolation(v);
+                                }}
+                                title="Delete"
+                                className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
+                              >
+                                <FiTrash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           ) : (
                             <>
@@ -1113,17 +1127,26 @@ function ViolationsPageContent() {
                               >
                                 Mark Resolved
                               </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewLetter(v.id);
+                                }}
+                                className="ml-2 px-2 py-1 text-xs rounded font-medium bg-purple-600 text-white hover:bg-purple-700"
+                              >
+                                View Form
+                              </button>
 
                               <button
-  onClick={(e) => {
-    e.stopPropagation();
-    askDeleteViolation(v);
-  }}
-  title="Delete"
-  className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
->
-  <FiTrash2 className="w-4 h-4" />
-</button>
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  askDeleteViolation(v);
+                                }}
+                                title="Delete"
+                                className="ml-2 p-1 rounded hover:bg-red-100 text-red-600"
+                              >
+                                <FiTrash2 className="w-4 h-4" />
+                              </button>
 
                               {!canSendNotice(v) &&
                                 v.last_sent_time &&
@@ -1303,9 +1326,9 @@ function ViolationsPageContent() {
                       <StatusBadge v={v} />
                     </div>
                     {/* Violation (ADD THIS) */}
-<div className="text-sm text-gray-800 font-medium">
-  {v.violation}
-</div>
+                    <div className="text-sm text-gray-800 font-medium">
+                      {v.violation}
+                    </div>
 
                     {/* Violation Text */}
                     <div
@@ -1367,51 +1390,55 @@ function ViolationsPageContent() {
                       <NoticeBadge notice={3} v={v} />
                     </div>
 
-{/* Interval */}
-<div className="text-xs text-gray-500">
-  Interval:{" "}
-  {editingInterval === v.id ? (
-    <span className="flex items-center gap-2 mt-1">
-      <input
-        type="number"
-        value={intervalValue}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => setIntervalValue(Number(e.target.value))}
-        className="w-16 border rounded px-1 py-0.5 text-xs"
-      />
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          updateInterval(v.id);
-        }}
-        className="text-green-600 text-xs hover:underline"
-      >
-        Save
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setEditingInterval(null);
-        }}
-        className="text-gray text-xs hover:underline"
-      >
-        Cancel
-      </button>
-    </span>
-  ) : (
-    <span
-      onClick={(e) => {
-        e.stopPropagation();
-        setEditingInterval(v.id);
-        setIntervalValue(v.interval_days ?? 7);
-      }}
-      className="cursor-pointer text-gray-700 hover:text-green-700 flex items-center gap-1"
-    >
-      {v.interval_days ?? 7} days
-      <span className="text-gray-400 text-[10px] italic">Click to edit</span>
-    </span>
-  )}
-</div>
+                    {/* Interval */}
+                    <div className="text-xs text-gray-500">
+                      Interval:{" "}
+                      {editingInterval === v.id ? (
+                        <span className="flex items-center gap-2 mt-1">
+                          <input
+                            type="number"
+                            value={intervalValue}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) =>
+                              setIntervalValue(Number(e.target.value))
+                            }
+                            className="w-16 border rounded px-1 py-0.5 text-xs"
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateInterval(v.id);
+                            }}
+                            className="text-green-600 text-xs hover:underline"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingInterval(null);
+                            }}
+                            className="text-gray text-xs hover:underline"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingInterval(v.id);
+                            setIntervalValue(v.interval_days ?? 7);
+                          }}
+                          className="cursor-pointer text-gray-700 hover:text-green-700 flex items-center gap-1"
+                        >
+                          {v.interval_days ?? 7} days
+                          <span className="text-gray-400 text-[10px] italic">
+                            Click to edit
+                          </span>
+                        </span>
+                      )}
+                    </div>
 
                     {/* Last Sent */}
                     {v.last_sent_time && (
@@ -1422,109 +1449,82 @@ function ViolationsPageContent() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-1">
-                      {!v.resolved &&
-                        getStatusText(v) === "Cease and Desist" && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askMarkResolved(v);
-                              }}
-                              disabled={v.resolved}
-                              className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-                            >
-                              Mark Resolved
-                            </button>
+  {/* ✅ ALWAYS SHOW VIEW LETTER */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      handleViewLetter(v.id);
+    }}
+    className="w-full px-2 py-1 text-xs rounded font-medium bg-purple-600 text-white hover:bg-purple-700"
+  >
+    View From
+  </button>
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askDeleteViolation(v);
-                              }}
-                              className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
+  {(v.resolved || getStatusText(v) === "Cease and Desist") ? (
+    <>
+      {/* DELETE */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          askDeleteViolation(v);
+        }}
+        className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
+      >
+        Delete
+      </button>
+    </>
+  ) : (
+    <>
+      {/* SEND */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          askSendNotice(v);
+        }}
+        disabled={autoSend || !canSendNotice(v)}
+        className={`px-2 py-1 text-xs rounded font-medium ${
+          autoSend || !canSendNotice(v)
+            ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+            : "bg-green-600 text-white hover:bg-green-700"
+        }`}
+      >
+        {sendingNoticeId === v.id ? "Sending..." : "Send Notice"}
+      </button>
 
-                      {!v.resolved &&
-                        getStatusText(v) !== "Cease and Desist" && (
-                          <>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askSendNotice(v);
-                              }}
-                              disabled={autoSend || !canSendNotice(v)}
-                              className={`px-2 py-1 text-xs rounded font-medium ${autoSend || !canSendNotice(v) ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-green-600 text-white hover:bg-green-700"}`}
-                            >
-                              {sendingNoticeId === v.id ? (
-                                <span className="flex items-center gap-1">
-                                  <svg
-                                    className="animate-spin h-4 w-4 text-white"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <circle
-                                      className="opacity-25"
-                                      cx="12"
-                                      cy="12"
-                                      r="10"
-                                      stroke="currentColor"
-                                      strokeWidth="4"
-                                    />
-                                    <path
-                                      className="opacity-75"
-                                      fill="currentColor"
-                                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                    />
-                                  </svg>
-                                  Sending...
-                                </span>
-                              ) : (
-                                "Send Notice"
-                              )}
-                            </button>
+      {/* RESOLVE */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          askMarkResolved(v);
+        }}
+        className="w-full px-2 py-1 text-xs rounded font-medium bg-blue-600 text-white hover:bg-blue-700"
+      >
+        Mark Resolved
+      </button>
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askMarkResolved(v);
-                              }}
-                              disabled={v.resolved}
-                              className={`w-full px-2 py-1 text-xs rounded font-medium ${v.resolved ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}`}
-                            >
-                              Mark Resolved
-                            </button>
+      {/* DELETE */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          askDeleteViolation(v);
+        }}
+        className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
+      >
+        Delete
+      </button>
 
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askDeleteViolation(v);
-                              }}
-                              className="w-full px-2 py-1 text-xs rounded font-medium bg-red-600 text-white hover:bg-red-700"
-                            >
-                              Delete
-                            </button>
-
-                            {!canSendNotice(v) && v.last_sent_time && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Next send:{" "}
-                                {new Date(
-                                  new Date(v.last_sent_time).getTime() +
-                                    (v.interval_days ?? 7) *
-                                      24 *
-                                      60 *
-                                      60 *
-                                      1000,
-                                ).toLocaleString()}
-                              </div>
-                            )}
-                          </>
-                        )}
-                    </div>
+      {!canSendNotice(v) && v.last_sent_time && (
+        <div className="text-xs text-gray-500 mt-1">
+          Next send:{" "}
+          {new Date(
+            new Date(v.last_sent_time).getTime() +
+              (v.interval_days ?? 7) * 24 * 60 * 60 * 1000,
+          ).toLocaleString()}
+        </div>
+      )}
+    </>
+  )}
+</div>
                   </div>
                 ))
               )}
@@ -1533,21 +1533,19 @@ function ViolationsPageContent() {
         </div>
       </div>
 
-{/* Footer */}
-<footer className="w-full bg-green-900 text-white mt-10">
-  <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between text-sm">
-    
-    <div className="font-semibold">
-      BPLO Inspection Management System
-    </div>
+      {/* Footer */}
+      <footer className="w-full bg-green-900 text-white mt-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between text-sm">
+          <div className="font-semibold">BPLO Inspection Management System</div>
 
-    <div className="text-green-200 text-center md:text-right">
-      <div>© {new Date().getFullYear()} Business Permits and Licensing Office</div>
-      <div className="text-xs mt-1">v1.0.0</div>
-    </div>
-
-  </div>
-</footer>
+          <div className="text-green-200 text-center md:text-right">
+            <div>
+              © {new Date().getFullYear()} Business Permits and Licensing Office
+            </div>
+            <div className="text-xs mt-1">v1.0.0</div>
+          </div>
+        </div>
+      </footer>
 
       {/* Message Modal */}
       {messageModal.open && (
