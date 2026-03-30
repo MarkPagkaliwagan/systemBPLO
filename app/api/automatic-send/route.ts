@@ -79,6 +79,8 @@ export async function GET() {
       let textBody = "";
       let htmlBody = "";
 
+      const viewUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/notice/${v.id}`;
+
 switch (noticeLevel) {
   case 0:
     subjectText = "Notice 1: Business Violation";
@@ -107,6 +109,13 @@ switch (noticeLevel) {
             <p>Please resolve this within <strong>${interval} days</strong> to avoid further action.</p>
 
             <p style="margin-top:20px;">Thank you for your cooperation.</p>
+          </div>
+                              <div style="text-align:center; margin-top:20px;">
+            <a href="${viewUrl}" 
+              style="background:#064e3b;color:white;padding:12px 20px;
+              text-decoration:none;border-radius:8px;">
+              View Notice & Sign
+            </a>
           </div>
 
           <!-- Footer -->
@@ -143,6 +152,7 @@ switch (noticeLevel) {
 
             <p>Please resolve this issue to avoid penalties or further legal action.</p>
           </div>
+          
 
           <div style="background:#f9fafb; padding:15px; text-align:center; font-size:12px; color:#6b7280;">
             This is an automated message. Please do not reply.
