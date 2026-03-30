@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import SignatureCanvas from "react-signature-canvas";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 import type { ChangeEvent, KeyboardEvent } from "react";
 
 type Props = {
@@ -85,14 +83,14 @@ export default function NoticePage({ initialData }: Props) {
     }
   }, [isSigned]);
 
-  const closeModal = () => {
-    if (modal.type === "success") {
-      window.location.reload();
-      return;
-    }
+ const closeModal = () => {
+  if (modal.type === "success") {
+    window.location.reload();
+    return;
+  }
 
-    setModal((prev) => ({ ...prev, open: false }));
-  };
+  setModal((prev) => ({ ...prev, open: false }));
+};
 
   const openModal = (type: ModalType, title: string, message: string) => {
     setModal({
@@ -128,114 +126,6 @@ export default function NoticePage({ initialData }: Props) {
   const preventManualInput = (e: KeyboardEvent<HTMLInputElement>) => {
     e.preventDefault();
   };
-
-  const waitForRender = () =>
-    new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => resolve());
-      });
-    });
-
-  const waitForFontsAndImages = async (root: HTMLElement) => {
-    try {
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
-    } catch {
-      // ignore font loading errors
-    }
-
-    const imgs = Array.from(root.querySelectorAll("img"));
-    await Promise.all(
-      imgs.map(
-        (img) =>
-          new Promise<void>((resolve) => {
-            if (img.complete) return resolve();
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-          })
-      )
-    );
-  };
-
-const downloadPdf = async () => {
-  if (!formRef.current) {
-    throw new Error("Form container not found.");
-  }
-
-  const element = formRef.current;
-
-  // 🔹 wait render + fonts + images
-  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
-
-  if (document.fonts?.ready) {
-    await document.fonts.ready;
-  }
-
-  const images = Array.from(element.querySelectorAll("img"));
-  await Promise.all(
-    images.map(
-      (img) =>
-        new Promise<void>((resolve) => {
-          if (img.complete) return resolve();
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
-        })
-    )
-  );
-
-  // 🔹 HIGH QUALITY CANVAS
-  const canvas = await html2canvas(element, {
-    scale: 3, // 🔥 mas malinaw
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: "#ffffff",
-    scrollX: 0,
-    scrollY: 0,
-    width: element.scrollWidth,
-    height: element.scrollHeight,
-    windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
-  });
-
-  if (!canvas.width || !canvas.height) {
-    throw new Error("Canvas capture failed.");
-  }
-
-  const imgData = canvas.toDataURL("image/jpeg", 1.0); // 🔥 JPEG = smaller file
-
-  const pdfWidth = canvas.width;
-  const pdfHeight = canvas.height;
-
-  const pdf = new jsPDF({
-    orientation: pdfWidth > pdfHeight ? "l" : "p",
-    unit: "px",
-    format: [pdfWidth, pdfHeight],
-    compress: true,
-  });
-
-  pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
-
-  // 🔥 BETTER FILENAME
-  const now = new Date();
-  const datePart = now.toISOString().split("T")[0];
-  const timePart = now.toTimeString().split(" ")[0].replace(/:/g, "-");
-
-  const fileName = `notice-${form.noticeNo || violationId || "submitted"}-${datePart}-${timePart}.pdf`;
-
-  // 🔹 RELIABLE DOWNLOAD (NO BLOCK)
-  const blob = pdf.output("blob");
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-};
 
   const handleSubmit = async () => {
     if (loading || isSigned) return;
@@ -298,330 +188,313 @@ const downloadPdf = async () => {
       const data = await res.json();
 
       if (data.success) {
-        try {
-          await new Promise((r) => setTimeout(r, 300));
-          await downloadPdf();  
-          openModal(
-            "success",
-            "Saved Successfully",
-            "The notice has been submitted successfully and the PDF has been downloaded."
-          );
-        } catch (pdfError) {
-          console.error("PDF download failed:", pdfError);
-          openModal(
-            "success",
-            "Saved Successfully",
-            "The notice has been submitted successfully, but PDF download failed."
-          );
-        }
+        openModal("success", "Saved Successfully", "The notice has been submitted successfully.");
       } else {
         openModal("error", "Save Failed", data.error || "Error saving");
       }
     } catch (error) {
-      console.error("Submit failed:", error);
       openModal("error", "Network Error", "Something went wrong while saving the form.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
-      {!isSigned && (
-        <div
-          ref={formRef}
-          className="relative bg-white w-full max-w-5xl mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden"
-        >
-          <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700" />
+return (
+  <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
+    {!isSigned && (
+      <div
+        ref={formRef}
+        className="relative bg-white w-full max-w-5xl mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden"
+      >
+        <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700" />
 
-          {/* HEADER */}
-          <div className="relative mb-8 pb-6 border-b">
-            <div className="flex flex-col items-center gap-4 md:block">
-              {/* LOGO LEFT (RESPONSIVE) */}
-              <div className="relative flex justify-center md:block md:absolute md:left-6 md:top-6">
-                <Image
-                  src="/vercel.svg"
-                  alt="Logo"
-                  width={110}
-                  height={110}
-                  className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 object-contain"
-                  priority
+        {/* HEADER */}
+        <div className="relative mb-8 pb-6 border-b">
+          <div className="flex flex-col items-center gap-4 md:block">
+            {/* LOGO LEFT (RESPONSIVE) */}
+            <div className="relative flex justify-center md:block md:absolute md:left-6 md:top-6">
+              <Image
+                src="/vercel.svg"
+                alt="Logo"
+                width={110}
+                height={110}
+                className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 object-contain"
+                priority
+              />
+            </div>
+
+            {/* CENTERED TEXT */}
+            <div className="text-center w-full px-2 sm:px-6 md:px-32 md:pt-0">
+              <p className="font-semibold text-gray-700 text-sm sm:text-base">
+                Republic of the Philippines
+              </p>
+              <p className="text-gray-600 text-sm sm:text-base">City Government of San Pablo</p>
+              <p className="text-gray-600 text-sm sm:text-base">
+                City Hall Compound, San Pablo City 4000
+              </p>
+              <p className="text-gray-500 text-xs sm:text-sm">
+                Tel No. (049) 503-3481 / Email add. bplospc@gmail.com
+              </p>
+
+              <h2 className="font-bold text-lg sm:text-xl mt-3 tracking-wide text-green-900">
+                BUSINESS PERMITS AND LICENSING OFFICE
+              </h2>
+
+              <div className="mt-5 flex flex-col items-center gap-2">
+                <label className="font-semibold text-gray-700 text-sm sm:text-base">
+                  APPREHENSION NOTICE NO:
+                </label>
+                <input
+                  name="noticeNo"
+                  value={form.noticeNo}
+                  onChange={handleChange}
+                  placeholder="Enter Apprehension Notice No."
+                  className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-2 rounded-xl w-full max-w-sm text-center font-medium shadow-sm"
                 />
               </div>
-
-              {/* CENTERED TEXT */}
-              <div className="text-center w-full px-2 sm:px-6 md:px-32 md:pt-0">
-                <p className="font-semibold text-gray-700 text-sm sm:text-base">
-                  Republic of the Philippines
-                </p>
-                <p className="text-gray-600 text-sm sm:text-base">City Government of San Pablo</p>
-                <p className="text-gray-600 text-sm sm:text-base">
-                  City Hall Compound, San Pablo City 4000
-                </p>
-                <p className="text-gray-500 text-xs sm:text-sm">
-                  Tel No. (049) 503-3481 / Email add. bplospc@gmail.com
-                </p>
-
-                <h2 className="font-bold text-lg sm:text-xl mt-3 tracking-wide text-green-900">
-                  BUSINESS PERMITS AND LICENSING OFFICE
-                </h2>
-
-                <div className="mt-5 flex flex-col items-center gap-2">
-                  <label className="font-semibold text-gray-700 text-sm sm:text-base">
-                    APPREHENSION NOTICE NO:
-                  </label>
-                  <input
-                    name="noticeNo"
-                    value={form.noticeNo}
-                    onChange={handleChange}
-                    placeholder="Enter Apprehension Notice No."
-                    className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-2 rounded-xl w-full max-w-sm text-center font-medium shadow-sm"
-                  />
-                </div>
-              </div>
             </div>
           </div>
-
-          {/* BUSINESS TYPE */}
-          <div className="mb-5">
-            <label className="block font-semibold text-gray-700 mb-2">Type:</label>
-            <select
-              name="type"
-              value={form.type}
-              onChange={handleChange}
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm bg-white"
-            >
-              <option value="">Select</option>
-              <option value="SINGLE PROPRIETORSHIP">SINGLE PROPRIETORSHIP</option>
-              <option value="CORPORATION">CORPORATION</option>
-              <option value="PARTNERSHIP">PARTNERSHIP</option>
-            </select>
-          </div>
-
-          {/* BASIC INFO */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-            <div>
-              <label className="block font-semibold text-gray-700 mb-2">DATE:</label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                onKeyDown={preventManualInput}
-                readOnly
-                min={todayDate}
-                max={todayDate}
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm bg-gray-50 cursor-pointer"
-              />
-              <p className="text-xs text-gray-500 mt-2">Today’s date only.</p>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-gray-700 mb-2">
-                BUSINESS AND TAX PAYER NAME:
-              </label>
-              <input
-                name="taxpayer"
-                value={form.taxpayer}
-                onChange={handleChange}
-                disabled
-                className="border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-100 text-gray-600 cursor-not-allowed"
-                placeholder="Auto-filled name"
-              />
-            </div>
-          </div>
-
-          <div className="mb-5">
-            <label className="block font-semibold text-gray-700 mb-2">BUSINESS ADDRESS:</label>
-            <input
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm"
-              placeholder="Enter business address"
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block font-semibold text-gray-700 mb-2">NATURE OF BUSINESS:</label>
-            <input
-              name="nature"
-              value={form.nature}
-              onChange={handleChange}
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm"
-              placeholder="Enter nature of business"
-            />
-          </div>
-
-          {/* CARD NOTICE */}
-          <div className="bg-green-50 border-l-4 border-green-700 p-5 rounded-2xl mb-5 shadow-sm">
-            <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-              Please be informed that inspection was conducted at your establishment by the
-              undersigned Inspector of this office and found out the following
-              violations/findings mentioned under The Revised Revenue Code of San Pablo.
-            </p>
-          </div>
-
-          {/* VIOLATIONS */}
-          <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm">
-            <label className="flex items-center gap-3 font-medium text-gray-700">
-              <input
-                type="checkbox"
-                name="violation"
-                checked={form.violation}
-                onChange={handleChange}
-                className="h-4 w-4 accent-green-700"
-              />
-              NO PERMIT - Revised Revenue Code of San Pablo
-            </label>
-
-            <div className="mt-4">
-              <label className="block font-semibold text-gray-700 mb-2">OTHER VIOLATIONS:</label>
-              <textarea
-                name="otherViolation"
-                value={form.otherViolation}
-                onChange={handleChange}
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-27.5 shadow-sm"
-                placeholder="Enter other violations..."
-              />
-            </div>
-          </div>
-
-          {/* RENTED */}
-          <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm">
-            <label className="flex items-center gap-3 mb-4 font-medium text-gray-700">
-              <input
-                type="checkbox"
-                name="rented"
-                checked={form.rented}
-                onChange={handleChange}
-                className="h-4 w-4 accent-green-700"
-              />
-              RENTED
-            </label>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                name="owner"
-                value={form.owner}
-                onChange={handleChange}
-                placeholder="NAME OF OWNER"
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
-              />
-              <input
-                name="rent"
-                value={form.rent}
-                onChange={handleChange}
-                placeholder="Cost of Rent P"
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
-              />
-              <input
-                name="ownerAddress"
-                value={form.ownerAddress}
-                onChange={handleChange}
-                placeholder="OWNER'S ADDRESS"
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
-              />
-              <input
-                name="contact"
-                value={form.contact}
-                onChange={handleChange}
-                placeholder="Contact No."
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
-              />
-            </div>
-          </div>
-
-          {/* DIRECTIVE */}
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-2xl mb-6 shadow-sm">
-            <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-              DIRECTIVE: The business establishment owner is directed to personally appear
-              before the Office of the City Mayor, Business Permits and Licensing Division
-              within three (3) working days from the receipt of this notice and to show cause
-              why no cease-and-desist order should be issued against your establishment.
-            </p>
-          </div>
-
-          {/* SIGNATURES */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <p className="font-semibold text-gray-700 mb-3">INSPECTED BY:</p>
-              <input
-                name="inspectedBy"
-                value={form.inspectedBy}
-                onChange={handleChange}
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mb-3 rounded-xl shadow-sm"
-                placeholder="Name"
-              />
-              <div className="border rounded-xl overflow-hidden bg-white">
-                <SignatureCanvas ref={sig1} canvasProps={{ className: "w-full h-28 touch-none" }} />
-              </div>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <p className="font-semibold text-gray-700 mb-3">RECEIVED BY:</p>
-              <input
-                name="receivedBy"
-                value={form.receivedBy}
-                onChange={handleChange}
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mb-3 rounded-xl shadow-sm"
-                placeholder="Name"
-              />
-              <div className="border rounded-xl overflow-hidden bg-white">
-                <SignatureCanvas ref={sig2} canvasProps={{ className: "w-full h-28 touch-none" }} />
-              </div>
-              <input
-                type="datetime-local"
-                name="receivedAt"
-                value={form.receivedAt}
-                onChange={handleChange}
-                onKeyDown={preventManualInput}
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mt-3 rounded-xl shadow-sm bg-gray-50 cursor-pointer"
-                min={currentDateTime}
-                max={currentDateTime}
-              />
-              <p className="text-xs text-gray-500 mt-2">Current date and time only.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm md:col-span-2">
-              <p className="font-semibold text-gray-700 mb-3">NOTED BY:</p>
-              <input
-                name="notedBy"
-                value={form.notedBy}
-                onChange={handleChange}
-                className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mb-3 rounded-xl shadow-sm"
-                placeholder="Name"
-              />
-              <div className="border rounded-xl overflow-hidden bg-white">
-                <SignatureCanvas ref={sig3} canvasProps={{ className: "w-full h-28 touch-none" }} />
-              </div>
-            </div>
-          </div>
-
-          {/* ACTION */}
-          <div className="mb-6 bg-gray-50 border border-gray-200 p-5 rounded-2xl shadow-sm">
-            <label className="block font-semibold text-gray-700 mb-2">ACTION TAKEN:</label>
-            <textarea
-              name="actionTaken"
-              value={form.actionTaken}
-              onChange={handleChange}
-              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-30 shadow-sm"
-              placeholder="Enter action taken..."
-            />
-            <p className="text-xs text-gray-500 mt-3">QFM-BPL-009 Rev 0 2022.02.18</p>
-          </div>
-
-          {/* BUTTON */}
-          <button
-            onClick={handleSubmit}
-            disabled={isSigned || loading}
-            className="bg-green-800 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl w-full font-semibold shadow-lg transition hover:bg-green-900"
-          >
-            {isSigned ? "Already Submitted" : loading ? "Saving..." : "Submit"}
-          </button>
         </div>
-      )}
 
+        {/* BUSINESS TYPE */}
+        <div className="mb-5">
+          <label className="block font-semibold text-gray-700 mb-2">Type:</label>
+          <select
+            name="type"
+            value={form.type}
+            onChange={handleChange}
+            className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm bg-white"
+          >
+            <option value="">Select</option>
+            <option value="SINGLE PROPRIETORSHIP">SINGLE PROPRIETORSHIP</option>
+            <option value="CORPORATION">CORPORATION</option>
+            <option value="PARTNERSHIP">PARTNERSHIP</option>
+          </select>
+        </div>
+
+        {/* BASIC INFO */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+          <div>
+            <label className="block font-semibold text-gray-700 mb-2">DATE:</label>
+            <input
+              type="date"
+              name="date"
+              value={form.date}
+              onChange={handleChange}
+              onKeyDown={preventManualInput}
+              readOnly
+              min={todayDate}
+              max={todayDate}
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm bg-gray-50 cursor-pointer"
+            />
+            <p className="text-xs text-gray-500 mt-2">Today’s date only.</p>
+          </div>
+
+          <div>
+            <label className="block font-semibold text-gray-700 mb-2">
+              BUSINESS AND TAX PAYER NAME:
+            </label>
+            <input
+              name="taxpayer"
+              value={form.taxpayer}
+              onChange={handleChange}
+              disabled
+              className="border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-100 text-gray-600 cursor-not-allowed"
+              placeholder="Auto-filled name"
+            />
+          </div>
+        </div>
+
+        <div className="mb-5">
+          <label className="block font-semibold text-gray-700 mb-2">BUSINESS ADDRESS:</label>
+          <input
+            name="address"
+            value={form.address}
+            onChange={handleChange}
+            className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm"
+            placeholder="Enter business address"
+          />
+        </div>
+
+        <div className="mb-6">
+          <label className="block font-semibold text-gray-700 mb-2">NATURE OF BUSINESS:</label>
+          <input
+            name="nature"
+            value={form.nature}
+            onChange={handleChange}
+            className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl w-full shadow-sm"
+            placeholder="Enter nature of business"
+          />
+        </div>
+
+        {/* CARD NOTICE */}
+        <div className="bg-green-50 border-l-4 border-green-700 p-5 rounded-2xl mb-5 shadow-sm">
+          <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
+            Please be informed that inspection was conducted at your establishment by the
+            undersigned Inspector of this office and found out the following
+            violations/findings mentioned under The Revised Revenue Code of San Pablo.
+          </p>
+        </div>
+
+        {/* VIOLATIONS */}
+        <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm">
+          <label className="flex items-center gap-3 font-medium text-gray-700">
+            <input
+              type="checkbox"
+              name="violation"
+              checked={form.violation}
+              onChange={handleChange}
+              className="h-4 w-4 accent-green-700"
+            />
+            NO PERMIT - Revised Revenue Code of San Pablo
+          </label>
+
+          <div className="mt-4">
+            <label className="block font-semibold text-gray-700 mb-2">OTHER VIOLATIONS:</label>
+            <textarea
+              name="otherViolation"
+              value={form.otherViolation}
+              onChange={handleChange}
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-27.5 shadow-sm"
+              placeholder="Enter other violations..."
+            />
+          </div>
+        </div>
+
+        {/* RENTED */}
+        <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm">
+          <label className="flex items-center gap-3 mb-4 font-medium text-gray-700">
+            <input
+              type="checkbox"
+              name="rented"
+              checked={form.rented}
+              onChange={handleChange}
+              className="h-4 w-4 accent-green-700"
+            />
+            RENTED
+          </label>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              name="owner"
+              value={form.owner}
+              onChange={handleChange}
+              placeholder="NAME OF OWNER"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
+            />
+            <input
+              name="rent"
+              value={form.rent}
+              onChange={handleChange}
+              placeholder="Cost of Rent P"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
+            />
+            <input
+              name="ownerAddress"
+              value={form.ownerAddress}
+              onChange={handleChange}
+              placeholder="OWNER'S ADDRESS"
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
+            />
+            <input
+              name="contact"
+              value={form.contact}
+              onChange={handleChange}
+              placeholder="Contact No."
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none px-4 py-3 rounded-xl shadow-sm w-full"
+            />
+          </div>
+        </div>
+
+        {/* DIRECTIVE */}
+        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-2xl mb-6 shadow-sm">
+          <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
+            DIRECTIVE: The business establishment owner is directed to personally appear
+            before the Office of the City Mayor, Business Permits and Licensing Division
+            within three (3) working days from the receipt of this notice and to show cause
+            why no cease-and-desist order should be issued against your establishment.
+          </p>
+        </div>
+
+        {/* SIGNATURES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <p className="font-semibold text-gray-700 mb-3">INSPECTED BY:</p>
+            <input
+              name="inspectedBy"
+              value={form.inspectedBy}
+              onChange={handleChange}
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mb-3 rounded-xl shadow-sm"
+              placeholder="Name"
+            />
+            <div className="border rounded-xl overflow-hidden bg-white">
+              <SignatureCanvas ref={sig1} canvasProps={{ className: "w-full h-28 touch-none" }} />
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <p className="font-semibold text-gray-700 mb-3">RECEIVED BY:</p>
+            <input
+              name="receivedBy"
+              value={form.receivedBy}
+              onChange={handleChange}
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mb-3 rounded-xl shadow-sm"
+              placeholder="Name"
+            />
+            <div className="border rounded-xl overflow-hidden bg-white">
+              <SignatureCanvas ref={sig2} canvasProps={{ className: "w-full h-28 touch-none" }} />
+            </div>
+            <input
+              type="datetime-local"
+              name="receivedAt"
+              value={form.receivedAt}
+              onChange={handleChange}
+              onKeyDown={preventManualInput}
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mt-3 rounded-xl shadow-sm bg-gray-50 cursor-pointer"
+              min={currentDateTime}
+              max={currentDateTime}
+            />
+            <p className="text-xs text-gray-500 mt-2">Current date and time only.</p>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm md:col-span-2">
+            <p className="font-semibold text-gray-700 mb-3">NOTED BY:</p>
+            <input
+              name="notedBy"
+              value={form.notedBy}
+              onChange={handleChange}
+              className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mb-3 rounded-xl shadow-sm"
+              placeholder="Name"
+            />
+            <div className="border rounded-xl overflow-hidden bg-white">
+              <SignatureCanvas ref={sig3} canvasProps={{ className: "w-full h-28 touch-none" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* ACTION */}
+        <div className="mb-6 bg-gray-50 border border-gray-200 p-5 rounded-2xl shadow-sm">
+          <label className="block font-semibold text-gray-700 mb-2">ACTION TAKEN:</label>
+          <textarea
+            name="actionTaken"
+            value={form.actionTaken}
+            onChange={handleChange}
+            className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 rounded-xl min-h-30 shadow-sm"
+            placeholder="Enter action taken..."
+          />
+          <p className="text-xs text-gray-500 mt-3">QFM-BPL-009 Rev 0 2022.02.18</p>
+        </div>
+
+        {/* BUTTON */}
+        <button
+          onClick={handleSubmit}
+          disabled={isSigned || loading}
+          className="bg-green-800 disabled:bg-gray-400 text-white px-6 py-3 rounded-xl w-full font-semibold shadow-lg transition hover:bg-green-900"
+        >
+          {isSigned ? "Already Submitted" : loading ? "Saving..." : "Submit"}
+        </button>
+      </div>
+    )}
       {/* CUSTOM MODAL */}
       {modal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
