@@ -129,42 +129,113 @@ export default function NoticePage({ initialData }: Props) {
     e.preventDefault();
   };
 
-  const downloadPdf = async () => {
-    if (!formRef.current) {
-      throw new Error("Form container not found.");
+  const waitForRender = () =>
+    new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+
+  const waitForFontsAndImages = async (root: HTMLElement) => {
+    try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+    } catch {
+      // ignore font loading errors
     }
 
-    const element = formRef.current;
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      scrollX: 0,
-      scrollY: -window.scrollY,
-      width: element.scrollWidth,
-      height: element.scrollHeight,
-    });
-
-    const imgData = canvas.toDataURL("image/png", 1.0);
-
-    const pdfWidth = canvas.width;
-    const pdfHeight = canvas.height;
-
-    const pdf = new jsPDF({
-      orientation: pdfWidth >= pdfHeight ? "l" : "p",
-      unit: "px",
-      format: [pdfWidth, pdfHeight],
-      compress: true,
-    });
-
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-
-    const fileName = `notice-${form.noticeNo || violationId || "submitted"}.pdf`;
-    pdf.save(fileName);
+    const imgs = Array.from(root.querySelectorAll("img"));
+    await Promise.all(
+      imgs.map(
+        (img) =>
+          new Promise<void>((resolve) => {
+            if (img.complete) return resolve();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+          })
+      )
+    );
   };
+
+const downloadPdf = async () => {
+  if (!formRef.current) {
+    throw new Error("Form container not found.");
+  }
+
+  const element = formRef.current;
+
+  // 🔹 wait render + fonts + images
+  await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
+  const images = Array.from(element.querySelectorAll("img"));
+  await Promise.all(
+    images.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete) return resolve();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        })
+    )
+  );
+
+  // 🔹 HIGH QUALITY CANVAS
+  const canvas = await html2canvas(element, {
+    scale: 3, // 🔥 mas malinaw
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: "#ffffff",
+    scrollX: 0,
+    scrollY: 0,
+    width: element.scrollWidth,
+    height: element.scrollHeight,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
+  });
+
+  if (!canvas.width || !canvas.height) {
+    throw new Error("Canvas capture failed.");
+  }
+
+  const imgData = canvas.toDataURL("image/jpeg", 1.0); // 🔥 JPEG = smaller file
+
+  const pdfWidth = canvas.width;
+  const pdfHeight = canvas.height;
+
+  const pdf = new jsPDF({
+    orientation: pdfWidth > pdfHeight ? "l" : "p",
+    unit: "px",
+    format: [pdfWidth, pdfHeight],
+    compress: true,
+  });
+
+  pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
+
+  // 🔥 BETTER FILENAME
+  const now = new Date();
+  const datePart = now.toISOString().split("T")[0];
+  const timePart = now.toTimeString().split(" ")[0].replace(/:/g, "-");
+
+  const fileName = `notice-${form.noticeNo || violationId || "submitted"}-${datePart}-${timePart}.pdf`;
+
+  // 🔹 RELIABLE DOWNLOAD (NO BLOCK)
+  const blob = pdf.output("blob");
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+};
 
   const handleSubmit = async () => {
     if (loading || isSigned) return;
@@ -228,13 +299,15 @@ export default function NoticePage({ initialData }: Props) {
 
       if (data.success) {
         try {
-          await downloadPdf();
+          await new Promise((r) => setTimeout(r, 300));
+          await downloadPdf();  
           openModal(
             "success",
             "Saved Successfully",
             "The notice has been submitted successfully and the PDF has been downloaded."
           );
         } catch (pdfError) {
+          console.error("PDF download failed:", pdfError);
           openModal(
             "success",
             "Saved Successfully",
@@ -245,6 +318,7 @@ export default function NoticePage({ initialData }: Props) {
         openModal("error", "Save Failed", data.error || "Error saving");
       }
     } catch (error) {
+      console.error("Submit failed:", error);
       openModal("error", "Network Error", "Something went wrong while saving the form.");
     } finally {
       setLoading(false);
