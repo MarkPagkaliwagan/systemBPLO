@@ -387,8 +387,8 @@ function CSVReviewContent() {
                   <button
                     onClick={() => setShowScheduledOnly(!showScheduledOnly)}
                     className={`px-3 py-1.5 text-xs rounded-lg border font-medium transition-colors ${showScheduledOnly
-                        ? 'bg-green-600 text-white border-green-600'
-                        : 'bg-white text-gray-700 border-gray-300'
+                      ? 'bg-green-600 text-white border-green-600'
+                      : 'bg-white text-gray-700 border-gray-300'
                       }`}
                   >
                     {showScheduledOnly ? '📅 Scheduled' : 'Scheduled'}
@@ -519,6 +519,8 @@ function CSVReviewContent() {
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[50px] border-r border-gray-300">#</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[140px] border-r border-gray-300">BIN</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[180px] border-r border-gray-300">Business Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Incharge First Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Incharge Last Name</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Trade Name</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Transmittal No.</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-gray-50 min-w-[120px] border-r border-gray-300">Business Nature</th>
@@ -561,6 +563,8 @@ function CSVReviewContent() {
                             <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-600 font-medium border-r border-gray-200">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Identification Number"]}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Business Name"]}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Incharge First Name"]}</td>
+                            <td className="px-3 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200">{row["Incharge Last Name"]}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Trade Name"] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Transmittal No."] ?? '-'}</td>
                             <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-600 border-r border-gray-200">{row["Business Nature"] ?? '-'}</td>
@@ -681,6 +685,7 @@ function CSVReviewContent() {
     </>
   );
 }
+
 export default function CSVReview() {
   return (
     <ProtectedRoute requiredRole="admin">
