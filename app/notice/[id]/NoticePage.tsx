@@ -83,14 +83,14 @@ export default function NoticePage({ initialData }: Props) {
     }
   }, [isSigned]);
 
- const closeModal = () => {
-  if (modal.type === "success") {
-    window.location.reload();
-    return;
-  }
+  const closeModal = () => {
+    if (modal.type === "success") {
+      window.location.reload();
+      return;
+    }
 
-  setModal((prev) => ({ ...prev, open: false }));
-};
+    setModal((prev) => ({ ...prev, open: false }));
+  };
 
   const openModal = (type: ModalType, title: string, message: string) => {
     setModal({
@@ -199,9 +199,8 @@ export default function NoticePage({ initialData }: Props) {
     }
   };
 
-return (
-  <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
-    {!isSigned && (
+  return (
+    <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
       <div
         ref={formRef}
         className="relative bg-white w-full max-w-5xl mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden"
@@ -239,6 +238,12 @@ return (
               <h2 className="font-bold text-lg sm:text-xl mt-3 tracking-wide text-green-900">
                 BUSINESS PERMITS AND LICENSING OFFICE
               </h2>
+
+              {isSigned && (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-yellow-100 px-4 py-2 text-sm font-semibold text-yellow-800 border border-yellow-300">
+                  <span>Already Submitted</span>
+                </div>
+              )}
 
               <div className="mt-5 flex flex-col items-center gap-2">
                 <label className="font-semibold text-gray-700 text-sm sm:text-base">
@@ -494,7 +499,7 @@ return (
           {isSigned ? "Already Submitted" : loading ? "Saving..." : "Submit"}
         </button>
       </div>
-    )}
+
       {/* CUSTOM MODAL */}
       {modal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
