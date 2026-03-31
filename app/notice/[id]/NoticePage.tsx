@@ -63,13 +63,58 @@ export default function NoticePage({ initialData }: Props) {
   useEffect(() => {
     if (!initialData) return;
 
+    const saved =
+      initialData.submitted_data ||
+      initialData.form_data ||
+      initialData.data ||
+      initialData.notice_data ||
+      null;
+
     setForm((prev) => ({
       ...prev,
       taxpayer: initialData.business_name ?? prev.taxpayer,
       address: initialData.address ?? prev.address,
       nature: initialData.nature_of_business ?? prev.nature,
       noticeNo: initialData.notice_no ?? prev.noticeNo,
+
+      type: saved?.type ?? prev.type,
+      date: saved?.date ?? prev.date,
+      violation: saved?.violation ?? prev.violation,
+      otherViolation: saved?.otherViolation ?? prev.otherViolation,
+      rented: saved?.rented ?? prev.rented,
+      owner: saved?.owner ?? prev.owner,
+      ownerAddress: saved?.ownerAddress ?? prev.ownerAddress,
+      rent: saved?.rent ?? prev.rent,
+      contact: saved?.contact ?? prev.contact,
+      inspectedBy: saved?.inspectedBy ?? prev.inspectedBy,
+      receivedBy: saved?.receivedBy ?? prev.receivedBy,
+      notedBy: saved?.notedBy ?? prev.notedBy,
+      receivedAt: saved?.receivedAt ?? prev.receivedAt,
+      actionTaken: saved?.actionTaken ?? prev.actionTaken,
     }));
+
+    const loadSignature = (ref: any, dataUrl?: string) => {
+      if (!ref?.current || !dataUrl) return;
+
+      const img = new window.Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        const canvas: HTMLCanvasElement = ref.current.getCanvas();
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+    };
+
+    const t = setTimeout(() => {
+      loadSignature(sig1, saved?.signatures?.inspectedBy);
+      loadSignature(sig2, saved?.signatures?.receivedBy);
+      loadSignature(sig3, saved?.signatures?.notedBy);
+    }, 250);
+
+    return () => clearTimeout(t);
   }, [initialData]);
 
   useEffect(() => {
