@@ -506,7 +506,7 @@ return (
                   : modal.type === "error"
                   ? "bg-red-600"
                   : modal.type === "warning"
-                  ? "bg-yellow-500"
+                  ? "bg-green-500"
                   : "bg-blue-600"
               }`}
             />
