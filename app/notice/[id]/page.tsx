@@ -1,12 +1,20 @@
 import NoticePage from "./NoticePage";
 import { createClient } from "@supabase/supabase-js";
 
+function safeParse(value: any) {
+  try {
+    return typeof value === "string" ? JSON.parse(value) : value ?? {};
+  } catch {
+    return {};
+  }
+}
+
 export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params; // ✅ IMPORTANT
+  const { id } = await params;
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,5 +31,14 @@ export default async function Page({
     return <div>No data found</div>;
   }
 
-  return <NoticePage initialData={data} />;
+  const savedData = {
+    ...data,
+    submitted_data:
+      safeParse(data.submitted_data) ||
+      safeParse(data.form_data) ||
+      safeParse(data.data) ||
+      safeParse(data.notice_data),
+  };
+
+  return <NoticePage initialData={savedData} />;
 }

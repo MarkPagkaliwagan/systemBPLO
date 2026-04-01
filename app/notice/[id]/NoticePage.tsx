@@ -11,6 +11,49 @@ type Props = {
 
 type ModalType = "loading" | "success" | "error" | "info" | "warning";
 
+function safeParse(value: any) {
+  try {
+    if (!value) return null;
+    return typeof value === "string" ? JSON.parse(value) : value;
+  } catch {
+    return null;
+  }
+}
+
+function getSavedFormData(initialData: any) {
+  const saved =
+    safeParse(initialData?.submitted_data) ||
+    safeParse(initialData?.form_data) ||
+    safeParse(initialData?.data) ||
+    safeParse(initialData?.notice_data) ||
+    {};
+
+  return {
+    noticeNo: initialData?.notice_no ?? saved?.noticeNo ?? saved?.notice_no ?? "",
+    type: initialData?.type ?? saved?.type ?? "",
+    date: initialData?.date ?? saved?.date ?? "",
+    taxpayer:
+      initialData?.business_name ?? initialData?.taxpayer ?? saved?.taxpayer ?? "",
+    address: initialData?.address ?? saved?.address ?? "",
+    nature:
+      initialData?.nature_of_business ?? initialData?.nature ?? saved?.nature ?? "",
+    violation:
+      initialData?.violation ?? saved?.violation ?? false,
+    otherViolation:
+      initialData?.otherViolation ?? saved?.otherViolation ?? "",
+    rented: initialData?.rented ?? saved?.rented ?? false,
+    owner: initialData?.owner ?? saved?.owner ?? "",
+    ownerAddress: initialData?.ownerAddress ?? saved?.ownerAddress ?? "",
+    rent: initialData?.rent ?? saved?.rent ?? "",
+    contact: initialData?.contact ?? saved?.contact ?? "",
+    inspectedBy: initialData?.inspectedBy ?? saved?.inspectedBy ?? "",
+    receivedBy: initialData?.receivedBy ?? saved?.receivedBy ?? "",
+    notedBy: initialData?.notedBy ?? saved?.notedBy ?? "",
+    receivedAt: initialData?.receivedAt ?? saved?.receivedAt ?? "",
+    actionTaken: initialData?.actionTaken ?? saved?.actionTaken ?? "",
+  };
+}
+
 export default function NoticePage({ initialData }: Props) {
   const formRef = useRef<HTMLDivElement>(null);
   const sig1 = useRef<any>(null);
@@ -63,34 +106,28 @@ export default function NoticePage({ initialData }: Props) {
   useEffect(() => {
     if (!initialData) return;
 
-    const saved =
-      initialData.submitted_data ||
-      initialData.form_data ||
-      initialData.data ||
-      initialData.notice_data ||
-      null;
+    const savedForm = getSavedFormData(initialData);
 
     setForm((prev) => ({
       ...prev,
-      taxpayer: initialData.business_name ?? prev.taxpayer,
-      address: initialData.address ?? prev.address,
-      nature: initialData.nature_of_business ?? prev.nature,
-      noticeNo: initialData.notice_no ?? prev.noticeNo,
-
-      type: saved?.type ?? prev.type,
-      date: saved?.date ?? prev.date,
-      violation: saved?.violation ?? prev.violation,
-      otherViolation: saved?.otherViolation ?? prev.otherViolation,
-      rented: saved?.rented ?? prev.rented,
-      owner: saved?.owner ?? prev.owner,
-      ownerAddress: saved?.ownerAddress ?? prev.ownerAddress,
-      rent: saved?.rent ?? prev.rent,
-      contact: saved?.contact ?? prev.contact,
-      inspectedBy: saved?.inspectedBy ?? prev.inspectedBy,
-      receivedBy: saved?.receivedBy ?? prev.receivedBy,
-      notedBy: saved?.notedBy ?? prev.notedBy,
-      receivedAt: saved?.receivedAt ?? prev.receivedAt,
-      actionTaken: saved?.actionTaken ?? prev.actionTaken,
+      noticeNo: savedForm.noticeNo || prev.noticeNo,
+      type: savedForm.type || prev.type,
+      date: savedForm.date || prev.date,
+      taxpayer: savedForm.taxpayer || prev.taxpayer,
+      address: savedForm.address || prev.address,
+      nature: savedForm.nature || prev.nature,
+      violation: typeof savedForm.violation === "boolean" ? savedForm.violation : prev.violation,
+      otherViolation: savedForm.otherViolation || prev.otherViolation,
+      rented: typeof savedForm.rented === "boolean" ? savedForm.rented : prev.rented,
+      owner: savedForm.owner || prev.owner,
+      ownerAddress: savedForm.ownerAddress || prev.ownerAddress,
+      rent: savedForm.rent || prev.rent,
+      contact: savedForm.contact || prev.contact,
+      inspectedBy: savedForm.inspectedBy || prev.inspectedBy,
+      receivedBy: savedForm.receivedBy || prev.receivedBy,
+      notedBy: savedForm.notedBy || prev.notedBy,
+      receivedAt: savedForm.receivedAt || prev.receivedAt,
+      actionTaken: savedForm.actionTaken || prev.actionTaken,
     }));
 
     const loadSignature = (ref: any, dataUrl?: string) => {
@@ -109,9 +146,17 @@ export default function NoticePage({ initialData }: Props) {
     };
 
     const t = setTimeout(() => {
-      loadSignature(sig1, saved?.signatures?.inspectedBy);
-      loadSignature(sig2, saved?.signatures?.receivedBy);
-      loadSignature(sig3, saved?.signatures?.notedBy);
+      const saved = safeParse(initialData?.submitted_data) ||
+        safeParse(initialData?.form_data) ||
+        safeParse(initialData?.data) ||
+        safeParse(initialData?.notice_data) ||
+        {};
+
+      const sigs = initialData?.signatures || saved?.signatures || {};
+
+      loadSignature(sig1, sigs?.inspectedBy);
+      loadSignature(sig2, sigs?.receivedBy);
+      loadSignature(sig3, sigs?.notedBy);
     }, 250);
 
     return () => clearTimeout(t);
@@ -252,10 +297,8 @@ export default function NoticePage({ initialData }: Props) {
       >
         <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700" />
 
-        {/* HEADER */}
         <div className="relative mb-8 pb-6 border-b">
           <div className="flex flex-col items-center gap-4 md:block">
-            {/* LOGO LEFT (RESPONSIVE) */}
             <div className="relative flex justify-center md:block md:absolute md:left-6 md:top-6">
               <Image
                 src="/vercel.svg"
@@ -267,7 +310,6 @@ export default function NoticePage({ initialData }: Props) {
               />
             </div>
 
-            {/* CENTERED TEXT */}
             <div className="text-center w-full px-2 sm:px-6 md:px-32 md:pt-0">
               <p className="font-semibold text-gray-700 text-sm sm:text-base">
                 Republic of the Philippines
@@ -306,7 +348,6 @@ export default function NoticePage({ initialData }: Props) {
           </div>
         </div>
 
-        {/* BUSINESS TYPE */}
         <div className="mb-5">
           <label className="block font-semibold text-gray-700 mb-2">Type:</label>
           <select
@@ -322,7 +363,6 @@ export default function NoticePage({ initialData }: Props) {
           </select>
         </div>
 
-        {/* BASIC INFO */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <div>
             <label className="block font-semibold text-gray-700 mb-2">DATE:</label>
@@ -377,7 +417,6 @@ export default function NoticePage({ initialData }: Props) {
           />
         </div>
 
-        {/* CARD NOTICE */}
         <div className="bg-green-50 border-l-4 border-green-700 p-5 rounded-2xl mb-5 shadow-sm">
           <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
             Please be informed that inspection was conducted at your establishment by the
@@ -386,7 +425,6 @@ export default function NoticePage({ initialData }: Props) {
           </p>
         </div>
 
-        {/* VIOLATIONS */}
         <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm">
           <label className="flex items-center gap-3 font-medium text-gray-700">
             <input
@@ -411,7 +449,6 @@ export default function NoticePage({ initialData }: Props) {
           </div>
         </div>
 
-        {/* RENTED */}
         <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm">
           <label className="flex items-center gap-3 mb-4 font-medium text-gray-700">
             <input
@@ -456,7 +493,6 @@ export default function NoticePage({ initialData }: Props) {
           </div>
         </div>
 
-        {/* DIRECTIVE */}
         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-2xl mb-6 shadow-sm">
           <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
             DIRECTIVE: The business establishment owner is directed to personally appear
@@ -466,7 +502,6 @@ export default function NoticePage({ initialData }: Props) {
           </p>
         </div>
 
-        {/* SIGNATURES */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <p className="font-semibold text-gray-700 mb-3">INSPECTED BY:</p>
@@ -522,7 +557,6 @@ export default function NoticePage({ initialData }: Props) {
           </div>
         </div>
 
-        {/* ACTION */}
         <div className="mb-6 bg-gray-50 border border-gray-200 p-5 rounded-2xl shadow-sm">
           <label className="block font-semibold text-gray-700 mb-2">ACTION TAKEN:</label>
           <textarea
@@ -535,7 +569,6 @@ export default function NoticePage({ initialData }: Props) {
           <p className="text-xs text-gray-500 mt-3">QFM-BPL-009 Rev 0 2022.02.18</p>
         </div>
 
-        {/* BUTTON */}
         <button
           onClick={handleSubmit}
           disabled={isSigned || loading}
@@ -545,7 +578,6 @@ export default function NoticePage({ initialData }: Props) {
         </button>
       </div>
 
-      {/* CUSTOM MODAL */}
       {modal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
