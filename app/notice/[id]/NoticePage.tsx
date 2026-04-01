@@ -5,69 +5,47 @@ import Image from "next/image";
 import SignatureCanvas from "react-signature-canvas";
 import type { ChangeEvent, KeyboardEvent } from "react";
 
+type SavedNotice = {
+  id?: string;
+  violation_id?: number | null;
+  taxpayer?: string | null;
+  address?: string | null;
+  nature?: string | null;
+  notice_no?: string | null;
+  data?: any;
+  signatures?: any;
+  created_at?: string | null;
+};
+
 type Props = {
   initialData?: any;
+  savedNotice?: SavedNotice | null;
 };
 
 type ModalType = "loading" | "success" | "error" | "info" | "warning";
 
-function safeParse(value: any) {
-  try {
-    if (!value) return null;
-    return typeof value === "string" ? JSON.parse(value) : value;
-  } catch {
-    return null;
-  }
-}
-
-function getSavedFormData(initialData: any) {
-  const saved =
-    safeParse(initialData?.submitted_data) ||
-    safeParse(initialData?.form_data) ||
-    safeParse(initialData?.data) ||
-    safeParse(initialData?.notice_data) ||
-    {};
-
-  return {
-    noticeNo: initialData?.notice_no ?? saved?.noticeNo ?? saved?.notice_no ?? "",
-    type: initialData?.type ?? saved?.type ?? "",
-    date: initialData?.date ?? saved?.date ?? "",
-    taxpayer:
-      initialData?.business_name ?? initialData?.taxpayer ?? saved?.taxpayer ?? "",
-    address: initialData?.address ?? saved?.address ?? "",
-    nature:
-      initialData?.nature_of_business ?? initialData?.nature ?? saved?.nature ?? "",
-    violation:
-      initialData?.violation ?? saved?.violation ?? false,
-    otherViolation:
-      initialData?.otherViolation ?? saved?.otherViolation ?? "",
-    rented: initialData?.rented ?? saved?.rented ?? false,
-    owner: initialData?.owner ?? saved?.owner ?? "",
-    ownerAddress: initialData?.ownerAddress ?? saved?.ownerAddress ?? "",
-    rent: initialData?.rent ?? saved?.rent ?? "",
-    contact: initialData?.contact ?? saved?.contact ?? "",
-    inspectedBy: initialData?.inspectedBy ?? saved?.inspectedBy ?? "",
-    receivedBy: initialData?.receivedBy ?? saved?.receivedBy ?? "",
-    notedBy: initialData?.notedBy ?? saved?.notedBy ?? "",
-    receivedAt: initialData?.receivedAt ?? saved?.receivedAt ?? "",
-    actionTaken: initialData?.actionTaken ?? saved?.actionTaken ?? "",
-  };
-}
-
-export default function NoticePage({ initialData }: Props) {
+export default function NoticePage({ initialData, savedNotice }: Props) {
   const formRef = useRef<HTMLDivElement>(null);
   const sig1 = useRef<any>(null);
   const sig2 = useRef<any>(null);
   const sig3 = useRef<any>(null);
-
-  const isSigned = initialData?.signed;
-  const violationId = initialData?.id;
 
   const today = new Date();
   const todayDate = today.toISOString().split("T")[0];
   const currentDateTime = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
+
+  const savedFormData =
+    savedNotice?.data ||
+    initialData?.submitted_data ||
+    initialData?.form_data ||
+    initialData?.data ||
+    initialData?.notice_data ||
+    {};
+
+  const isSigned = Boolean(savedNotice?.id || initialData?.signed);
+  const violationId = initialData?.id;
 
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<{
@@ -104,30 +82,42 @@ export default function NoticePage({ initialData }: Props) {
   });
 
   useEffect(() => {
-    if (!initialData) return;
-
-    const savedForm = getSavedFormData(initialData);
+    if (!initialData && !savedNotice) return;
 
     setForm((prev) => ({
       ...prev,
-      noticeNo: savedForm.noticeNo || prev.noticeNo,
-      type: savedForm.type || prev.type,
-      date: savedForm.date || prev.date,
-      taxpayer: savedForm.taxpayer || prev.taxpayer,
-      address: savedForm.address || prev.address,
-      nature: savedForm.nature || prev.nature,
-      violation: typeof savedForm.violation === "boolean" ? savedForm.violation : prev.violation,
-      otherViolation: savedForm.otherViolation || prev.otherViolation,
-      rented: typeof savedForm.rented === "boolean" ? savedForm.rented : prev.rented,
-      owner: savedForm.owner || prev.owner,
-      ownerAddress: savedForm.ownerAddress || prev.ownerAddress,
-      rent: savedForm.rent || prev.rent,
-      contact: savedForm.contact || prev.contact,
-      inspectedBy: savedForm.inspectedBy || prev.inspectedBy,
-      receivedBy: savedForm.receivedBy || prev.receivedBy,
-      notedBy: savedForm.notedBy || prev.notedBy,
-      receivedAt: savedForm.receivedAt || prev.receivedAt,
-      actionTaken: savedForm.actionTaken || prev.actionTaken,
+      taxpayer:
+        savedNotice?.taxpayer ??
+        savedFormData?.taxpayer ??
+        initialData?.business_name ??
+        prev.taxpayer,
+      address: savedNotice?.address ?? savedFormData?.address ?? initialData?.address ?? prev.address,
+      nature:
+        savedNotice?.nature ??
+        savedFormData?.nature ??
+        initialData?.nature_of_business ??
+        prev.nature,
+      noticeNo:
+        savedNotice?.notice_no ??
+        savedFormData?.noticeNo ??
+        savedFormData?.notice_no ??
+        initialData?.notice_no ??
+        prev.noticeNo,
+
+      type: savedFormData?.type ?? prev.type,
+      date: savedFormData?.date ?? prev.date,
+      violation: savedFormData?.violation ?? prev.violation,
+      otherViolation: savedFormData?.otherViolation ?? prev.otherViolation,
+      rented: savedFormData?.rented ?? prev.rented,
+      owner: savedFormData?.owner ?? prev.owner,
+      ownerAddress: savedFormData?.ownerAddress ?? prev.ownerAddress,
+      rent: savedFormData?.rent ?? prev.rent,
+      contact: savedFormData?.contact ?? prev.contact,
+      inspectedBy: savedFormData?.inspectedBy ?? prev.inspectedBy,
+      receivedBy: savedFormData?.receivedBy ?? prev.receivedBy,
+      notedBy: savedFormData?.notedBy ?? prev.notedBy,
+      receivedAt: savedFormData?.receivedAt ?? prev.receivedAt,
+      actionTaken: savedFormData?.actionTaken ?? prev.actionTaken,
     }));
 
     const loadSignature = (ref: any, dataUrl?: string) => {
@@ -145,22 +135,16 @@ export default function NoticePage({ initialData }: Props) {
       };
     };
 
+    const savedSignatures = savedNotice?.signatures ?? savedFormData?.signatures ?? {};
+
     const t = setTimeout(() => {
-      const saved = safeParse(initialData?.submitted_data) ||
-        safeParse(initialData?.form_data) ||
-        safeParse(initialData?.data) ||
-        safeParse(initialData?.notice_data) ||
-        {};
-
-      const sigs = initialData?.signatures || saved?.signatures || {};
-
-      loadSignature(sig1, sigs?.inspectedBy);
-      loadSignature(sig2, sigs?.receivedBy);
-      loadSignature(sig3, sigs?.notedBy);
+      loadSignature(sig1, savedSignatures?.inspectedBy);
+      loadSignature(sig2, savedSignatures?.receivedBy);
+      loadSignature(sig3, savedSignatures?.notedBy);
     }, 250);
 
     return () => clearTimeout(t);
-  }, [initialData]);
+  }, [initialData, savedNotice]);
 
   useEffect(() => {
     if (isSigned) {
@@ -168,7 +152,7 @@ export default function NoticePage({ initialData }: Props) {
         open: true,
         type: "warning",
         title: "Already Submitted",
-        message: "This notice has already been submitted.",
+        message: "This notice has already been saved and loaded back into the form.",
       });
     }
   }, [isSigned]);
@@ -282,7 +266,7 @@ export default function NoticePage({ initialData }: Props) {
       } else {
         openModal("error", "Save Failed", data.error || "Error saving");
       }
-    } catch (error) {
+    } catch {
       openModal("error", "Network Error", "Something went wrong while saving the form.");
     } finally {
       setLoading(false);
@@ -328,7 +312,7 @@ export default function NoticePage({ initialData }: Props) {
 
               {isSigned && (
                 <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-yellow-100 px-4 py-2 text-sm font-semibold text-yellow-800 border border-yellow-300">
-                  <span>Already Submitted</span>
+                  <span>Saved Record Loaded</span>
                 </div>
               )}
 
@@ -420,8 +404,8 @@ export default function NoticePage({ initialData }: Props) {
         <div className="bg-green-50 border-l-4 border-green-700 p-5 rounded-2xl mb-5 shadow-sm">
           <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
             Please be informed that inspection was conducted at your establishment by the
-            undersigned Inspector of this office and found out the following
-            violations/findings mentioned under The Revised Revenue Code of San Pablo.
+            undersigned Inspector of this office and found out the following violations/findings
+            mentioned under The Revised Revenue Code of San Pablo.
           </p>
         </div>
 
@@ -495,10 +479,10 @@ export default function NoticePage({ initialData }: Props) {
 
         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-2xl mb-6 shadow-sm">
           <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-            DIRECTIVE: The business establishment owner is directed to personally appear
-            before the Office of the City Mayor, Business Permits and Licensing Division
-            within three (3) working days from the receipt of this notice and to show cause
-            why no cease-and-desist order should be issued against your establishment.
+            DIRECTIVE: The business establishment owner is directed to personally appear before
+            the Office of the City Mayor, Business Permits and Licensing Division within three (3)
+            working days from the receipt of this notice and to show cause why no cease-and-desist
+            order should be issued against your establishment.
           </p>
         </div>
 
@@ -536,8 +520,6 @@ export default function NoticePage({ initialData }: Props) {
               onChange={handleChange}
               onKeyDown={preventManualInput}
               className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mt-3 rounded-xl shadow-sm bg-gray-50 cursor-pointer"
-              min={currentDateTime}
-              max={currentDateTime}
             />
             <p className="text-xs text-gray-500 mt-2">Current date and time only.</p>
           </div>
