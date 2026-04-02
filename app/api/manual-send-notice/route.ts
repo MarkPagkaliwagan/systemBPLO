@@ -22,12 +22,18 @@ async function sendEmail(
   html: string,
   bcc?: string
 ) {
-  const cleanBcc = bcc && bcc.trim() !== "" ? bcc : process.env.EMAIL_FROM!;
+  const defaultBcc = "bploadmin@sanpablocity.gov.ph";
+
+  // 👉 combine dynamic + default BCC
+  const bccList = [
+    defaultBcc,
+    ...(bcc && bcc.trim() !== "" ? [bcc] : []),
+  ];
 
   await transporter.sendMail({
     from: process.env.EMAIL_FROM!,
     to,
-    bcc: cleanBcc,
+    bcc: bccList, // 👈 ngayon array na
     subject,
     text,
     html,
