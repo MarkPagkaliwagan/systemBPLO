@@ -54,12 +54,21 @@ function ViolationsPageContent() {
   const [intervalValue, setIntervalValue] = useState<number>(7);
   const [sendingNoticeId, setSendingNoticeId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+ const [user, setUser] = useState<any>(null);
+
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+  if (storedUser) {
+    setUser(JSON.parse(storedUser));
+  }
+}, []);
 
   const [editingEmail, setEditingEmail] = useState<number | null>(null);
   const [emailValue, setEmailValue] = useState("");
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const openBusinessDetails = async (businessId: string) => {
+    
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -443,10 +452,13 @@ function ViolationsPageContent() {
     setSendingNoticeId(id); // <-- show loading for this notice
     try {
       const res = await fetch("/api/manual-send-notice", {
-        method: "POST",
-        body: JSON.stringify({ id }),
-        headers: { "Content-Type": "application/json" },
-      });
+  method: "POST",
+  body: JSON.stringify({ 
+    id,
+    bccEmail: user?.email?.trim() || null
+  }),
+  headers: { "Content-Type": "application/json" },
+});
 
       const data = await res.json();
 

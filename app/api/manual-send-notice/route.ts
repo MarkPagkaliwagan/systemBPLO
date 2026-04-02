@@ -15,13 +15,34 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
-async function sendEmail(to: string, subject: string, text: string, html: string) {
-  await transporter.sendMail({ from: process.env.EMAIL_FROM!, to, bcc:  process.env.EMAIL_FROM!,  subject, text, html });
+async function sendEmail(
+  to: string,
+  subject: string,
+  text: string,
+  html: string,
+  bcc?: string
+) {
+  const cleanBcc = bcc && bcc.trim() !== "" ? bcc : process.env.EMAIL_FROM!;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM!,
+    to,
+    bcc: cleanBcc,
+    subject,
+    text,
+    html,
+  });
 }
 
 export async function POST(req: NextRequest) {
   
-  const { id } = await req.json();
+const body = await req.json();
+
+const id = body.id;
+const bccEmail =
+  typeof body.bccEmail === "string" && body.bccEmail.includes("@")
+    ? body.bccEmail
+    : null;
 
   const { data: violations } = await supabase
     .from("business_violations")
@@ -191,9 +212,17 @@ switch (noticeLevel) {
 }
 
   // Send email
-  await sendEmail(v.requestor_email!, subjectText, textBody, htmlBody);
-const updateData: any = { last_sent_time: now };
-
+  await sendEmail(
+  v.requestor_email!,
+  subjectText,
+  textBody,
+  htmlBody,
+  bccEmail // 👈 dito na papasok email mo
+);
+const updateData: any = { 
+  last_sent_time: now,
+  sent_by: bccEmail || null // 👈 ADD THIS
+};
 if (noticeLevel < 2) {
   // Move to next notice
   updateData.notice_level = noticeLevel + 1;
