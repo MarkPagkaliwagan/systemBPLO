@@ -15,40 +15,13 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
-async function sendEmail(
-  to: string,
-  subject: string,
-  text: string,
-  html: string,
-  bcc?: string
-) {
-  const defaultBcc = "bploadmin@sanpablocity.gov.ph";
-
-  // 👉 combine dynamic + default BCC
-  const bccList = [
-    defaultBcc,
-    ...(bcc && bcc.trim() !== "" ? [bcc] : []),
-  ];
-
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM!,
-    to,
-    bcc: bccList, // 👈 ngayon array na
-    subject,
-    text,
-    html,
-  });
+async function sendEmail(to: string, subject: string, text: string, html: string) {
+  await transporter.sendMail({ from: process.env.EMAIL_FROM!, to, bcc:  process.env.EMAIL_FROM!,  subject, text, html });
 }
 
 export async function POST(req: NextRequest) {
   
-const body = await req.json();
-
-const id = body.id;
-const bccEmail =
-  typeof body.bccEmail === "string" && body.bccEmail.includes("@")
-    ? body.bccEmail
-    : null;
+  const { id } = await req.json();
 
   const { data: violations } = await supabase
     .from("business_violations")
@@ -218,17 +191,9 @@ switch (noticeLevel) {
 }
 
   // Send email
-  await sendEmail(
-  v.requestor_email!,
-  subjectText,
-  textBody,
-  htmlBody,
-  bccEmail // 👈 dito na papasok email mo
-);
-const updateData: any = { 
-  last_sent_time: now.toISOString(),
-  sent_by: bccEmail || null // 👈 ADD THIS
-};
+  await sendEmail(v.requestor_email!, subjectText, textBody, htmlBody);
+const updateData: any = { last_sent_time: now };
+
 if (noticeLevel < 2) {
   // Move to next notice
   updateData.notice_level = noticeLevel + 1;
@@ -238,19 +203,14 @@ if (noticeLevel < 2) {
   updateData.notice_level = 3; // optional but prevents sending again
 }
 
-const { data: updated, error } = await supabase
+  const { error } = await supabase
   .from("business_violations")
   .update(updateData)
-  .eq("id", id)
-  .select()
-  .single();
+  .eq("id", id);
 
 if (error) {
   console.error("Update error:", error);
-  return NextResponse.json({ success: false, error: "Failed to update DB" });
 }
 
-console.log("UPDATED ROW:", updated);
-
-return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true });
 }
