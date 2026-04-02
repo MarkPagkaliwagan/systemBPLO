@@ -238,14 +238,19 @@ if (noticeLevel < 2) {
   updateData.notice_level = 3; // optional but prevents sending again
 }
 
-  const { error } = await supabase
+const { data: updated, error } = await supabase
   .from("business_violations")
   .update(updateData)
-  .eq("id", id);
+  .eq("id", id)
+  .select()
+  .single();
 
 if (error) {
   console.error("Update error:", error);
+  return NextResponse.json({ success: false, error: "Failed to update DB" });
 }
 
-  return NextResponse.json({ success: true });
+console.log("UPDATED ROW:", updated);
+
+return NextResponse.json({ success: true });
 }
