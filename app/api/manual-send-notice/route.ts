@@ -226,7 +226,7 @@ switch (noticeLevel) {
   bccEmail // 👈 dito na papasok email mo
 );
 const updateData: any = { 
-  last_sent_time: now,
+  last_sent_time: now.toISOString(),
   sent_by: bccEmail || null // 👈 ADD THIS
 };
 if (noticeLevel < 2) {
