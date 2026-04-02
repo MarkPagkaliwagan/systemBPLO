@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate secure reset token
     const now = new Date();
     console.log('=== TOKEN CREATION DEBUG ===');
     console.log('Current Date:', now.toString());

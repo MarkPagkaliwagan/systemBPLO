@@ -1,9 +1,10 @@
+// FILE: src/app/api/auth/send-otp/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { comparePassword } from '@/lib/passwordUtils';
 import { generateOTP, generateOTPEmailTemplate } from '@/lib/otpUtils';
 import { sendEmail } from '@/lib/sendEmail';
-import { createSessionToken } from '@/lib/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,12 +12,13 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Email and password are required.' },
         { status: 400 }
       );
     }
 
-    // First validate credentials
+    // ── Step 1: Re-validate credentials ──────────────────────────────────
+    // Always re-check so this endpoint cannot be called without a valid password.
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -25,126 +27,81 @@ export async function POST(request: NextRequest) {
 
     if (error || !user) {
       return NextResponse.json(
-        { error: 'Invalid credentials' },
+        { error: 'Invalid credentials.' },
         { status: 401 }
       );
     }
 
     const isPasswordValid = await comparePassword(password, user.password);
-
     if (!isPasswordValid) {
       return NextResponse.json(
-        { error: 'Invalid credentials' },
+        { error: 'Invalid credentials.' },
         { status: 401 }
       );
     }
 
-    // Check for existing valid OTP (within 24 hours)
-    console.log('Checking for existing valid OTP for user:', user.id);
-    const { data: existingOtp, error: existingOtpError } = await supabase
-      .from('login_2fa_otp')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('email', user.email)
-      .eq('is_used', false)
-      .gt('expires_at', new Date().toISOString())
-      .single();
-
-    if (existingOtp && !existingOtpError && !isResend) {
-      console.log('Found existing valid OTP, creating session and logging in');
-      
-      // Create session token for direct login
-      const sessionToken = await createSessionToken(user.id, user.role);
-      
-      const response = NextResponse.json({
-        message: 'Login successful (using existing OTP)',
-        user: {
-          id: user.id,
-          name: user.full_name || user.name,
-          email: user.email,
-          role: user.role,
-        },
-        sessionToken,
-        expiresIn: 24 * 60 * 60 * 1000,
-        existingOtp: true,
-        loginSuccess: true
-      });
-
-      // Set HTTP-only cookie
-      response.cookies.set('session-token', sessionToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24,
-      });
-
-      return response;
-    }
-
-    // Clean up any expired OTP codes for this user
-    console.log('Cleaning up expired OTP codes for user:', user.id);
+    // ── Step 2: Wipe all existing OTPs for this user ──────────────────────
+    // Fresh login or resend — always clear so only one active code exists.
     const { error: deleteError } = await supabase
       .from('login_2fa_otp')
       .delete()
-      .eq('user_id', user.id)
-      .lt('expires_at', new Date().toISOString());
+      .eq('user_id', user.id);
 
     if (deleteError) {
-      console.error('Delete error:', deleteError);
-    } else {
-      console.log('Successfully cleaned up existing OTP codes');
+      console.error('[send-otp] Failed to clear old OTPs:', deleteError);
+      return NextResponse.json(
+        { error: 'Internal server error.' },
+        { status: 500 }
+      );
     }
 
-    // Generate new OTP
+    // ── Step 3: Generate and store a fresh OTP ────────────────────────────
     const { code, expiresAt } = generateOTP();
-    console.log('Generated OTP:', code, 'expires at:', expiresAt.toISOString());
+    console.log(`[send-otp] Generated OTP for user ${user.id}, expires: ${expiresAt.toISOString()}`);
 
-    // Store OTP in database
-    console.log('Storing OTP for user:', user.id, 'email:', user.email);
-    const { error: otpError } = await supabase
+    const { error: insertError } = await supabase
       .from('login_2fa_otp')
       .insert({
         user_id: user.id,
         email: user.email,
-        code: code,
+        code,
         expires_at: expiresAt.toISOString(),
-        is_used: false
+        is_used: false,
       });
 
-    if (otpError) {
-      console.error('OTP storage error:', otpError);
-      console.error('OTP error details:', JSON.stringify(otpError, null, 2));
+    if (insertError) {
+      console.error('[send-otp] OTP insert error:', insertError);
       return NextResponse.json(
-        { error: 'Failed to generate OTP' },
+        { error: 'Failed to generate OTP.' },
         { status: 500 }
       );
-    } else {
-      console.log('OTP stored successfully in database');
     }
 
-    // Send OTP email
+    // ── Step 4: Send OTP email ────────────────────────────────────────────
     try {
       const emailHtml = generateOTPEmailTemplate(code, user.email);
       await sendEmail(user.email, 'BPLO - Login OTP Verification Code', emailHtml);
     } catch (emailError) {
-      console.error('Email sending error:', emailError);
+      console.error('[send-otp] Email error:', emailError);
+      // Clean up the stored OTP since we cannot deliver it
+      await supabase.from('login_2fa_otp').delete().eq('user_id', user.id);
       return NextResponse.json(
-        { error: 'Failed to send OTP email' },
+        { error: 'Failed to send OTP email. Please try again.' },
         { status: 500 }
       );
     }
 
+    // ── Step 5: Always return plain success — session never created here ──
     return NextResponse.json({
-      message: 'OTP sent successfully',
+      message: isResend ? 'OTP resent successfully.' : 'OTP sent successfully.',
       email: user.email,
-      userId: user.id
+      userId: user.id,
     });
 
   } catch (error) {
-    console.error('Send OTP error:', error);
+    console.error('[send-otp] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error.' },
       { status: 500 }
     );
   }

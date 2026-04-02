@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user data
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -30,16 +29,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Clean up any existing email verification codes for this user
     await supabase
       .from('email_verification_codes')
       .delete()
       .eq('user_id', user.id);
 
-    // Generate new OTP
     const { code, expiresAt } = generateOTP();
 
-    // Store OTP in database
     const { error: otpError } = await supabase
       .from('email_verification_codes')
       .insert({
@@ -57,8 +53,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    // Send verification email
     try {
       const emailHtml = generateEmailVerificationTemplate(code, user.email);
       await sendEmail(user.email, 'BPLO - Email Verification Code', emailHtml);

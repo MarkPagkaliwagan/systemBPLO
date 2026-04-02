@@ -8,24 +8,18 @@ export async function POST(request: NextRequest) {
     console.log('Received body:', body);
     
     const { token, newPassword } = body;
-
-    // Input validation
     if (!token || !newPassword) {
       return NextResponse.json(
         { error: 'Reset token and new password are required' },
         { status: 400 }
       );
     }
-
-    // Password strength validation
     if (newPassword.length < 6) {
       return NextResponse.json(
         { error: 'New password must be at least 6 characters long' },
         { status: 400 }
       );
     }
-
-    // Decode and validate reset token
     console.log('=== RESET TOKEN DEBUG ===');
     console.log('Received token:', token);
     
@@ -42,8 +36,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Check token expiration
     const currentTime = Date.now();
     const tokenExpiration = parseInt(tokenData.exp);
     
@@ -60,7 +52,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user with valid reset token
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -75,7 +66,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if token is still valid (not expired in database)
     if (user.password_reset_expires && new Date(user.password_reset_expires) < new Date()) {
       return NextResponse.json(
         { error: 'Reset token has expired' },
@@ -83,17 +73,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash new password before storing
     const hashedNewPassword = await hashPassword(newPassword);
 
-    // Update password and clear reset token
     const { error: updateError } = await supabase
       .from('users')
       .update({
         password: hashedNewPassword,
         password_reset_token: null,
         password_reset_expires: null
-        // Don't set email_verified: true - let user verify email separately
       })
       .eq('id', user.id);
 

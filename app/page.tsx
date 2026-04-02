@@ -1,3 +1,5 @@
+// FILE: src/app/page.tsx
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -23,15 +25,14 @@ export default function LoginPage() {
   const [invalidMessage, setInvalidMessage] = useState("");
 
   const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpUser, setOtpUser] = useState<any>(null);
+  const [otpUser, setOtpUser] = useState<{ id: string; email: string; name: string; role: string } | null>(null);
   const [otpError, setOtpError] = useState("");
   const [otpSuccess, setOtpSuccess] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
 
-  const [showEmailVerificationModal, setShowEmailVerificationModal] =
-    useState(false);
-  const [verificationUser, setVerificationUser] = useState<any>(null);
+  const [showEmailVerificationModal, setShowEmailVerificationModal] = useState(false);
+  const [verificationUser, setVerificationUser] = useState<{ id: string; email: string } | null>(null);
   const [verificationError, setVerificationError] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [isVerificationResending, setIsVerificationResending] = useState(false);
@@ -54,10 +55,6 @@ export default function LoginPage() {
   }, []);
 
   // ── Single-session guard ───────────────────────────────────────────────
-  // FIX: Before checking localStorage, verify the sessionExpiry is still valid.
-  // Previously, stale localStorage data (user still set but cookie expired) caused
-  // the login page to redirect the user back to the dashboard, which middleware
-  // blocked → redirect back to / → infinite reload loop.
   useEffect(() => {
     if (isRedirectingRef.current) return;
 
@@ -66,16 +63,16 @@ export default function LoginPage() {
 
     if (!userData || !sessionExpiry) return;
 
-    // ↓ If expiry has passed, clear everything and stay on login page
+    // If session is expired, clear storage and stay on login page
     if (Date.now() > Number(sessionExpiry)) {
       localStorage.removeItem("user");
       localStorage.removeItem("sessionExpiry");
       sessionStorage.removeItem("user");
       sessionStorage.removeItem("sessionExpiry");
-      return; // Stay on login — do NOT redirect
+      return;
     }
 
-    // Only redirect if session is genuinely still valid
+    // Session still valid — redirect to dashboard
     try {
       const user = JSON.parse(userData);
       const destination =
@@ -101,12 +98,9 @@ export default function LoginPage() {
     setShowInvalidModal(true);
   };
 
-  const handleSuccessfulLogin = (data: any) => {
-    const expiresIn =
-      typeof data.expiresIn === "number"
-        ? data.expiresIn
-        : 24 * 60 * 60 * 1000;
-    const expiry = String(Date.now() + expiresIn);
+  // ── Called only after OTP is verified and session is created ──────────
+  const handleSuccessfulLogin = (data: { user: { id: string; name: string; email: string; role: string }; expiresIn: number }) => {
+    const expiry = String(Date.now() + data.expiresIn);
     const userJson = JSON.stringify(data.user);
 
     localStorage.setItem("user", userJson);
@@ -127,14 +121,17 @@ export default function LoginPage() {
     }, 2500);
   };
 
+  // ── Phase 1 + 2: Validate credentials, then send OTP ─────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setOtpError("");
+    setOtpSuccess("");
     setVerificationError("");
 
     try {
-      const response = await fetch("/api/auth", {
+      // Phase 1 — validate credentials
+      const authRes = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -143,94 +140,101 @@ export default function LoginPage() {
         }),
       });
 
-      const data = await response.json();
+      const authData = await authRes.json();
 
-      if (response.ok) {
-        if (data.requiresEmailVerification) {
-          setVerificationUser(data.user);
-          setVerificationError("");
-          setShowEmailVerificationModal(true);
-          await sendVerificationEmail(data.user.email, data.user.id);
-        } else if (data.requiresOTP) {
-          try {
-            const otpRes = await fetch("/api/auth/send-otp", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: form.username.trim(),
-                password: form.password,
-              }),
-            });
-            const otpData = await otpRes.json();
-
-            if (otpData.loginSuccess) {
-              handleSuccessfulLogin(otpData);
-            } else {
-              setOtpUser(data.user);
-              setShowOtpModal(true);
-              try {
-                const sendRes = await fetch("/api/auth/send-otp", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    email: form.username.trim(),
-                    password: form.password,
-                  }),
-                });
-                const sendData = await sendRes.json();
-                if (!sendRes.ok) {
-                  setOtpError(sendData.error || "Failed to send OTP");
-                }
-              } catch (err) {
-                console.error("Send OTP error:", err);
-                setOtpError("Failed to send OTP. Please try again.");
-              }
-            }
-          } catch (err) {
-            console.error("OTP check error:", err);
-            showError("An error occurred during OTP check. Please try again.");
-          }
-        } else {
-          handleSuccessfulLogin(data);
-        }
-      } else {
-        showError(data.error || "Invalid credentials. Please try again.");
+      if (!authRes.ok) {
+        showError(authData.error || "Invalid credentials. Please try again.");
+        return;
       }
+
+      // Email verification required before OTP
+      if (authData.requiresEmailVerification) {
+        setVerificationUser(authData.user);
+        setShowEmailVerificationModal(true);
+        await sendVerificationEmail(authData.user.email, authData.user.id);
+        return;
+      }
+
+      // Phase 2 — credentials valid, send OTP
+      if (authData.requiresOTP) {
+        const otpRes = await fetch("/api/auth/send-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: form.username.trim(),
+            password: form.password,
+          }),
+        });
+
+        const otpData = await otpRes.json();
+
+        if (!otpRes.ok) {
+          showError(otpData.error || "Failed to send OTP. Please try again.");
+          return;
+        }
+
+        // Always show OTP modal — session is only created after phase 3
+        setOtpUser(authData.user);
+        setOtpError("");
+        setOtpSuccess("");
+        setShowOtpModal(true);
+        return;
+      }
+
+      // Fallback — should never reach here given all users require OTP
+      showError("Unexpected response from server. Please try again.");
+
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("[login] Submit error:", err);
       showError("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Phase 3: User submits OTP — session created on success ────────────
   const handleOtpVerify = async (otp: string) => {
+    if (!otpUser) return;
     setOtpLoading(true);
     setOtpError("");
+    setOtpSuccess("");
+
     try {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: otpUser.email, otp, userId: otpUser.id }),
+        body: JSON.stringify({
+          email: otpUser.email,
+          otp,
+          userId: otpUser.id,
+        }),
       });
+
       const data = await res.json();
+
       if (res.ok) {
-        setOtpSuccess("Login verification successful!");
+        setOtpSuccess("Verification successful!");
         setShowOtpModal(false);
-        handleSuccessfulLogin(data);
+        // data.user and data.expiresIn are guaranteed here from verify-otp
+        handleSuccessfulLogin({ user: data.user, expiresIn: data.expiresIn });
       } else {
         setOtpError(data.error || "Invalid OTP. Please try again.");
       }
     } catch (err) {
-      console.error("OTP verification error:", err);
+      console.error("[login] OTP verify error:", err);
       setOtpError("Network error. Please try again.");
     } finally {
       setOtpLoading(false);
     }
   };
 
+  // ── Resend: wipes old code, generates and emails a new one ────────────
   const handleOtpResend = async () => {
+    if (!otpUser) return;
     setIsResending(true);
+    setOtpError("");
+    setOtpSuccess("");
+
     try {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
@@ -241,14 +245,16 @@ export default function LoginPage() {
           isResend: true,
         }),
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        setOtpError(data.error || "Failed to resend OTP");
+        setOtpError(data.error || "Failed to resend OTP.");
       } else {
-        setOtpSuccess("New OTP sent successfully");
+        setOtpSuccess("A new OTP has been sent to your email.");
       }
     } catch (err) {
-      console.error("Resend OTP error:", err);
+      console.error("[login] Resend OTP error:", err);
       setOtpError("Failed to resend OTP. Please try again.");
     } finally {
       setIsResending(false);
@@ -260,9 +266,11 @@ export default function LoginPage() {
       setShowOtpModal(false);
       setOtpUser(null);
       setOtpError("");
+      setOtpSuccess("");
     }
   };
 
+  // ── Email verification helpers ─────────────────────────────────────────
   const sendVerificationEmail = async (email: string, userId: string) => {
     setVerificationError("");
     try {
@@ -272,16 +280,18 @@ export default function LoginPage() {
         body: JSON.stringify({ email, userId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to send verification email");
+      if (!res.ok) throw new Error(data.error || "Failed to send verification email.");
     } catch (err) {
-      console.error("Send verification email error:", err);
+      console.error("[login] Send verification email error:", err);
       setVerificationError("Failed to send verification email. Please try again.");
     }
   };
 
   const handleEmailVerification = async (otp: string) => {
+    if (!verificationUser) return;
     setVerificationLoading(true);
     setVerificationError("");
+
     try {
       const res = await fetch("/api/auth/verify-email", {
         method: "POST",
@@ -292,22 +302,20 @@ export default function LoginPage() {
           userId: verificationUser.id,
         }),
       });
+
       const data = await res.json();
+
       if (res.ok) {
         setShowEmailVerificationModal(false);
         setVerificationUser(null);
         setTimeout(() => {
-          handleSuccessfulLogin({
-            user: data.user,
-            expiresIn: data.expiresIn,
-            sessionToken: data.sessionToken,
-          });
+          handleSuccessfulLogin({ user: data.user, expiresIn: data.expiresIn });
         }, 50);
       } else {
         setVerificationError(data.error || "Invalid verification code. Please try again.");
       }
     } catch (err) {
-      console.error("Email verification error:", err);
+      console.error("[login] Email verification error:", err);
       setVerificationError("Network error. Please try again.");
     } finally {
       setVerificationLoading(false);
@@ -321,7 +329,7 @@ export default function LoginPage() {
     try {
       await sendVerificationEmail(verificationUser.email, verificationUser.id);
     } catch (err) {
-      console.error("Resend verification email error:", err);
+      console.error("[login] Resend verification error:", err);
       setVerificationError("Failed to resend verification email. Please try again.");
     } finally {
       setIsVerificationResending(false);
@@ -387,7 +395,10 @@ export default function LoginPage() {
               </div>
 
               <div className="text-right">
-                <Link href="/forgot-password" className="text-xs text-gray-400 hover:underline">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-gray-400 hover:underline"
+                >
                   Forgot your password?
                 </Link>
               </div>
@@ -401,6 +412,7 @@ export default function LoginPage() {
               </button>
             </form>
           </div>
+
           <p className="text-center text-xs text-gray-400 mt-4">v1.0.0</p>
         </div>
       </div>

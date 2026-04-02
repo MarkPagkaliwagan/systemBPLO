@@ -40,14 +40,11 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-
-    // Mark OTP as used
     await supabase
       .from('email_verification_codes')
       .update({ is_used: true })
       .eq('id', otpRecord.id);
 
-    // Get user data
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -60,8 +57,6 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-
-    // Mark email as verified
     const { error: updateError } = await supabase
       .from('users')
       .update({ email_verified: true })
@@ -74,23 +69,18 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    // Clean up any old email verification codes for this user
     await supabase
       .from('email_verification_codes')
       .delete()
       .eq('user_id', user.id);
 
-    // Create session token for consistent authentication
     const sessionToken = await createSessionToken(user.id, user.role);
 
-    // Send verification success email
     try {
       const successEmailHtml = generateVerificationSuccessTemplate(user.full_name || user.email);
       await sendEmail(user.email, 'Email Successfully Verified - BPLO', successEmailHtml);
     } catch (emailError) {
       console.error('Success email error:', emailError);
-      // Don't fail the verification if email fails
     }
 
     const response = NextResponse.json({

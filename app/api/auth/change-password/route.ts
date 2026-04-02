@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
   try {
     const { currentPassword, newPassword } = await request.json();
 
-    // Input validation
     if (!currentPassword || !newPassword) {
       return NextResponse.json(
         { error: 'Current password and new password are required' },
@@ -14,7 +13,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Password strength validation
     if (newPassword.length < 6) {
       return NextResponse.json(
         { error: 'New password must be at least 6 characters long' },
@@ -22,7 +20,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get session token from HTTP-only cookie
     const sessionToken = request.cookies.get('session-token')?.value;
     
     if (!sessionToken) {
@@ -32,7 +29,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Decode and validate session token
     let sessionData;
     try {
       sessionData = JSON.parse(Buffer.from(sessionToken, 'base64').toString());
@@ -43,7 +39,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check session expiration
     if (Date.now() > sessionData.exp) {
       return NextResponse.json(
         { error: 'Session expired' },
@@ -51,7 +46,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user from database
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -65,7 +59,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify current password using bcrypt
     const isCurrentPasswordValid = await comparePassword(currentPassword, user.password);
     if (!isCurrentPasswordValid) {
       return NextResponse.json(
@@ -74,10 +67,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash new password before storing
     const hashedNewPassword = await hashPassword(newPassword);
 
-    // Update password
     const { error: updateError } = await supabase
       .from('users')
       .update({ password: hashedNewPassword })

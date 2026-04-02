@@ -1,3 +1,5 @@
+// FILE: src/app/api/auth/verify-otp/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseClient';
 import { createSessionToken } from '@/lib/session';
@@ -8,20 +10,16 @@ export async function POST(request: NextRequest) {
 
     if (!email || !otp || !userId) {
       return NextResponse.json(
-        { error: 'Email, OTP, and user ID are required' },
+        { error: 'Email, OTP, and user ID are required.' },
         { status: 400 }
       );
     }
-
-    // Validate OTP format
     if (!/^\d{6}$/.test(otp)) {
       return NextResponse.json(
-        { error: 'Invalid OTP format' },
+        { error: 'Invalid OTP format.' },
         { status: 400 }
       );
     }
-
-    // Find valid OTP code
     const { data: otpRecord, error: otpError } = await supabase
       .from('login_2fa_otp')
       .select('*')
@@ -34,18 +32,22 @@ export async function POST(request: NextRequest) {
 
     if (otpError || !otpRecord) {
       return NextResponse.json(
-        { error: 'Invalid or expired OTP' },
+        { error: 'Invalid or expired OTP. Please try again.' },
         { status: 401 }
       );
     }
+    const { error: markUsedError } = await supabase
+      .from('login_2fa_otp')
+      .update({ is_used: true })
+      .eq('id', otpRecord.id);
 
-    // Don't mark OTP as used - keep it valid for 24 hours for subsequent logins
-    // await supabase
-    //   .from('login_2fa_otp')
-    //   .update({ is_used: true })
-    //   .eq('id', otpRecord.id);
-
-    // Get user data
+    if (markUsedError) {
+      console.error('[verify-otp] Failed to mark OTP as used:', markUsedError);
+      return NextResponse.json(
+        { error: 'Internal server error.' },
+        { status: 500 }
+      );
+    }
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
@@ -54,46 +56,42 @@ export async function POST(request: NextRequest) {
 
     if (userError || !user) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User not found.' },
         { status: 404 }
       );
     }
 
-    // Create session token
+    // ── Step 5: Create session — only reached after OTP is verified ────────
     const sessionToken = await createSessionToken(user.id, user.role);
-
-    // Don't clean up OTP codes - keep them valid for 24 hours for subsequent logins
-    // await supabase
-    //   .from('login_2fa_otp')
-    //   .delete()
-    //   .eq('user_id', user.id);
+    const expiresIn = 24 * 60 * 60 * 1000; // 24 hours in ms
 
     const response = NextResponse.json({
+      message: 'Login successful.',
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role, // Database now has 'admin' and 'staff' directly
+        role: user.role,
       },
       sessionToken,
-      expiresIn: 24 * 60 * 60 * 1000, // 24 hours in ms
+      expiresIn,
     });
 
-    // Set HTTP-only cookie with the user's role baked into the token
+    // ── Step 6: Set HTTP-only session cookie ──────────────────────────────
     response.cookies.set('session-token', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24,
+      maxAge: 60 * 60 * 24, // 24 hours in seconds
     });
 
     return response;
 
   } catch (error) {
-    console.error('Verify OTP error:', error);
+    console.error('[verify-otp] Unexpected error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error.' },
       { status: 500 }
     );
   }
