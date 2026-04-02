@@ -5,26 +5,47 @@ import Image from "next/image";
 import SignatureCanvas from "react-signature-canvas";
 import type { ChangeEvent, KeyboardEvent } from "react";
 
+type SavedNotice = {
+  id?: string;
+  violation_id?: number | null;
+  taxpayer?: string | null;
+  address?: string | null;
+  nature?: string | null;
+  notice_no?: string | null;
+  data?: any;
+  signatures?: any;
+  created_at?: string | null;
+};
+
 type Props = {
   initialData?: any;
+  savedNotice?: SavedNotice | null;
 };
 
 type ModalType = "loading" | "success" | "error" | "info" | "warning";
 
-export default function NoticePage({ initialData }: Props) {
+export default function NoticePage({ initialData, savedNotice }: Props) {
   const formRef = useRef<HTMLDivElement>(null);
   const sig1 = useRef<any>(null);
   const sig2 = useRef<any>(null);
   const sig3 = useRef<any>(null);
-
-  const isSigned = initialData?.signed;
-  const violationId = initialData?.id;
 
   const today = new Date();
   const todayDate = today.toISOString().split("T")[0];
   const currentDateTime = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 16);
+
+  const savedFormData =
+    savedNotice?.data ||
+    initialData?.submitted_data ||
+    initialData?.form_data ||
+    initialData?.data ||
+    initialData?.notice_data ||
+    {};
+
+  const isSigned = Boolean(savedNotice?.id || initialData?.signed);
+  const violationId = initialData?.id;
 
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<{
@@ -61,16 +82,69 @@ export default function NoticePage({ initialData }: Props) {
   });
 
   useEffect(() => {
-    if (!initialData) return;
+    if (!initialData && !savedNotice) return;
 
     setForm((prev) => ({
       ...prev,
-      taxpayer: initialData.business_name ?? prev.taxpayer,
-      address: initialData.address ?? prev.address,
-      nature: initialData.nature_of_business ?? prev.nature,
-      noticeNo: initialData.notice_no ?? prev.noticeNo,
+      taxpayer:
+        savedNotice?.taxpayer ??
+        savedFormData?.taxpayer ??
+        initialData?.business_name ??
+        prev.taxpayer,
+      address: savedNotice?.address ?? savedFormData?.address ?? initialData?.address ?? prev.address,
+      nature:
+        savedNotice?.nature ??
+        savedFormData?.nature ??
+        initialData?.nature_of_business ??
+        prev.nature,
+      noticeNo:
+        savedNotice?.notice_no ??
+        savedFormData?.noticeNo ??
+        savedFormData?.notice_no ??
+        initialData?.notice_no ??
+        prev.noticeNo,
+
+      type: savedFormData?.type ?? prev.type,
+      date: savedFormData?.date ?? prev.date,
+      violation: savedFormData?.violation ?? prev.violation,
+      otherViolation: savedFormData?.otherViolation ?? prev.otherViolation,
+      rented: savedFormData?.rented ?? prev.rented,
+      owner: savedFormData?.owner ?? prev.owner,
+      ownerAddress: savedFormData?.ownerAddress ?? prev.ownerAddress,
+      rent: savedFormData?.rent ?? prev.rent,
+      contact: savedFormData?.contact ?? prev.contact,
+      inspectedBy: savedFormData?.inspectedBy ?? prev.inspectedBy,
+      receivedBy: savedFormData?.receivedBy ?? prev.receivedBy,
+      notedBy: savedFormData?.notedBy ?? prev.notedBy,
+      receivedAt: savedFormData?.receivedAt ?? prev.receivedAt,
+      actionTaken: savedFormData?.actionTaken ?? prev.actionTaken,
     }));
-  }, [initialData]);
+
+    const loadSignature = (ref: any, dataUrl?: string) => {
+      if (!ref?.current || !dataUrl) return;
+
+      const img = new window.Image();
+      img.src = dataUrl;
+      img.onload = () => {
+        const canvas: HTMLCanvasElement = ref.current.getCanvas();
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+    };
+
+    const savedSignatures = savedNotice?.signatures ?? savedFormData?.signatures ?? {};
+
+    const t = setTimeout(() => {
+      loadSignature(sig1, savedSignatures?.inspectedBy);
+      loadSignature(sig2, savedSignatures?.receivedBy);
+      loadSignature(sig3, savedSignatures?.notedBy);
+    }, 250);
+
+    return () => clearTimeout(t);
+  }, [initialData, savedNotice]);
 
   useEffect(() => {
     if (isSigned) {
@@ -78,19 +152,19 @@ export default function NoticePage({ initialData }: Props) {
         open: true,
         type: "warning",
         title: "Already Submitted",
-        message: "This notice has already been submitted.",
+        message: "This notice has already been saved and loaded back into the form.",
       });
     }
   }, [isSigned]);
 
- const closeModal = () => {
-  if (modal.type === "success") {
-    window.location.reload();
-    return;
-  }
+  const closeModal = () => {
+    if (modal.type === "success") {
+      window.location.reload();
+      return;
+    }
 
-  setModal((prev) => ({ ...prev, open: false }));
-};
+    setModal((prev) => ({ ...prev, open: false }));
+  };
 
   const openModal = (type: ModalType, title: string, message: string) => {
     setModal({
@@ -192,26 +266,23 @@ export default function NoticePage({ initialData }: Props) {
       } else {
         openModal("error", "Save Failed", data.error || "Error saving");
       }
-    } catch (error) {
+    } catch {
       openModal("error", "Network Error", "Something went wrong while saving the form.");
     } finally {
       setLoading(false);
     }
   };
 
-return (
-  <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
-    {!isSigned && (
+  return (
+    <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black">
       <div
         ref={formRef}
         className="relative bg-white w-full max-w-5xl mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden"
       >
         <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700" />
 
-        {/* HEADER */}
         <div className="relative mb-8 pb-6 border-b">
           <div className="flex flex-col items-center gap-4 md:block">
-            {/* LOGO LEFT (RESPONSIVE) */}
             <div className="relative flex justify-center md:block md:absolute md:left-6 md:top-6">
               <Image
                 src="/vercel.svg"
@@ -223,7 +294,6 @@ return (
               />
             </div>
 
-            {/* CENTERED TEXT */}
             <div className="text-center w-full px-2 sm:px-6 md:px-32 md:pt-0">
               <p className="font-semibold text-gray-700 text-sm sm:text-base">
                 Republic of the Philippines
@@ -239,6 +309,12 @@ return (
               <h2 className="font-bold text-lg sm:text-xl mt-3 tracking-wide text-green-900">
                 BUSINESS PERMITS AND LICENSING OFFICE
               </h2>
+
+              {isSigned && (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-yellow-100 px-4 py-2 text-sm font-semibold text-yellow-800 border border-yellow-300">
+                  <span>Saved Record Loaded</span>
+                </div>
+              )}
 
               <div className="mt-5 flex flex-col items-center gap-2">
                 <label className="font-semibold text-gray-700 text-sm sm:text-base">
@@ -256,7 +332,6 @@ return (
           </div>
         </div>
 
-        {/* BUSINESS TYPE */}
         <div className="mb-5">
           <label className="block font-semibold text-gray-700 mb-2">Type:</label>
           <select
@@ -272,7 +347,6 @@ return (
           </select>
         </div>
 
-        {/* BASIC INFO */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
           <div>
             <label className="block font-semibold text-gray-700 mb-2">DATE:</label>
@@ -327,16 +401,14 @@ return (
           />
         </div>
 
-        {/* CARD NOTICE */}
         <div className="bg-green-50 border-l-4 border-green-700 p-5 rounded-2xl mb-5 shadow-sm">
           <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
             Please be informed that inspection was conducted at your establishment by the
-            undersigned Inspector of this office and found out the following
-            violations/findings mentioned under The Revised Revenue Code of San Pablo.
+            undersigned Inspector of this office and found out the following violations/findings
+            mentioned under The Revised Revenue Code of San Pablo.
           </p>
         </div>
 
-        {/* VIOLATIONS */}
         <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm">
           <label className="flex items-center gap-3 font-medium text-gray-700">
             <input
@@ -361,7 +433,6 @@ return (
           </div>
         </div>
 
-        {/* RENTED */}
         <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm">
           <label className="flex items-center gap-3 mb-4 font-medium text-gray-700">
             <input
@@ -406,17 +477,15 @@ return (
           </div>
         </div>
 
-        {/* DIRECTIVE */}
         <div className="bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-2xl mb-6 shadow-sm">
           <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-            DIRECTIVE: The business establishment owner is directed to personally appear
-            before the Office of the City Mayor, Business Permits and Licensing Division
-            within three (3) working days from the receipt of this notice and to show cause
-            why no cease-and-desist order should be issued against your establishment.
+            DIRECTIVE: The business establishment owner is directed to personally appear before
+            the Office of the City Mayor, Business Permits and Licensing Division within three (3)
+            working days from the receipt of this notice and to show cause why no cease-and-desist
+            order should be issued against your establishment.
           </p>
         </div>
 
-        {/* SIGNATURES */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
             <p className="font-semibold text-gray-700 mb-3">INSPECTED BY:</p>
@@ -451,8 +520,6 @@ return (
               onChange={handleChange}
               onKeyDown={preventManualInput}
               className="border border-gray-300 focus:border-green-700 focus:ring-2 focus:ring-green-100 outline-none w-full p-3 mt-3 rounded-xl shadow-sm bg-gray-50 cursor-pointer"
-              min={currentDateTime}
-              max={currentDateTime}
             />
             <p className="text-xs text-gray-500 mt-2">Current date and time only.</p>
           </div>
@@ -472,7 +539,6 @@ return (
           </div>
         </div>
 
-        {/* ACTION */}
         <div className="mb-6 bg-gray-50 border border-gray-200 p-5 rounded-2xl shadow-sm">
           <label className="block font-semibold text-gray-700 mb-2">ACTION TAKEN:</label>
           <textarea
@@ -485,7 +551,6 @@ return (
           <p className="text-xs text-gray-500 mt-3">QFM-BPL-009 Rev 0 2022.02.18</p>
         </div>
 
-        {/* BUTTON */}
         <button
           onClick={handleSubmit}
           disabled={isSigned || loading}
@@ -494,8 +559,7 @@ return (
           {isSigned ? "Already Submitted" : loading ? "Saving..." : "Submit"}
         </button>
       </div>
-    )}
-      {/* CUSTOM MODAL */}
+
       {modal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl border border-gray-200 overflow-hidden">

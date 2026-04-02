@@ -10,9 +10,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    console.log("BODY:", body); // ✅ debug
-
-    // ✅ SAFE CHECK
     const violationId = body?.initialDataId;
 
     if (!violationId) {
@@ -22,37 +19,55 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ INSERT
-    const { error: insertError } = await supabase
+    const { data: existingNotice, error: existingError } = await supabase
       .from("notice_forms")
-      .insert([
-        {
-          violation_id: violationId,
-          taxpayer: body.taxpayer,
-          address: body.address,
-          nature: body.nature,
-          notice_no: body.noticeNo,
-          data: body,
-          signatures: body.signatures,
-        },
-      ]);
+      .select("id")
+      .eq("violation_id", violationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message });
+    if (existingError) {
+      return NextResponse.json({ error: existingError.message }, { status: 500 });
     }
 
-    // ✅ UPDATE AFTER INSERT
+    const noticePayload = {
+      violation_id: violationId,
+      taxpayer: body.taxpayer,
+      address: body.address,
+      nature: body.nature,
+      notice_no: body.noticeNo,
+      data: body,
+      signatures: body.signatures,
+    };
+
+    let saveResult;
+
+    if (existingNotice?.id) {
+      saveResult = await supabase
+        .from("notice_forms")
+        .update(noticePayload)
+        .eq("id", existingNotice.id);
+    } else {
+      saveResult = await supabase.from("notice_forms").insert([noticePayload]);
+    }
+
+    if (saveResult.error) {
+      return NextResponse.json({ error: saveResult.error.message }, { status: 500 });
+    }
+
     const { error: updateError } = await supabase
       .from("business_violations")
       .update({ signed: true })
       .eq("id", violationId);
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message });
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
-
+    return NextResponse.json({
+      success: true,
+    });
   } catch (err: any) {
     return NextResponse.json(
       { error: err.message || "Server error" },
