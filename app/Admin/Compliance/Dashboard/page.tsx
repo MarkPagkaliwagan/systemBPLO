@@ -429,57 +429,72 @@ useEffect(() => {
     );
     return new Date() >= nextSend;
   };
-  const sendNoticeNow = async (id: number) => {
-    // Hanapin yung violation object
-    const violation = violations.find((v) => v.id === id);
-    if (!violation) return;
+ const sendNoticeNow = async (id: number) => {
+  const violation = violations.find((v) => v.id === id);
+  if (!violation) return;
 
-    // EMAIL CHECK
-    if (!violation.requestor_email || violation.requestor_email.trim() === "") {
+  if (!violation.requestor_email || violation.requestor_email.trim() === "") {
+    openMessageModal(
+      "Missing Email",
+      `Cannot send notice. Business ID ${violation.business_id} has no email.`,
+      "error",
+    );
+
+    const row = document.querySelector(`[data-id="${id}"]`);
+    if (row) row.classList.add("border-2", "border-red-400");
+
+    return;
+  }
+
+  setSendingNoticeId(id);
+
+  try {
+    const res = await fetch("/api/manual-send-notice", {
+      method: "POST",
+      body: JSON.stringify({
+        id,
+        bccEmail: user?.email?.trim() || null,
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      openMessageModal("Success", "Notice sent successfully.", "success");
+
+      // ✅ OPTIMISTIC UI UPDATE (instant fix sa Pending issue)
+      setViolations((prev) =>
+        prev.map((v) => {
+          if (v.id !== id) return v;
+
+          const nextLevel = (v.notice_level || 0) + 1;
+
+          return {
+            ...v,
+            notice_level: nextLevel,
+            last_sent_time: new Date().toISOString(),
+            cease_flag: nextLevel >= 3 ? true : v.cease_flag,
+          };
+        }),
+      );
+    } else {
       openMessageModal(
-        "Missing Email",
-        `Cannot send notice. Business ID ${violation.business_id} has no email.`,
+        "Error",
+        data.error || "Failed to send notice.",
         "error",
       );
-
-      // Optional: highlight row
-      const row = document.querySelector(`[data-id="${id}"]`);
-      if (row) row.classList.add("border-2", "border-red-400");
-
-      return; // stop sending
     }
 
-    setSendingNoticeId(id); // <-- show loading for this notice
-    try {
-      const res = await fetch("/api/manual-send-notice", {
-  method: "POST",
-  body: JSON.stringify({ 
-    id,
-    bccEmail: user?.email?.trim() || null
-  }),
-  headers: { "Content-Type": "application/json" },
-});
-
-      const data = await res.json();
-
-      if (data.success) {
-        openMessageModal("Success", "Notice sent successfully.", "success");
-      } else {
-        openMessageModal(
-          "Error",
-          data.error || "Failed to send notice.",
-          "error",
-        );
-      }
-
-      await fetchViolations();
-    } catch (err) {
-      console.error(err);
-      openMessageModal("Error", "Error sending notice.", "error");
-    } finally {
-      setSendingNoticeId(null); // <-- hide loading
-    }
-  };
+    // ✅ fallback refresh (sync with DB)
+    await fetchViolations();
+  } catch (err) {
+    console.error(err);
+    openMessageModal("Error", "Error sending notice.", "error");
+  } finally {
+    setSendingNoticeId(null);
+  }
+};
 
   const askSendNotice = (v: Violation) => {
     openConfirmModal(
