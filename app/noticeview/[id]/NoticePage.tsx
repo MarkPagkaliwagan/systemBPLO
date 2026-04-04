@@ -54,59 +54,56 @@ function Modal({
   onClose: () => void;
 }) {
   if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4 py-6 print:hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6 print:hidden">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-gray-200"
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl"
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <h3 id="modal-title" className="text-lg font-bold text-gray-900">
-            {title}
-          </h3>
-
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🖨️</span>
+            <h3 id="modal-title" className="text-base font-bold text-gray-900">
+              {title}
+            </h3>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full px-2 py-1 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+            className="rounded-full w-7 h-7 flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
             aria-label="Close"
           >
             ✕
           </button>
         </div>
-
         <div className="text-sm leading-6 text-gray-600">{children}</div>
-
-        <div className="mt-6 flex justify-end gap-3">{footer}</div>
+        <div className="mt-5 flex justify-end gap-2">{footer}</div>
       </div>
     </div>
   );
 }
 
-function LoadingOverlay({
-  open,
-  message = "Preparing document...",
-}: {
-  open: boolean;
-  message?: string;
-}) {
+function LoadingOverlay({ open, message = "Preparing document..." }: { open: boolean; message?: string }) {
   if (!open) return null;
-
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm print:hidden">
-      <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-6 py-5 shadow-2xl border border-gray-200">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-green-700" />
+      <div className="flex flex-col items-center gap-3 rounded-2xl bg-white px-8 py-6 shadow-2xl">
+        <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-gray-200 border-t-emerald-700" />
         <p className="text-sm font-medium text-gray-700">{message}</p>
       </div>
     </div>
   );
 }
 
-function SectionTitle({ children }: { children: ReactNode }) {
-  return <label className="block font-semibold text-gray-700 mb-2">{children}</label>;
+function FieldLabel({ icon, children }: { icon: string; children: ReactNode }) {
+  return (
+    <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-1.5 print:text-[9px] print:tracking-wider">
+      <span className="print:hidden">{icon}</span>
+      {children}
+    </label>
+  );
 }
 
 function ReadOnlyInput({
@@ -121,61 +118,64 @@ function ReadOnlyInput({
   type?: string;
 }) {
   return (
-    <input
-      type={type}
-      value={value ?? ""}
-      readOnly
-      placeholder={placeholder}
-      className={`border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-50 print:bg-white print:shadow-none ${className}`}
-    />
+    <div className={`relative ${className}`}>
+      <input
+        type={type}
+        value={value ?? ""}
+        readOnly
+        placeholder={placeholder}
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-gray-50 placeholder-gray-300 focus:outline-none print:bg-white print:border-gray-300 print:text-xs print:py-1 print:px-2"
+      />
+    </div>
   );
 }
 
-function ReadOnlyTextArea({
-  value,
-  className = "",
-  placeholder,
-}: {
-  value?: string;
-  className?: string;
-  placeholder?: string;
-}) {
+function ReadOnlyTextArea({ value, placeholder, rows = 3 }: { value?: string; placeholder?: string; rows?: number }) {
   return (
     <textarea
       value={value ?? ""}
       readOnly
+      rows={rows}
       placeholder={placeholder}
-      className={`border border-gray-300 w-full p-3 rounded-xl shadow-sm bg-gray-50 print:bg-white print:shadow-none ${className}`}
+      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-gray-50 placeholder-gray-300 resize-none print:bg-white print:border-gray-300 print:text-xs print:py-1 print:px-2"
     />
   );
 }
 
-function SignatureBox({
-  label,
-  name,
-  signature,
-}: {
-  label: string;
-  name?: string;
-  signature?: string;
-}) {
+function InfoCard({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm print:shadow-none">
-      <p className="font-semibold text-gray-700 mb-3">{label}</p>
+    <div className={`rounded-xl border border-gray-100 bg-gray-50/60 p-4 print:bg-white print:border-gray-200 print:p-3 ${className}`}>
+      {children}
+    </div>
+  );
+}
 
-      <ReadOnlyInput value={name} placeholder="Name" className="mb-3" />
-
-      <div className="border rounded-xl overflow-hidden bg-white h-28 flex items-center justify-center print:border-gray-300">
+function SignatureBox({ label, icon, name, signature }: { label: string; icon: string; name?: string; signature?: string }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 print:p-2.5 print:border-gray-300">
+      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-3 print:text-[9px] print:mb-2">
+        <span className="print:hidden">{icon}</span>
+        {label}
+      </p>
+      <ReadOnlyInput value={name} placeholder="Full Name" className="mb-3 print:mb-2" />
+      <div className="h-24 rounded-lg border border-dashed border-gray-200 bg-white flex items-center justify-center overflow-hidden print:h-16 print:border-gray-300">
         {signature ? (
-          <img
-            src={getSignatureSrc(signature)}
-            alt={`${label} Signature`}
-            className="h-full w-full object-contain"
-          />
+          <img src={getSignatureSrc(signature)} alt={`${label} Signature`} className="h-full w-full object-contain" />
         ) : (
-          <span className="text-gray-400">No Signature</span>
+          <span className="text-xs text-gray-300 italic">No signature</span>
         )}
       </div>
+    </div>
+  );
+}
+
+function Divider({ label }: { label?: string }) {
+  if (!label) return <hr className="my-5 border-gray-100 print:my-3" />;
+  return (
+    <div className="relative flex items-center my-5 print:my-3">
+      <div className="flex-grow border-t border-gray-100" />
+      <span className="mx-3 text-[10px] font-bold uppercase tracking-widest text-gray-400">{label}</span>
+      <div className="flex-grow border-t border-gray-100" />
     </div>
   );
 }
@@ -186,155 +186,100 @@ export default function NoticePage({ initialData }: Props) {
   const [showPrintConfirm, setShowPrintConfirm] = useState(false);
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
 
-  useEffect(() => {
-    setIsLoading(false);
-  }, []);
+  useEffect(() => { setIsLoading(false); }, []);
 
   useEffect(() => {
     const handleAfterPrint = () => {
       setIsPreparingPrint(false);
       setShowPrintConfirm(false);
     };
-
     window.addEventListener("afterprint", handleAfterPrint);
     return () => window.removeEventListener("afterprint", handleAfterPrint);
   }, []);
 
-  const handleOpenPrintConfirm = () => {
-    setShowPrintConfirm(true);
-  };
-
-  const handleClosePrintConfirm = () => {
-    if (!isPreparingPrint) {
-      setShowPrintConfirm(false);
-    }
-  };
-
   const handleConfirmPrint = async () => {
     setShowPrintConfirm(false);
     setIsPreparingPrint(true);
-
     try {
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      if (document.fonts?.ready) await document.fonts.ready;
+      await new Promise((r) => setTimeout(r, 250));
       window.print();
-    } catch (error) {
-      console.error("Print failed:", error);
+    } catch {
       alert("Failed to open print dialog. Please try again.");
       setIsPreparingPrint(false);
     }
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-linear-to-br from-slate-100 via-gray-100 to-slate-200 p-3 sm:p-4 md:p-8 flex justify-center text-black print:bg-white print:p-0 print:overflow-visible">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 p-3 sm:p-6 md:p-10 flex justify-center text-black print:bg-white print:p-0 print:block">
       <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+        *, *::before, *::after { font-family: 'DM Sans', sans-serif; }
+
         @page {
-          size: letter portrait;
-          margin: 0;
+          size: auto;
+          margin: 12mm 10mm;
         }
 
         @media print {
-          html,
-          body {
+          html, body {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
-            min-height: 100% !important;
             overflow: visible !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            font-size: 11px;
           }
 
-          body {
-            padding: 18px !important;
-            box-sizing: border-box !important;
-          }
+          body * { visibility: hidden; }
 
-          body * {
-            visibility: hidden;
-          }
+          .print-root,
+          .print-root * { visibility: visible; }
 
-          .print-card,
-          .print-card * {
-            visibility: visible;
-          }
-
-          .print-card {
+          .print-root {
             position: relative !important;
-            left: auto !important;
-            top: auto !important;
             width: 100% !important;
             max-width: none !important;
             margin: 0 !important;
-            padding: 28px !important;
-            border-radius: 0 !important;
+            padding: 0 !important;
             box-shadow: none !important;
-            border: 1px solid #d1d5db !important;
+            border: none !important;
             overflow: visible !important;
             background: #fff !important;
           }
 
-          .print-hide {
-            display: none !important;
-          }
+          .print-hide { display: none !important; }
 
-          input,
-          textarea,
-          select {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-
-          .pdf-header-section {
-            break-inside: avoid;
-            page-break-inside: avoid;
-            overflow: visible !important;
-          }
-
-          .pdf-header-logo {
-            position: static !important;
-          }
-
-          .pdf-header-text {
-            overflow: visible !important;
-            white-space: normal !important;
-            word-break: break-word !important;
-            overflow-wrap: anywhere !important;
-          }
-
-          .print-card input,
-          .print-card textarea,
-          .print-card select {
-            background: #fff !important;
-          }
+          * { page-break-inside: avoid !important; break-inside: avoid !important; }
+          
+          .print-root { page-break-after: avoid !important; break-after: avoid !important; }
         }
       `}</style>
 
       <LoadingOverlay
         open={isLoading || isPreparingPrint}
-        message={isPreparingPrint ? "Opening print dialog..." : "Loading..."}
+        message={isPreparingPrint ? "Opening print dialog..." : "Loading notice..."}
       />
 
       <Modal
         open={showPrintConfirm}
-        title="Print / Save PDF"
-        onClose={handleClosePrintConfirm}
+        title="Print / Save as PDF"
+        onClose={() => !isPreparingPrint && setShowPrintConfirm(false)}
         footer={
           <>
             <button
               type="button"
-              onClick={handleClosePrintConfirm}
-              className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              onClick={() => setShowPrintConfirm(false)}
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleConfirmPrint}
-              className="rounded-xl border border-green-700 bg-green-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-800"
+              className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition"
             >
               Continue
             </button>
@@ -342,230 +287,275 @@ export default function NoticePage({ initialData }: Props) {
         }
       >
         <p>
-          This will open the browser print dialog. From there, choose{" "}
-          <span className="font-semibold text-gray-900">Print</span> or{" "}
-          <span className="font-semibold text-gray-900">Save to PDF</span>.
+          Your browser's print dialog will open. Choose{" "}
+          <strong className="text-gray-900">Print</strong> or{" "}
+          <strong className="text-gray-900">Save as PDF</strong> from there.
         </p>
+        <p className="mt-2 text-xs text-gray-400">The form will be saved as a single page without breaks.</p>
       </Modal>
 
-      <div className="w-full max-w-5xl mx-auto print:w-full print:max-w-none">
-        <div className="mb-4 flex flex-wrap gap-3 justify-start print-hide">
+      <div className="w-full max-w-3xl print:max-w-none print:w-full">
+
+        {/* Toolbar */}
+        <div className="mb-5 flex flex-wrap items-center gap-2 print-hide">
           <button
             type="button"
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 active:scale-[0.99] print:hidden"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm hover:bg-gray-50 transition active:scale-[0.98]"
           >
-            <span className="text-lg leading-none">←</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
             Back
           </button>
-
           <button
             type="button"
-            onClick={handleOpenPrintConfirm}
-            className="inline-flex items-center gap-2 rounded-xl border border-green-700 bg-green-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-green-800 active:scale-[0.99] print:hidden"
+            onClick={() => setShowPrintConfirm(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800 transition active:scale-[0.98]"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" /></svg>
             Print / Save PDF
           </button>
         </div>
 
-        <div className="print-card relative bg-white w-full mx-auto p-4 sm:p-6 md:p-10 rounded-3xl shadow-2xl border border-gray-200 overflow-hidden print:shadow-none print:rounded-none print:border-none print:max-w-none print:w-full">
-          <div className="absolute inset-x-0 top-0 h-2 bg-linear-to-r from-green-700 via-emerald-500 to-green-700 print:hidden" />
+        {/* Main Card */}
+        <div className="print-root bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden print:shadow-none print:rounded-none print:border-none">
 
-          <div className="relative mb-8 pb-6 border-b pdf-header-section">
-            <div className="flex flex-col items-center gap-4 md:block">
-              <div className="relative flex justify-center md:block md:absolute md:left-6 md:top-6 pdf-header-logo">
-                <Image
-                  src="/vercel.svg"
-                  alt="Logo"
-                  width={110}
-                  height={110}
-                  className="h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-28 object-contain"
-                  priority
-                />
+          {/* Top accent bar */}
+          <div className="h-1 bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 print:hidden" />
+
+          <div className="p-5 sm:p-8 print:p-4">
+
+            {/* ── HEADER ── */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mb-6 print:flex-row print:gap-3 print:mb-4">
+              <div className="shrink-0">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 print:w-16 print:h-16 rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden print:rounded-xl print:border-gray-200">
+                  <Image src="/vercel.svg" alt="City Logo" width={80} height={80} className="object-contain p-2" priority />
+                </div>
               </div>
-
-              <div className="text-center w-full px-2 sm:px-6 md:px-32 md:pt-0 pdf-header-text">
-                <p className="font-semibold text-gray-700 text-sm sm:text-base">
-                  Republic of the Philippines
-                </p>
-                <p className="text-gray-600 text-sm sm:text-base">
-                  City Government of San Pablo
-                </p>
-                <p className="text-gray-600 text-sm sm:text-base">
-                  City Hall Compound, San Pablo City 4000
-                </p>
-                <p className="text-gray-500 text-xs sm:text-sm">
-                  Tel No. (049) 503-3481 / Email add. bplospc@gmail.com
-                </p>
-
-                <h2 className="font-bold text-lg sm:text-xl mt-3 tracking-wide text-green-900">
+              <div className="flex-1 text-center sm:text-left print:text-left">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest print:text-[9px]">Republic of the Philippines</p>
+                <p className="text-sm font-semibold text-gray-700 print:text-[11px]">City Government of San Pablo</p>
+                <p className="text-xs text-gray-500 print:text-[10px]">City Hall Compound, San Pablo City 4000</p>
+                <p className="text-[11px] text-gray-400 print:text-[9px]">📞 (049) 503-3481 &nbsp;✉ bplospc@gmail.com</p>
+                <h2 className="mt-2 text-base sm:text-lg font-extrabold text-emerald-800 tracking-tight print:text-sm">
                   BUSINESS PERMITS AND LICENSING OFFICE
                 </h2>
+              </div>
+              {/* Notice No badge */}
+              <div className="shrink-0 text-center print:text-right">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1 print:text-[8px]">Notice No.</p>
+                <div className="font-mono text-base font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2 print:text-xs print:px-3 print:py-1.5 print:bg-white print:border-gray-300 print:text-gray-800">
+                  {initialData?.notice_no || "—"}
+                </div>
+                <p className="mt-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-700 print:text-[8px]">APPREHENSION NOTICE</p>
+              </div>
+            </div>
 
-                <div className="mt-5 flex flex-col items-center gap-2">
-                  <label className="font-semibold text-gray-700 text-sm sm:text-base">
-                    APPREHENSION NOTICE NO:
-                  </label>
-                  <ReadOnlyInput
-                    value={initialData?.notice_no}
-                    className="max-w-sm text-center font-medium"
-                  />
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-5 print:mb-3" />
+
+            {/* ── SECTION 1: Business Info ── */}
+            <div className="mb-5 print:mb-3">
+              <div className="flex items-center gap-2 mb-3 print:mb-2">
+                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center print:hidden">
+                  <span className="text-[10px]">🏢</span>
+                </div>
+                <span className="text-xs font-bold uppercase tracking-widest text-emerald-700 print:text-[9px]">Business Information</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 print:gap-2 print:grid-cols-3">
+                <div className="sm:col-span-1">
+                  <FieldLabel icon="📋">Type</FieldLabel>
+                  <select
+                    value={initialData?.type ?? ""}
+                    disabled
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 bg-gray-50 print:bg-white print:border-gray-300 print:text-xs print:py-1"
+                  >
+                    <option value="">Select</option>
+                    <option value="SINGLE PROPRIETORSHIP">Single Proprietorship</option>
+                    <option value="CORPORATION">Corporation</option>
+                    <option value="PARTNERSHIP">Partnership</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-1">
+                  <FieldLabel icon="📅">Date</FieldLabel>
+                  <ReadOnlyInput value={initialData?.date} type="date" />
+                </div>
+                <div className="sm:col-span-1">
+                  <FieldLabel icon="👤">Business / Taxpayer Name</FieldLabel>
+                  <ReadOnlyInput value={initialData?.business_name} placeholder="Business name" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 print:gap-2 print:mt-2 print:grid-cols-2">
+                <div>
+                  <FieldLabel icon="📍">Business Address</FieldLabel>
+                  <ReadOnlyInput value={initialData?.address} placeholder="Full address" />
+                </div>
+                <div>
+                  <FieldLabel icon="🏷️">Nature of Business</FieldLabel>
+                  <ReadOnlyInput value={initialData?.nature_of_business} placeholder="e.g. Retail, Services" />
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="mb-5">
-            <SectionTitle>Type:</SectionTitle>
-            <select
-              value={initialData?.type ?? ""}
-              disabled
-              className="border border-gray-300 px-4 py-3 rounded-xl w-full shadow-sm bg-gray-100 print:bg-white print:shadow-none"
-            >
-              <option value="">Select</option>
-              <option value="SINGLE PROPRIETORSHIP">SINGLE PROPRIETORSHIP</option>
-              <option value="CORPORATION">CORPORATION</option>
-              <option value="PARTNERSHIP">PARTNERSHIP</option>
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
-            <div>
-              <SectionTitle>DATE:</SectionTitle>
-              <ReadOnlyInput value={initialData?.date} type="date" />
+            {/* ── NOTICE BANNER ── */}
+            <div className="flex gap-3 items-start bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-5 print:bg-white print:border-gray-300 print:p-3 print:mb-3">
+              <div className="shrink-0 text-emerald-600 print:hidden">
+                <svg className="w-5 h-5 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <p className="text-xs text-emerald-900 leading-relaxed print:text-[9px]">
+                Please be informed that inspection was conducted at your establishment by the undersigned Inspector of this office and found the following violations/findings mentioned under The Revised Revenue Code of San Pablo.
+              </p>
             </div>
 
-            <div>
-              <SectionTitle>BUSINESS AND TAX PAYER NAME:</SectionTitle>
-              <ReadOnlyInput value={initialData?.business_name} className="bg-gray-100" />
-            </div>
-          </div>
-
-          <div className="mb-5">
-            <SectionTitle>BUSINESS ADDRESS:</SectionTitle>
-            <ReadOnlyInput value={initialData?.address} />
-          </div>
-
-          <div className="mb-6">
-            <SectionTitle>NATURE OF BUSINESS:</SectionTitle>
-            <ReadOnlyInput value={initialData?.nature_of_business} />
-          </div>
-
-          <div className="bg-green-50 border-l-4 border-green-700 p-5 rounded-2xl mb-5 shadow-sm print:bg-white print:shadow-none">
-            <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-              Please be informed that inspection was conducted at your establishment by the
-              undersigned Inspector of this office and found out the following
-              violations/findings mentioned under The Revised Revenue Code of San Pablo.
-            </p>
-          </div>
-
-          <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm print:bg-white print:shadow-none">
-            <label className="flex items-center gap-3 font-medium text-gray-700">
-              <input
-                type="checkbox"
-                checked={!!initialData?.violation}
-                disabled
-                className="h-4 w-4 accent-green-700"
-              />
-              NO PERMIT - Revised Revenue Code of San Pablo
-            </label>
-
-            <div className="mt-4">
-              <SectionTitle>OTHER VIOLATIONS:</SectionTitle>
-              <ReadOnlyTextArea
-                value={initialData?.otherViolation}
-                className="min-h-[110px]"
-                placeholder="Enter other violations..."
-              />
-            </div>
-          </div>
-
-          <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl mb-5 shadow-sm print:bg-white print:shadow-none">
-            <label className="flex items-center gap-3 mb-4 font-medium text-gray-700">
-              <input
-                type="checkbox"
-                checked={!!initialData?.rented}
-                disabled
-                className="h-4 w-4 accent-green-700"
-              />
-              RENTED
-            </label>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ReadOnlyInput value={initialData?.owner} placeholder="NAME OF OWNER" />
-              <ReadOnlyInput value={initialData?.rent} placeholder="Cost of Rent P" />
-              <ReadOnlyInput value={initialData?.ownerAddress} placeholder="OWNER'S ADDRESS" />
-              <ReadOnlyInput value={initialData?.contact} placeholder="Contact No." />
-            </div>
-          </div>
-
-          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-5 rounded-2xl mb-6 shadow-sm print:bg-white print:shadow-none">
-            <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-              DIRECTIVE: The business establishment owner is directed to personally appear
-              before the Office of the City Mayor, Business Permits and Licensing Division
-              within three (3) working days from the receipt of this notice and to show cause
-              why no cease-and-desist order should be issued against your establishment.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <SignatureBox
-              label="INSPECTED BY:"
-              name={initialData?.inspectedBy}
-              signature={initialData?.signatures?.inspectedBy}
-            />
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm print:shadow-none">
-              <p className="font-semibold text-gray-700 mb-3">RECEIVED BY:</p>
-              <ReadOnlyInput value={initialData?.receivedBy} placeholder="Name" className="mb-3" />
-
-              <div className="border rounded-xl overflow-hidden bg-white h-28 flex items-center justify-center print:border-gray-300">
-                {initialData?.signatures?.receivedBy ? (
-                  <img
-                    src={getSignatureSrc(initialData.signatures.receivedBy)}
-                    alt="Received By Signature"
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <span className="text-gray-400">No Signature</span>
-                )}
+            {/* ── SECTION 2: Violations ── */}
+            <InfoCard className="mb-5 print:mb-3">
+              <div className="flex items-center gap-2 mb-3 print:mb-2">
+                <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center print:hidden">
+                  <span className="text-[10px]">⚠️</span>
+                </div>
+                <span className="text-xs font-bold uppercase tracking-widest text-red-600 print:text-[9px]">Violations / Findings</span>
               </div>
 
-              <ReadOnlyInput
-                type="datetime-local"
-                value={initialData?.receivedAt}
-                className="mt-3"
-              />
-              <p className="text-xs text-gray-500 mt-2">Current date and time only.</p>
-            </div>
+              <label className="flex items-center gap-2.5 text-sm font-medium text-gray-700 mb-3 print:text-xs print:mb-2">
+                <div className={`w-4 h-4 rounded flex items-center justify-center border-2 transition-colors ${initialData?.violation ? "bg-emerald-600 border-emerald-600" : "bg-white border-gray-300"} print:w-3 print:h-3`}>
+                  {initialData?.violation && (
+                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  )}
+                </div>
+                NO PERMIT — Revised Revenue Code of San Pablo
+              </label>
 
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm md:col-span-2 print:shadow-none">
-              <p className="font-semibold text-gray-700 mb-3">NOTED BY:</p>
-              <ReadOnlyInput value={initialData?.notedBy} placeholder="Name" className="mb-3" />
+              <div>
+                <FieldLabel icon="📝">Other Violations</FieldLabel>
+                <ReadOnlyTextArea value={initialData?.otherViolation} placeholder="List additional violations here..." rows={3} />
+              </div>
+            </InfoCard>
 
-              <div className="border rounded-xl overflow-hidden bg-white h-28 flex items-center justify-center print:border-gray-300">
-                {initialData?.signatures?.notedBy ? (
-                  <img
-                    src={getSignatureSrc(initialData.signatures.notedBy)}
-                    alt="Noted By Signature"
-                    className="h-full w-full object-contain"
-                  />
-                ) : (
-                  <span className="text-gray-400">No Signature</span>
-                )}
+            {/* ── SECTION 3: Property / Rental ── */}
+            <InfoCard className="mb-5 print:mb-3">
+              <div className="flex items-center gap-2 mb-3 print:mb-2">
+                <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center print:hidden">
+                  <span className="text-[10px]">🏠</span>
+                </div>
+                <span className="text-xs font-bold uppercase tracking-widest text-blue-600 print:text-[9px]">Property Information</span>
+              </div>
+
+              <label className="flex items-center gap-2.5 text-sm font-medium text-gray-700 mb-3 print:text-xs print:mb-2">
+                <div className={`w-4 h-4 rounded flex items-center justify-center border-2 ${initialData?.rented ? "bg-blue-600 border-blue-600" : "bg-white border-gray-300"} print:w-3 print:h-3`}>
+                  {initialData?.rented && (
+                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  )}
+                </div>
+                Rented Property
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 print:gap-2 print:grid-cols-2">
+                <div>
+                  <FieldLabel icon="👤">Name of Owner</FieldLabel>
+                  <ReadOnlyInput value={initialData?.owner} placeholder="Owner's full name" />
+                </div>
+                <div>
+                  <FieldLabel icon="💰">Monthly Rent (₱)</FieldLabel>
+                  <ReadOnlyInput value={initialData?.rent} placeholder="0.00" />
+                </div>
+                <div>
+                  <FieldLabel icon="📍">Owner's Address</FieldLabel>
+                  <ReadOnlyInput value={initialData?.ownerAddress} placeholder="Full address" />
+                </div>
+                <div>
+                  <FieldLabel icon="📞">Contact Number</FieldLabel>
+                  <ReadOnlyInput value={initialData?.contact} placeholder="+63 XXX XXX XXXX" />
+                </div>
+              </div>
+            </InfoCard>
+
+            {/* ── DIRECTIVE BANNER ── */}
+            <div className="flex gap-3 items-start bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 print:bg-white print:border-gray-300 print:p-3 print:mb-3">
+              <div className="shrink-0 text-amber-500 print:hidden">
+                <svg className="w-5 h-5 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-amber-700 mb-1 print:text-[9px]">📌 Directive</p>
+                <p className="text-xs text-amber-900 leading-relaxed print:text-[9px]">
+                  The business establishment owner is directed to personally appear before the Office of the City Mayor, Business Permits and Licensing Division within <strong>three (3) working days</strong> from the receipt of this notice and to show cause why no cease-and-desist order should be issued against your establishment.
+                </p>
               </div>
             </div>
+
+            {/* ── SECTION 4: Signatories ── */}
+            <div className="mb-5 print:mb-3">
+              <div className="flex items-center gap-2 mb-3 print:mb-2">
+                <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center print:hidden">
+                  <span className="text-[10px]">✍️</span>
+                </div>
+                <span className="text-xs font-bold uppercase tracking-widest text-violet-600 print:text-[9px]">Signatories</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-2 print:grid-cols-2">
+                <SignatureBox
+                  label="Inspected By"
+                  icon="🔍"
+                  name={initialData?.inspectedBy}
+                  signature={initialData?.signatures?.inspectedBy}
+                />
+
+                <div className="rounded-xl border border-gray-200 bg-white p-4 print:p-2.5 print:border-gray-300">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-3 print:text-[9px] print:mb-2">
+                    <span className="print:hidden">📬</span>
+                    Received By
+                  </p>
+                  <ReadOnlyInput value={initialData?.receivedBy} placeholder="Full Name" className="mb-3 print:mb-2" />
+                  <div className="h-24 rounded-lg border border-dashed border-gray-200 bg-white flex items-center justify-center overflow-hidden print:h-16 print:border-gray-300">
+                    {initialData?.signatures?.receivedBy ? (
+                      <img src={getSignatureSrc(initialData.signatures.receivedBy)} alt="Received By Signature" className="h-full w-full object-contain" />
+                    ) : (
+                      <span className="text-xs text-gray-300 italic">No signature</span>
+                    )}
+                  </div>
+                  <div className="mt-3 print:mt-2">
+                    <FieldLabel icon="🕐">Date & Time Received</FieldLabel>
+                    <ReadOnlyInput type="datetime-local" value={initialData?.receivedAt} />
+                  </div>
+                </div>
+
+                {/* Noted By — full width */}
+                <div className="sm:col-span-2 rounded-xl border border-gray-200 bg-white p-4 print:p-2.5 print:border-gray-300 print:col-span-2">
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-3 print:text-[9px] print:mb-2">
+                    <span className="print:hidden">🗂️</span>
+                    Noted By
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-3 print:grid-cols-2">
+                    <div>
+                      <ReadOnlyInput value={initialData?.notedBy} placeholder="Full Name" />
+                    </div>
+                    <div className="h-24 rounded-lg border border-dashed border-gray-200 bg-white flex items-center justify-center overflow-hidden print:h-16 print:border-gray-300">
+                      {initialData?.signatures?.notedBy ? (
+                        <img src={getSignatureSrc(initialData.signatures.notedBy)} alt="Noted By Signature" className="h-full w-full object-contain" />
+                      ) : (
+                        <span className="text-xs text-gray-300 italic">No signature</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── SECTION 5: Action Taken ── */}
+            <InfoCard>
+              <div className="flex items-center gap-2 mb-3 print:mb-2">
+                <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center print:hidden">
+                  <span className="text-[10px]">✅</span>
+                </div>
+                <span className="text-xs font-bold uppercase tracking-widest text-teal-600 print:text-[9px]">Action Taken</span>
+              </div>
+              <ReadOnlyTextArea value={initialData?.actionTaken} placeholder="Describe the action taken..." rows={4} />
+              <p className="mt-2 text-[10px] text-gray-400 font-mono print:text-[8px]">QFM-BPL-009 Rev 0 2022.02.18</p>
+            </InfoCard>
+
           </div>
 
-          <div className="mb-6 bg-gray-50 border border-gray-200 p-5 rounded-2xl shadow-sm print:bg-white print:shadow-none">
-            <SectionTitle>ACTION TAKEN:</SectionTitle>
-            <ReadOnlyTextArea
-              value={initialData?.actionTaken}
-              className="min-h-[120px]"
-              placeholder="Enter action taken..."
-            />
-            <p className="text-xs text-gray-500 mt-3">QFM-BPL-009 Rev 0 2022.02.18</p>
-          </div>
+          {/* Bottom bar */}
+          <div className="h-1 bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 print:hidden" />
         </div>
       </div>
     </div>
