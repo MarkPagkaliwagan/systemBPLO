@@ -217,7 +217,7 @@ export default function CalendarSection() {
     };
 
     return (
-        <div className="w-full font-sans">
+        <div className="w-full font-sans pt-4 lg:pt-10">
             <div className="flex flex-col gap-4">
 
                 {/* ── HEADER ── */}
