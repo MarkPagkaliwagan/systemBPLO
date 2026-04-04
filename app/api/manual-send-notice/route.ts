@@ -1,3 +1,6 @@
+
+
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "nodemailer";
@@ -15,13 +18,14 @@ const transporter = nodemailer.createTransport({
   auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
 });
 
-async function sendEmail(to: string, subject: string, text: string, html: string) {
-  await transporter.sendMail({ from: process.env.EMAIL_FROM!, to, bcc:  process.env.EMAIL_FROM!,  subject, text, html });
+async function sendEmail(to: string, subject: string, text: string, html: string, extraBcc?: string) {
+  const bccList = [process.env.EMAIL_FROM!, extraBcc].filter(Boolean).join(",");
+  await transporter.sendMail({ from: process.env.EMAIL_FROM!, to, bcc: bccList, subject, text, html });
 }
 
 export async function POST(req: NextRequest) {
   
-  const { id } = await req.json();
+  const { id, bccEmail } = await req.json();
 
   const { data: violations } = await supabase
     .from("business_violations")
@@ -191,7 +195,8 @@ switch (noticeLevel) {
 }
 
   // Send email
-  await sendEmail(v.requestor_email!, subjectText, textBody, htmlBody);
+  await sendEmail(v.requestor_email!, subjectText, textBody, htmlBody, bccEmail || undefined);
+
 const updateData: any = { last_sent_time: now };
 
 if (noticeLevel < 2) {
@@ -200,7 +205,7 @@ if (noticeLevel < 2) {
 } else {
   // Final notice, stop sending
   updateData.cease_flag = true;
-  updateData.notice_level = 3; // optional but prevents sending again
+  updateData.notice_level = 3;
 }
 
   const { error } = await supabase
