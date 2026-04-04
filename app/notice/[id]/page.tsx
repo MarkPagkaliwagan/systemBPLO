@@ -7,7 +7,7 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const violationId = Number(id);
+  const violationId = id;
 
   if (Number.isNaN(violationId)) {
     return <div>No valid violation ID found</div>;
