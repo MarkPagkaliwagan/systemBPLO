@@ -46,15 +46,17 @@ function ManualAddBusinessContent() {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [binChecking, setBinChecking] = useState(false);
     const [binDuplicate, setBinDuplicate] = useState(false);
+
+    // ── NEW: track the fetched existing record when BIN matches ──────────────
+    const [existingRecord, setExistingRecord] = useState<BusinessRecord | null>(null);
+
     const [toasts, setToasts] = useState<ToastItem[]>([]);
     const [showProceedModal, setShowProceedModal] = useState(false);
     const confirmResolveRef = useRef<((value: boolean) => void) | null>(null);
 
-    // ── ReviewModal state ─────────────────────────────────────────────────────
     const [reviewRecord, setReviewRecord] = useState<BusinessRecord | null>(null);
     const [showReview, setShowReview] = useState(false);
 
-    // Add this near the top of ManualAddBusinessContent
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -104,12 +106,7 @@ function ManualAddBusinessContent() {
                     .map((item) => {
                         const name = String(item.full_name ?? "").trim();
                         if (!name) return null;
-                        return {
-                            name,
-                            icon: "👤" as const,
-                            source: "user" as const,
-                            label: `👤 ${name}`,
-                        };
+                        return { name, icon: "👤" as const, source: "user" as const, label: `👤 ${name}` };
                     })
                     .filter(Boolean) as InspectorOption[];
 
@@ -117,17 +114,11 @@ function ManualAddBusinessContent() {
                     .map((item) => {
                         const name = String(item.full_name ?? "").trim();
                         if (!name) return null;
-                        return {
-                            name,
-                            icon: "🛂" as const,
-                            source: "inspector" as const,
-                            label: `🛂 ${name}`,
-                        };
+                        return { name, icon: "🛂" as const, source: "inspector" as const, label: `🛂 ${name}` };
                     })
                     .filter(Boolean) as InspectorOption[];
 
                 const combined = [...users, ...inspectors];
-
                 const uniqueByLabel = Array.from(
                     new Map(combined.map((item) => [item.label, item])).values()
                 ).sort((a, b) => a.label.localeCompare(b.label));
@@ -138,7 +129,6 @@ function ManualAddBusinessContent() {
                 setAdminUsers([]);
             }
         };
-
         loadAdminUsers();
     }, []);
 
@@ -158,11 +148,7 @@ function ManualAddBusinessContent() {
     const formatInspectorValue = (rawName: string) => {
         const candidate = rawName.trim();
         if (!candidate) return "";
-
-        if (candidate.startsWith("👤 ") || candidate.startsWith("🛂 ")) {
-            return candidate;
-        }
-
+        if (candidate.startsWith("👤 ") || candidate.startsWith("🛂 ")) return candidate;
         return `👤 ${candidate}`;
     };
 
@@ -199,7 +185,7 @@ function ManualAddBusinessContent() {
         if (label === BIN_FIELD) {
             if (!/^\d+$/.test(v)) return "BIN must contain only numbers.";
             if (v.length < 9 || v.length > 12) return "BIN must be 9 to 12 digits only.";
-            if (binDuplicate) return "BIN already exists.";
+            // Note: duplicate check is handled by the live useEffect — no error here for existing records
             return null;
         }
         if (integerOnlyLabels.includes(label)) {
@@ -222,49 +208,26 @@ function ManualAddBusinessContent() {
         return null;
     };
 
-    const checkBinDuplicateNow = async (rawValue: any) => {
-        const bin = normalizeDigits(rawValue);
-        if (!bin) return false;
+    /* ---------- BIN LOOKUP — returns full record or null ---------- */
+    const fetchExistingRecord = async (bin: string): Promise<BusinessRecord | null> => {
         const { data, error } = await supabase
             .from("business_records")
-            .select('"Business Identification Number"')
+            .select("*")
             .eq(BIN_FIELD, bin)
-            .limit(1);
-        if (error) { console.error("BIN duplicate check error:", error.message); return false; }
-        return !!data && data.length > 0;
+            .limit(1)
+            .single();
+        if (error || !data) return null;
+        return data as BusinessRecord;
     };
 
-    const validateAll = async (): Promise<Record<string, string>> => {
-        const foundErrors: Record<string, string> = {};
-        if (!normalizeText(form[BIN_FIELD])) {
-            foundErrors[BIN_FIELD] = "BIN is required.";
-        } else {
-            const binVal = String(form[BIN_FIELD]).trim();
-            if (!/^\d+$/.test(binVal)) {
-                foundErrors[BIN_FIELD] = "BIN must contain only numbers.";
-            } else if (binVal.length < 9 || binVal.length > 12) {
-                foundErrors[BIN_FIELD] = "BIN must be 9 to 12 digits only.";
-            } else {
-                const isDup = await checkBinDuplicateNow(binVal);
-                if (isDup) foundErrors[BIN_FIELD] = "BIN already exists.";
-            }
-        }
-        if (!normalizeText(form[BUSINESS_NAME_FIELD])) {
-            foundErrors[BUSINESS_NAME_FIELD] = "Business Name is required.";
-        }
-        Object.keys(form).forEach((key) => {
-            const msg = validateField(key, form[key]);
-            if (msg) foundErrors[key] = msg;
-        });
-        return foundErrors;
-    };
-
-    /* ---------- LIVE BIN DUPLICATE CHECK ---------- */
+    /* ---------- LIVE BIN DUPLICATE CHECK + AUTO-FILL ---------- */
     useEffect(() => {
         const binValue = normalizeDigits(form[BIN_FIELD]);
-        if (!binValue) {
+
+        if (!binValue || binValue.length < 9) {
             setBinChecking(false);
             setBinDuplicate(false);
+            setExistingRecord(null);
             setErrors((prev) => {
                 const copy = { ...prev };
                 if (copy[BIN_FIELD] === "BIN already exists.") delete copy[BIN_FIELD];
@@ -272,19 +235,50 @@ function ManualAddBusinessContent() {
             });
             return;
         }
+
         const delay = window.setTimeout(async () => {
             setBinChecking(true);
-            const isDup = await checkBinDuplicateNow(binValue);
-            setBinDuplicate(isDup);
-            setErrors((prev) => {
-                const copy = { ...prev };
-                if (isDup) copy[BIN_FIELD] = "BIN already exists.";
-                else if (copy[BIN_FIELD] === "BIN already exists.") delete copy[BIN_FIELD];
-                return copy;
-            });
+            const found = await fetchExistingRecord(binValue);
             setBinChecking(false);
+
+            if (found) {
+                setBinDuplicate(true);
+                setExistingRecord(found);
+
+                // ── Auto-fill form with fetched data ──────────────────────────────
+                setForm(found as Record<string, any>);
+
+                // Sync inspector list if present
+                const rawInspectors = (found as any).assigned_inspector;
+                if (Array.isArray(rawInspectors)) {
+                    setInspectorList(rawInspectors);
+                } else if (typeof rawInspectors === "string" && rawInspectors.trim()) {
+                    setInspectorList([rawInspectors.trim()]);
+                } else {
+                    setInspectorList([]);
+                }
+
+                // Clear the "already exists" error — we're intentionally using it for scheduling
+                setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy[BIN_FIELD];
+                    return copy;
+                });
+
+                addToast("info", "Existing record found — form auto-filled. Click Schedule to proceed.");
+            } else {
+                setBinDuplicate(false);
+                setExistingRecord(null);
+                setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy[BIN_FIELD];
+                    return copy;
+                });
+            }
         }, 450);
+
         return () => window.clearTimeout(delay);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [form[BIN_FIELD]]);
 
     /* ---------- PREVENT BODY SCROLL WHEN REVIEW MODAL IS OPEN ---------- */
@@ -297,14 +291,34 @@ function ManualAddBusinessContent() {
         return () => { document.body.style.overflow = ""; };
     }, [showReview]);
 
+    /* ---------- VALIDATE ALL (for new records only) ---------- */
+    const validateAll = async (): Promise<Record<string, string>> => {
+        const foundErrors: Record<string, string> = {};
+        if (!normalizeText(form[BIN_FIELD])) {
+            foundErrors[BIN_FIELD] = "BIN is required.";
+        } else {
+            const binVal = String(form[BIN_FIELD]).trim();
+            if (!/^\d+$/.test(binVal)) {
+                foundErrors[BIN_FIELD] = "BIN must contain only numbers.";
+            } else if (binVal.length < 9 || binVal.length > 12) {
+                foundErrors[BIN_FIELD] = "BIN must be 9 to 12 digits only.";
+            }
+            // Note: if existingRecord is set, we allow it (Schedule mode)
+        }
+        if (!normalizeText(form[BUSINESS_NAME_FIELD])) {
+            foundErrors[BUSINESS_NAME_FIELD] = "Business Name is required.";
+        }
+        Object.keys(form).forEach((key) => {
+            const msg = validateField(key, form[key]);
+            if (msg) foundErrors[key] = msg;
+        });
+        return foundErrors;
+    };
+
     /* ---------- INSPECTOR HELPERS ---------- */
     const addInspectorName = (rawName: string) => {
         const candidate = formatInspectorValue(rawName);
-        if (!candidate) {
-            setInspectorError("Inspector name is required.");
-            return;
-        }
-
+        if (!candidate) { setInspectorError("Inspector name is required."); return; }
         if (!inspectorList.includes(candidate)) {
             const updatedList = [...inspectorList, candidate];
             setInspectorList(updatedList);
@@ -348,7 +362,7 @@ function ManualAddBusinessContent() {
         return cleaned;
     };
 
-    /* ---------- SAVE RECORD ---------- */
+    /* ---------- SAVE NEW RECORD ---------- */
     const saveRecord = async () => {
         setLoading(true);
         const payload = cleanData(form);
@@ -357,7 +371,7 @@ function ManualAddBusinessContent() {
             .from("business_records")
             .insert([payload])
             .select()
-            .single(); // ✅ get back the inserted record
+            .single();
 
         setLoading(false);
 
@@ -373,23 +387,41 @@ function ManualAddBusinessContent() {
         const proceedToReview = await openProceedModal();
 
         if (proceedToReview) {
-            // ✅ Open ReviewModal exactly like analytics does — no routing
             setReviewRecord(savedRecord);
             setShowReview(true);
         } else {
-            // Clear form for another entry
-            setForm({});
-            setInspectorList([]);
-            setInspectorInput("");
-            setSelectedAdminInspector("");
-            setErrors({});
-            setBinDuplicate(false);
+            resetForm();
             addToast("info", "Form cleared. You can add another record.");
         }
     };
 
-    /* ---------- SAVE BUTTON ---------- */
-    const handleSaveClick = async () => {
+    /* ---------- SCHEDULE EXISTING RECORD (BIN found) ---------- */
+    const scheduleExisting = () => {
+        if (!existingRecord) return;
+        setReviewRecord(existingRecord);
+        setShowReview(true);
+    };
+
+    /* ---------- RESET FORM ---------- */
+    const resetForm = () => {
+        setForm({});
+        setInspectorList([]);
+        setInspectorInput("");
+        setSelectedAdminInspector("");
+        setErrors({});
+        setBinDuplicate(false);
+        setExistingRecord(null);
+    };
+
+    /* ---------- MAIN BUTTON CLICK ---------- */
+    const handlePrimaryButtonClick = async () => {
+        // If existing record was found via BIN → open Review/Schedule directly
+        if (existingRecord) {
+            scheduleExisting();
+            return;
+        }
+
+        // Otherwise validate and save as new record
         const allErrors = await validateAll();
         if (Object.keys(allErrors).length > 0) {
             setErrors(allErrors);
@@ -434,21 +466,17 @@ function ManualAddBusinessContent() {
         setShowReview(false);
         setReviewRecord(null);
         addToast("success", "Review saved successfully.");
-
-        // ✅ Clear form so user can add another record
-        setForm({});
-        setInspectorList([]);
-        setInspectorInput("");
-        setSelectedAdminInspector("");
-        setErrors({});
-        setBinDuplicate(false);
+        resetForm();
     };
+
+    /* ---------- DERIVED: is this "Schedule" mode? ---------- */
+    const isScheduleMode = !!existingRecord;
 
     return (
         <div className="min-h-screen bg-gray-50">
 
             {showReview && reviewRecord && (
-                <div className="fixed inset-0 z-[100] overflow-y-auto">  {/* ← wrapper */}
+                <div className="fixed inset-0 z-[100] overflow-y-auto">
                     <ReviewModal
                         selectedRow={reviewRecord}
                         showReviewModal={true}
@@ -480,7 +508,7 @@ function ManualAddBusinessContent() {
                 ))}
             </div>
 
-            {/* CONFIRMATION MODAL */}
+            {/* CONFIRMATION MODAL (only shown for new records) */}
             {showProceedModal && (
                 <div
                     className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4"
@@ -536,6 +564,19 @@ function ManualAddBusinessContent() {
                 </h1>
             </div>
 
+            {/* EXISTING RECORD BANNER */}
+            {isScheduleMode && (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+                    <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                        <FiCheckCircle className="w-4 h-4 flex-shrink-0 text-blue-600" />
+                        <span>
+                            Existing record found for BIN <strong>{normalizeDigits(form[BIN_FIELD])}</strong>.
+                            Form auto-filled — you can now schedule an inspection.
+                        </span>
+                    </div>
+                </div>
+            )}
+
             <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
 
                 {/* QUICK ENTRY */}
@@ -548,8 +589,10 @@ function ManualAddBusinessContent() {
                         inputMode="numeric"
                         placeholder="9 to 12 digits"
                         helperText={
-                            binChecking ? "Checking BIN..."
-                                : binDuplicate ? "This BIN already exists."
+                            binChecking
+                                ? "Checking BIN..."
+                                : isScheduleMode
+                                    ? "Existing record — ready to schedule."
                                     : (form[BIN_FIELD]?.length || 0) < 9
                                         ? `Minimum 9 digits (${(form[BIN_FIELD] ?? "").length}/12)`
                                         : `${(form[BIN_FIELD] ?? "").length}/12 digits`
@@ -563,6 +606,7 @@ function ManualAddBusinessContent() {
                         error={errors[BUSINESS_NAME_FIELD]}
                         placeholder="Enter business name"
                         required
+                        readOnly={isScheduleMode}
                     />
 
                     {/* Inspector */}
@@ -614,8 +658,8 @@ function ManualAddBusinessContent() {
                         <p className="text-xs text-gray-500 mt-1">Optional only. You can choose from admin names or type a new one and press Enter.</p>
                     </div>
 
-                    <Input label="Business Nature" value={form["Business Nature"] ?? ""} onChange={handleChange} />
-                    <Input label="Business Type" value={form["Business Type"] ?? ""} onChange={handleChange} />
+                    <Input label="Business Nature" value={form["Business Nature"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Business Type" value={form["Business Type"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-1 lg:col-span-3 flex flex-col sm:flex-row justify-end gap-4 pt-2">
                         <button
@@ -625,11 +669,20 @@ function ManualAddBusinessContent() {
                             Cancel
                         </button>
                         <button
-                            onClick={handleSaveClick}
+                            onClick={handlePrimaryButtonClick}
                             disabled={loading}
-                            className="px-6 py-2 bg-green-900 text-white rounded-lg hover:bg-green-800 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto transition"
+                            className={`px-6 py-2 rounded-lg text-white w-full sm:w-auto transition disabled:opacity-60 disabled:cursor-not-allowed
+                                ${isScheduleMode
+                                    ? "bg-blue-700 hover:bg-blue-600"
+                                    : "bg-green-900 hover:bg-green-800"
+                                }`}
                         >
-                            {loading ? "Saving..." : "Save Record"}
+                            {loading
+                                ? "Saving..."
+                                : isScheduleMode
+                                    ? "Schedule Inspection"
+                                    : "Save Record"
+                            }
                         </button>
                     </div>
                 </Section>
@@ -637,82 +690,82 @@ function ManualAddBusinessContent() {
                 {/* ADDITIONAL DETAILS */}
                 <Section title="Additional Details" icon={<FiClipboard />} collapsible note="Optional only">
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2">Incharge Information</div>
-                    <Input label="Incharge First Name" value={form["Incharge First Name"] ?? ""} onChange={handleChange} />
-                    <Input label="Incharge Middle Name" value={form["Incharge Middle Name"] ?? ""} onChange={handleChange} />
-                    <Input label="Incharge Last Name" value={form["Incharge Last Name"] ?? ""} onChange={handleChange} />
-                    <Input label="Incharge Extension Name" value={form["Incharge Extension Name"] ?? ""} onChange={handleChange} />
-                    <Input label="Incharge Sex" value={form["Incharge Sex"] ?? ""} onChange={handleChange} />
-                    <Input label="Citizenship" value={form["Citizenship"] ?? ""} onChange={handleChange} />
-                    <Input label="Birth Date" type="date" value={form["Birth Date"] ?? ""} onChange={handleChange} />
+                    <Input label="Incharge First Name" value={form["Incharge First Name"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Incharge Middle Name" value={form["Incharge Middle Name"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Incharge Last Name" value={form["Incharge Last Name"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Incharge Extension Name" value={form["Incharge Extension Name"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Incharge Sex" value={form["Incharge Sex"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Citizenship" value={form["Citizenship"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Birth Date" type="date" value={form["Birth Date"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">Office Address</div>
-                    <Input label="Office Street" value={form["Office Street"] ?? ""} onChange={handleChange} />
-                    <Input label="Office Region" value={form["Office Region"] ?? ""} onChange={handleChange} />
-                    <Input label="Office Province" value={form["Office Province"] ?? ""} onChange={handleChange} />
-                    <Input label="Office Municipality" value={form["Office Municipality"] ?? ""} onChange={handleChange} />
-                    <Input label="Office Barangay" value={form["Office Barangay"] ?? ""} onChange={handleChange} />
-                    <Input label="Office Zipcode" value={form["Office Zipcode"] ?? ""} onChange={handleChange} />
+                    <Input label="Office Street" value={form["Office Street"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Office Region" value={form["Office Region"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Office Province" value={form["Office Province"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Office Municipality" value={form["Office Municipality"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Office Barangay" value={form["Office Barangay"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Office Zipcode" value={form["Office Zipcode"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">Financial Information</div>
-                    <Input label="Capital" type="number" value={form["Capital"] ?? ""} onChange={handleChange} />
-                    <Input label="Gross Amount" type="number" value={form["Gross Amount"] ?? ""} onChange={handleChange} />
-                    <Input label="Gross Amount Essential" type="number" value={form["Gross Amount Essential"] ?? ""} onChange={handleChange} />
-                    <Input label="Gross Amount Non-Essential" type="number" value={form["Gross Amount Non-Essential"] ?? ""} onChange={handleChange} />
+                    <Input label="Capital" type="number" value={form["Capital"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Gross Amount" type="number" value={form["Gross Amount"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Gross Amount Essential" type="number" value={form["Gross Amount Essential"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Gross Amount Non-Essential" type="number" value={form["Gross Amount Non-Essential"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">Requestor Information</div>
-                    <Input label="Requestor First Name" value={form["Requestor First Name"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Middle Name" value={form["Requestor Middle Name"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Last Name" value={form["Requestor Last Name"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Extension Name" value={form["Requestor Extension Name"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Email" value={form["Requestor Email"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Mobile No." value={form["Requestor Mobile No."] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Sex" value={form["Requestor Sex"] ?? ""} onChange={handleChange} />
-                    <Input label="Civil Status" value={form["Civil Status"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Street" value={form["Requestor Street"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Province" value={form["Requestor Province"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Municipality" value={form["Requestor Municipality"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Barangay" value={form["Requestor Barangay"] ?? ""} onChange={handleChange} />
-                    <Input label="Requestor Zipcode" value={form["Requestor Zipcode"] ?? ""} onChange={handleChange} />
+                    <Input label="Requestor First Name" value={form["Requestor First Name"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Middle Name" value={form["Requestor Middle Name"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Last Name" value={form["Requestor Last Name"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Extension Name" value={form["Requestor Extension Name"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Email" value={form["Requestor Email"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Mobile No." value={form["Requestor Mobile No."] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Sex" value={form["Requestor Sex"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Civil Status" value={form["Civil Status"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Street" value={form["Requestor Street"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Province" value={form["Requestor Province"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Municipality" value={form["Requestor Municipality"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Barangay" value={form["Requestor Barangay"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Requestor Zipcode" value={form["Requestor Zipcode"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">Transaction Information</div>
-                    <Input label="Transaction ID" value={form["Transaction ID"] ?? ""} onChange={handleChange} />
-                    <Input label="Reference No." value={form["Reference No."] ?? ""} onChange={handleChange} />
-                    <Input label="Module Type" value={form["Module Type"] ?? ""} onChange={handleChange} />
-                    <Input label="Transaction Type" value={form["Transaction Type"] ?? ""} onChange={handleChange} />
-                    <Input label="Transaction Date" type="datetime-local" value={form["Transaction Date"] ?? ""} onChange={handleChange} />
-                    <Input label="SITE Transaction Status" value={form["SITE Transaction Status"] ?? ""} onChange={handleChange} />
-                    <Input label="CORE Transaction Status" value={form["CORE Transaction Status"] ?? ""} onChange={handleChange} />
-                    <Input label="Reject Remarks" value={form["Reject Remarks"] ?? ""} onChange={handleChange} />
-                    <Input label="SOA No." value={form["SOA No."] ?? ""} onChange={handleChange} />
-                    <Input label="Term" value={form["Term"] ?? ""} onChange={handleChange} />
+                    <Input label="Transaction ID" value={form["Transaction ID"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Reference No." value={form["Reference No."] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Module Type" value={form["Module Type"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Transaction Type" value={form["Transaction Type"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Transaction Date" type="datetime-local" value={form["Transaction Date"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="SITE Transaction Status" value={form["SITE Transaction Status"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="CORE Transaction Status" value={form["CORE Transaction Status"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Reject Remarks" value={form["Reject Remarks"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="SOA No." value={form["SOA No."] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Term" value={form["Term"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">Payment Information</div>
-                    <Input label="Annual Amount" type="number" value={form["Annual Amount"] ?? ""} onChange={handleChange} />
-                    <Input label="Amount Paid" type="number" value={form["Amount Paid"] ?? ""} onChange={handleChange} />
-                    <Input label="Balance" type="number" value={form["Balance"] ?? ""} onChange={handleChange} />
-                    <Input label="Payment Type" value={form["Payment Type"] ?? ""} onChange={handleChange} />
-                    <Input label="Payment Date" type="date" value={form["Payment Date"] ?? ""} onChange={handleChange} />
-                    <Input label="O.R. No." value={form["O.R. No."] ?? ""} onChange={handleChange} />
-                    <Input label="O.R. Date" type="date" value={form["O.R. Date"] ?? ""} onChange={handleChange} />
+                    <Input label="Annual Amount" type="number" value={form["Annual Amount"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Amount Paid" type="number" value={form["Amount Paid"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Balance" type="number" value={form["Balance"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Payment Type" value={form["Payment Type"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Payment Date" type="date" value={form["Payment Date"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="O.R. No." value={form["O.R. No."] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="O.R. Date" type="date" value={form["O.R. Date"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">Permit / Clearance</div>
-                    <Input label="Brgy. Clearance Status" value={form["Brgy. Clearance Status"] ?? ""} onChange={handleChange} />
-                    <Input label="Brgy. Clearance No." value={form["Brgy. Clearance No."] ?? ""} onChange={handleChange} />
-                    <Input label="Permit No." value={form["Permit No."] ?? ""} onChange={handleChange} />
-                    <Input label="Business Plate No." value={form["Business Plate No."] ?? ""} onChange={handleChange} />
+                    <Input label="Brgy. Clearance Status" value={form["Brgy. Clearance Status"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Brgy. Clearance No." value={form["Brgy. Clearance No."] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Permit No." value={form["Permit No."] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Business Plate No." value={form["Business Plate No."] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">Closure / Retirement</div>
-                    <Input label="Actual Closure Date" type="date" value={form["Actual Closure Date"] ?? ""} onChange={handleChange} />
-                    <Input label="Retirement Reason" value={form["Retirement Reason"] ?? ""} onChange={handleChange} />
-                    <Input label="Source Type" value={form["Source Type"] ?? ""} onChange={handleChange} />
+                    <Input label="Actual Closure Date" type="date" value={form["Actual Closure Date"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Retirement Reason" value={form["Retirement Reason"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="Source Type" value={form["Source Type"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
 
                     <div className="sm:col-span-2 lg:col-span-3 text-sm font-semibold text-green-900 border-b border-green-100 pb-2 mt-2">Inspection / Review</div>
-                    <Input label="violation" value={form["violation"] ?? ""} onChange={handleChange} />
-                    <Input label="review_action" value={form["review_action"] ?? ""} onChange={handleChange} />
-                    <Input label="review_date" type="date" value={form["review_date"] ?? ""} onChange={handleChange} />
-                    <Input label="reviewed_by" value={form["reviewed_by"] ?? ""} onChange={handleChange} />
-                    <Input label="status" value={form["status"] ?? ""} onChange={handleChange} />
-                    <Input label="scheduled_date" type="date" value={form["scheduled_date"] ?? ""} onChange={handleChange} />
+                    <Input label="violation" value={form["violation"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="review_action" value={form["review_action"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="review_date" type="date" value={form["review_date"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="reviewed_by" value={form["reviewed_by"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="status" value={form["status"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
+                    <Input label="scheduled_date" type="date" value={form["scheduled_date"] ?? ""} onChange={handleChange} readOnly={isScheduleMode} />
                 </Section>
             </div>
         </div>
@@ -753,11 +806,12 @@ function Section({
 }
 
 function Input({
-    label, type = "text", value, onChange, error, placeholder, helperText, required = false, inputMode
+    label, type = "text", value, onChange, error, placeholder, helperText, required = false, inputMode, readOnly = false
 }: {
     label: string; type?: string; value?: any; onChange: any; error?: string;
     placeholder?: string; helperText?: string; required?: boolean;
     inputMode?: "text" | "numeric" | "decimal" | "tel" | "email" | "url" | "search";
+    readOnly?: boolean;
 }) {
     return (
         <div className="flex flex-col">
@@ -767,11 +821,17 @@ function Input({
             <input
                 type={type}
                 value={value ?? ""}
-                onChange={(e) => onChange(label, e.target.value)}
+                onChange={(e) => !readOnly && onChange(label, e.target.value)}
                 placeholder={placeholder}
                 inputMode={inputMode}
+                readOnly={readOnly}
                 className={`border rounded-lg px-3 py-2 text-black outline-none w-full transition
-                    ${error ? "border-red-400 focus:ring-2 focus:ring-red-300" : "border-green-100 focus:ring-2 focus:ring-green-900"}`}
+                    ${readOnly
+                        ? "bg-gray-50 border-gray-200 text-gray-500 cursor-default"
+                        : error
+                            ? "border-red-400 focus:ring-2 focus:ring-red-300"
+                            : "border-green-100 focus:ring-2 focus:ring-green-900"
+                    }`}
             />
             {helperText && !error && <p className="text-xs text-gray-500 mt-1">{helperText}</p>}
             {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
