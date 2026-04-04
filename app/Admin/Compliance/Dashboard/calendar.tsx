@@ -33,7 +33,7 @@ const MONTHS = [
     "July", "August", "September", "October", "November", "December",
 ];
 
-export default function CalendarPage() {
+export default function CalendarSection() {
     const [schedule, setSchedule] = useState<Record<string, Violation[]>>({});
     const [dates, setDates] = useState<string[]>([]);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -158,7 +158,7 @@ export default function CalendarPage() {
         const cells: JSX.Element[] = [];
 
         for (let i = 0; i < firstDay; i++) {
-            cells.push(<div key={"empty" + i} className="h-16" />);
+            cells.push(<div key={"empty" + i} className="h-14" />);
         }
 
         for (let d = 1; d <= daysInMonth; d++) {
@@ -177,7 +177,7 @@ export default function CalendarPage() {
                     key={key}
                     onClick={() => setSelectedDate(isSelected ? null : key)}
                     className={`
-                        relative h-16 rounded-xl flex flex-col justify-center items-center
+                        relative h-14 rounded-xl flex flex-col justify-center items-center
                         border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-400
                         ${isSelected
                             ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-[1.03]"
@@ -202,7 +202,7 @@ export default function CalendarPage() {
 
                     {count > 0 && (
                         <span className={`
-                            absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center
+                            absolute top-1 right-1 min-w-[17px] h-[17px] px-1 flex items-center justify-center
                             text-[10px] font-bold rounded-full shadow-sm
                             ${isSelected ? "bg-white text-blue-600" : "bg-red-500 text-white"}
                         `}>
@@ -217,49 +217,49 @@ export default function CalendarPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#F4F6FA] px-4 md:px-8 py-6 font-sans">
-            <div className="max-w-6xl mx-auto flex flex-col gap-6">
+        <div className="w-full font-sans">
+            <div className="flex flex-col gap-4">
 
                 {/* ── HEADER ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow">
-                            <FiCalendar className="text-white text-lg" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow">
+                            <FiCalendar className="text-white text-base" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight leading-none">
+                            <h2 className="text-base font-extrabold text-gray-900 tracking-tight leading-none">
                                 Notice Calendar
-                            </h1>
-                            <p className="text-xs text-gray-500 mt-0.5">Scheduled violation notices overview</p>
+                            </h2>
+                            <p className="text-[11px] text-gray-500 mt-0.5">Scheduled violation notices overview</p>
                         </div>
                     </div>
 
                     {/* Stats chips */}
                     <div className="flex gap-2 flex-wrap">
-                        <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm text-xs font-medium text-gray-600">
+                        <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm text-xs font-medium text-gray-600">
                             <MdOutlineNotificationsActive className="text-blue-500 text-sm" />
                             <span>{totalNoticesThisMonth} notice{totalNoticesThisMonth !== 1 ? "s" : ""} this month</span>
                         </div>
-                        <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm text-xs font-medium text-gray-600">
+                        <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 shadow-sm text-xs font-medium text-gray-600">
                             <FiAlertTriangle className="text-amber-500 text-sm" />
                             <span>{dates.length} scheduled date{dates.length !== 1 ? "s" : ""}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex flex-col lg:flex-row gap-4">
 
                     {/* ── CALENDAR CARD ── */}
                     <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
                         {/* Month nav */}
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                             <button
                                 onClick={handlePrevMonth}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition text-gray-500"
+                                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-100 transition text-gray-500"
                                 aria-label="Previous month"
                             >
-                                <FiChevronLeft className="text-base" />
+                                <FiChevronLeft className="text-sm" />
                             </button>
 
                             <span className="font-bold text-gray-900 text-sm tracking-wide">
@@ -268,58 +268,58 @@ export default function CalendarPage() {
 
                             <button
                                 onClick={handleNextMonth}
-                                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100 transition text-gray-500"
+                                className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-100 transition text-gray-500"
                                 aria-label="Next month"
                             >
-                                <FiChevronRight className="text-base" />
+                                <FiChevronRight className="text-sm" />
                             </button>
                         </div>
 
                         {/* Day labels */}
-                        <div className="grid grid-cols-7 text-center px-4 pt-3 pb-1">
+                        <div className="grid grid-cols-7 text-center px-3 pt-2 pb-1">
                             {DAYS.map((d) => (
-                                <div key={d} className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                                <div key={d} className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
                                     {d}
                                 </div>
                             ))}
                         </div>
 
                         {/* Calendar grid */}
-                        <div className="px-4 pb-4">
+                        <div className="px-3 pb-3">
                             {loading ? (
-                                <div className="grid grid-cols-7 gap-2 animate-pulse pt-2">
+                                <div className="grid grid-cols-7 gap-1.5 animate-pulse pt-1.5">
                                     {Array.from({ length: 35 }).map((_, i) => (
-                                        <div key={i} className="h-16 bg-gray-100 rounded-xl" />
+                                        <div key={i} className="h-14 bg-gray-100 rounded-xl" />
                                     ))}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-7 gap-2 pt-2">
+                                <div className="grid grid-cols-7 gap-1.5 pt-1.5">
                                     {renderCalendar()}
                                 </div>
                             )}
                         </div>
 
                         {/* Legend */}
-                        <div className="flex items-center gap-4 px-5 pb-4 border-t border-gray-100 pt-3">
+                        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-gray-100 bg-gray-50/50">
                             {[
                                 { color: "bg-blue-600", label: "Selected" },
                                 { color: "bg-emerald-500", label: "Has Notices" },
                                 { color: "border-2 border-blue-400 bg-blue-50", label: "Today" },
                             ].map(({ color, label }) => (
                                 <div key={label} className="flex items-center gap-1.5">
-                                    <div className={`w-3 h-3 rounded-sm ${color}`} />
-                                    <span className="text-[11px] text-gray-400">{label}</span>
+                                    <div className={`w-2.5 h-2.5 rounded-sm ${color}`} />
+                                    <span className="text-[10px] text-gray-400">{label}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* ── DETAILS PANEL ── */}
-                    <div className="lg:w-[380px] flex flex-col gap-4">
+                    <div className="lg:w-[360px] flex flex-col gap-3">
                         {!selectedDate ? (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center py-16 px-6 text-center">
-                                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                                    <FiCalendar className="text-gray-400 text-2xl" />
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center py-12 px-6 text-center">
+                                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-2.5">
+                                    <FiCalendar className="text-gray-400 text-xl" />
                                 </div>
                                 <p className="text-sm font-semibold text-gray-700">Select a date</p>
                                 <p className="text-xs text-gray-400 mt-1">Click any date on the calendar to view scheduled notices</p>
@@ -328,9 +328,9 @@ export default function CalendarPage() {
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
                                 {/* Panel header */}
-                                <div className="flex items-start justify-between px-5 py-4 border-b border-gray-100">
+                                <div className="flex items-start justify-between px-4 py-3 border-b border-gray-100">
                                     <div>
-                                        <p className="text-xs text-gray-400 uppercase font-semibold tracking-wider mb-0.5">Notices for</p>
+                                        <p className="text-[10px] text-gray-400 uppercase font-semibold tracking-wider mb-0.5">Notices for</p>
                                         <p className="text-sm font-bold text-gray-900 leading-tight">
                                             {formatDateLabel(selectedDate)}
                                         </p>
@@ -340,15 +340,15 @@ export default function CalendarPage() {
                                         className="mt-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-1 transition"
                                         aria-label="Close"
                                     >
-                                        <FiX />
+                                        <FiX className="text-sm" />
                                     </button>
                                 </div>
 
                                 {/* Search */}
                                 {(schedule[selectedDate]?.length ?? 0) > 3 && (
-                                    <div className="px-5 pt-3">
-                                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                                            <FiSearch className="text-gray-400 text-sm shrink-0" />
+                                    <div className="px-4 pt-2.5">
+                                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+                                            <FiSearch className="text-gray-400 text-xs shrink-0" />
                                             <input
                                                 type="text"
                                                 placeholder="Search business or violation..."
@@ -358,7 +358,7 @@ export default function CalendarPage() {
                                             />
                                             {search && (
                                                 <button onClick={() => setSearch("")} className="text-gray-400 hover:text-gray-600">
-                                                    <FiX className="text-xs" />
+                                                    <FiX className="text-[10px]" />
                                                 </button>
                                             )}
                                         </div>
@@ -366,10 +366,10 @@ export default function CalendarPage() {
                                 )}
 
                                 {/* List */}
-                                <div className="px-4 py-3 max-h-[480px] overflow-y-auto space-y-2">
+                                <div className="px-3 py-2.5 max-h-[420px] overflow-y-auto space-y-2">
                                     {filteredViolations.length === 0 ? (
-                                        <div className="flex flex-col items-center py-10 text-center">
-                                            <FiInfo className="text-gray-300 text-3xl mb-2" />
+                                        <div className="flex flex-col items-center py-8 text-center">
+                                            <FiInfo className="text-gray-300 text-2xl mb-2" />
                                             <p className="text-sm text-gray-400">No notices found</p>
                                         </div>
                                     ) : (
@@ -385,21 +385,21 @@ export default function CalendarPage() {
                                                     key={v.id}
                                                     onClick={() => openBusinessDetails(v.business_id)}
                                                     className={`
-                                                        w-full text-left rounded-xl border-l-4 border border-gray-200 p-3.5
+                                                        w-full text-left rounded-xl border-l-4 border border-gray-200 p-3
                                                         hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400
                                                         ${urgency}
                                                     `}
                                                 >
                                                     <div className="flex items-start justify-between gap-2">
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-1.5 mb-1">
+                                                            <div className="flex items-center gap-1.5 mb-0.5">
                                                                 <FiBriefcase className="text-gray-400 text-xs shrink-0" />
                                                                 <span className="text-sm font-bold text-gray-900 truncate">
                                                                     {v.business_name || "Unknown Business"}
                                                                 </span>
                                                             </div>
 
-                                                            <div className="flex items-center gap-1.5 mb-1.5">
+                                                            <div className="flex items-center gap-1.5 mb-1">
                                                                 <FiHash className="text-gray-300 text-xs shrink-0" />
                                                                 <span className="text-[11px] text-gray-400 font-mono">{v.business_id}</span>
                                                             </div>
@@ -427,7 +427,7 @@ export default function CalendarPage() {
 
                                 {/* Panel footer */}
                                 {filteredViolations.length > 0 && (
-                                    <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
+                                    <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 text-[11px] text-gray-400">
                                         Showing {filteredViolations.length} of {schedule[selectedDate]?.length ?? 0} notice{(schedule[selectedDate]?.length ?? 0) !== 1 ? "s" : ""}
                                     </div>
                                 )}
