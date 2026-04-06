@@ -53,7 +53,7 @@ export default function LoginPage() {
     }
   }, []);
 
-  // ── Single-session guard ───────────────────────────────────────────────
+
   // FIX: Before checking localStorage, verify the sessionExpiry is still valid.
   // Previously, stale localStorage data (user still set but cookie expired) caused
   // the login page to redirect the user back to the dashboard, which middleware
