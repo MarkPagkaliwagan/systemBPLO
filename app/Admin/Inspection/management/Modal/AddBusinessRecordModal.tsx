@@ -113,25 +113,25 @@ const Dropdown = ({
 const AddBusinessRecordModal = ({
   isOpen, onClose, onSaved, onOpenReview, isMobile = false,
 }: AddBusinessRecordModalProps) => {
-  const [form, setForm]           = useState(emptyRecord());
-  const [errors, setErrors]       = useState<Record<string, string>>({});
-  const [visible, setVisible]     = useState(false);
-  const [busy, setBusy]           = useState(false);
+  const [form, setForm] = useState(emptyRecord());
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [visible, setVisible] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // search
-  const [binResults, setBinResults]       = useState<BusinessRecord[]>([]);
-  const [nameResults, setNameResults]     = useState<BusinessRecord[]>([]);
-  const [binSearching, setBinSearching]   = useState(false);
+  const [binResults, setBinResults] = useState<BusinessRecord[]>([]);
+  const [nameResults, setNameResults] = useState<BusinessRecord[]>([]);
+  const [binSearching, setBinSearching] = useState(false);
   const [nameSearching, setNameSearching] = useState(false);
-  const [binNotFound, setBinNotFound]     = useState(false);
-  const [nameNotFound, setNameNotFound]   = useState(false);
-  const [fromDB, setFromDB]               = useState(false);
-  const [binFocused, setBinFocused]       = useState(false);
-  const [nameFocused, setNameFocused]     = useState(false);
+  const [binNotFound, setBinNotFound] = useState(false);
+  const [nameNotFound, setNameNotFound] = useState(false);
+  const [fromDB, setFromDB] = useState(false);
+  const [binFocused, setBinFocused] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
 
-  const binTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const binTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Schedule mode = record came from DB; Save mode = new manual entry
@@ -157,7 +157,7 @@ const AddBusinessRecordModal = ({
   // ── Search BIN ──
   const searchBin = (val: string) => {
     if (binTimer.current) clearTimeout(binTimer.current);
-    if (!val || val.length < 2) { setBinResults([]); setBinNotFound(false); return; }
+    if (!val || val.length < 1) { setBinResults([]); setBinNotFound(false); return; }
     setBinSearching(true);
     binTimer.current = setTimeout(async () => {
       const { data } = await supabase
@@ -166,13 +166,13 @@ const AddBusinessRecordModal = ({
       setBinSearching(false);
       if (data && data.length > 0) { setBinResults(data as BusinessRecord[]); setBinNotFound(false); }
       else { setBinResults([]); setBinNotFound(true); }
-    }, 300);
+    }, 250);
   };
 
   // ── Search Name ──
   const searchName = (val: string) => {
     if (nameTimer.current) clearTimeout(nameTimer.current);
-    if (!val || val.length < 2) { setNameResults([]); setNameNotFound(false); return; }
+    if (!val || val.length < 1) { setNameResults([]); setNameNotFound(false); return; }
     setNameSearching(true);
     nameTimer.current = setTimeout(async () => {
       const { data } = await supabase
@@ -181,11 +181,11 @@ const AddBusinessRecordModal = ({
       setNameSearching(false);
       if (data && data.length > 0) { setNameResults(data as BusinessRecord[]); setNameNotFound(false); }
       else { setNameResults([]); setNameNotFound(true); }
-    }, 300);
+    }, 250);
   };
 
   const handleBinChange = (val: string) => {
-    if (!/^[0-9-]*$/.test(val)) return;
+    // Removed the number-only restriction so partial text can match BINs
     setForm(p => ({ ...p, "Business Identification Number": val }));
     setFromDB(false); setBinNotFound(false);
     if (errors["bin"]) setErrors(p => ({ ...p, bin: "" }));
@@ -199,9 +199,9 @@ const AddBusinessRecordModal = ({
     searchName(val);
   };
 
-  // User picks a record from dropdown → populate all fields
+  // ── Pick a record from either dropdown → fills EVERYTHING including both fields ──
   const pickRecord = (r: BusinessRecord) => {
-    setForm({ ...emptyRecord(), ...r });
+    setForm({ ...emptyRecord(), ...r });  // this fills BIN, Business Name, and all other fields
     setFromDB(true);
     setBinResults([]); setNameResults([]);
     setBinNotFound(false); setNameNotFound(false);
@@ -264,7 +264,7 @@ const AddBusinessRecordModal = ({
 
   const handleClose = () => { setVisible(false); setTimeout(onClose, 300); };
 
-  const showBinUnavailable  = binNotFound  && !fromDB && (form["Business Identification Number"] ?? "").length >= 2;
+  const showBinUnavailable = binNotFound && !fromDB && (form["Business Identification Number"] ?? "").length >= 2;
   const showNameUnavailable = nameNotFound && !fromDB && (form["Business Name"] ?? "").length >= 2;
 
   return (
