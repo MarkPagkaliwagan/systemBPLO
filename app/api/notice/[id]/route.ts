@@ -15,7 +15,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("business_violations")
     .select("*")
-    .eq("id", Number(id)); // ✅ convert to number
+    .eq("id", id); // ✅ convert to number
 
   if (error) {
     return NextResponse.json({ error: error.message });

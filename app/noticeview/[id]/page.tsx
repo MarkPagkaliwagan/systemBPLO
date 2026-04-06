@@ -58,7 +58,7 @@ export default async function Page({
   const { data: row, error } = await supabase
     .from("notice_forms")
     .select("*")
-    .eq("violation_id", Number(id))
+    .eq("violation_id", id)
     .maybeSingle();
 
   if (error || !row) {
