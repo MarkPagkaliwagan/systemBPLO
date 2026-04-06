@@ -9,7 +9,6 @@ import {
 import { handlePhotoAndLocationUpload } from "@/lib/photoUpload";
 import { supabase } from "@/lib/supabaseClient";
 import DeleteConfirmModal from "./DeleteConfirmModal";
-import ActivityLogModal from "./Activitylogmodal";
 import { useRouter } from "next/navigation";
 
 // ── BIN is the primary key — no separate id field needed ──
@@ -583,15 +582,6 @@ export default function ReviewModal({
           </div>
         )}
       </div>
-
-      {/* Activity Log Modal */}
-      {showLog && (
-        <ActivityLogModal
-          bin={selectedRow["Business Identification Number"]}
-          businessName={selectedRow["Business Name"]}
-          onClose={() => setShowLog(false)}
-        />
-      )}
 
       {/* Delete Confirm Modal — uses BIN as the record identifier */}
       {showDelete && (

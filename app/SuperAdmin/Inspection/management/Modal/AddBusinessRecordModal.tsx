@@ -1,7 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { X, ChevronDown, ChevronUp, Building2, User, MapPin, DollarSign, FileText, ClipboardList, UserCheck, CheckCircle } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  X, ChevronDown, ChevronUp, Building2, User, MapPin,
+  DollarSign, FileText, ClipboardList, UserCheck, CheckCircle,
+  AlertCircle, CalendarClock, Save,
+} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import ReviewModal, { BusinessRecord } from "../Modal/reviewModal";
 
@@ -9,50 +13,35 @@ interface AddBusinessRecordModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: (record: BusinessRecord) => void;
-  onRequestSchedule?: (record: BusinessRecord) => void; // ✅ new — parent handles confirm+review
+  onOpenReview?: (record: BusinessRecord) => void; // opens review modal directly
   isMobile?: boolean;
 }
 
-// ── Section Component ─────────────────────────────────────────────────────────
-interface SectionProps {
-  title: string;
-  icon: React.ReactNode;
-  color: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}
-
-const Section = ({ title, icon, color, children, defaultOpen = false }: SectionProps) => {
+// ── Section ───────────────────────────────────────────────────────────────────
+const Section = ({
+  title, icon, color, children, defaultOpen = false,
+}: {
+  title: string; icon: React.ReactNode; color: string;
+  children: React.ReactNode; defaultOpen?: boolean;
+}) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className={`w-full flex items-center justify-between px-4 py-3 ${color} transition-colors`}
-      >
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className={`w-full flex items-center justify-between px-4 py-3 ${color} transition-colors`}>
         <div className="flex items-center gap-2">
           {icon}
           <span className="text-sm font-bold text-slate-700">{title}</span>
         </div>
-        {open
-          ? <ChevronUp size={16} className="text-slate-500" />
-          : <ChevronDown size={16} className="text-slate-500" />
-        }
+        {open ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
       </button>
-      {open && (
-        <div className="bg-white px-4 py-4 space-y-3">
-          {children}
-        </div>
-      )}
+      {open && <div className="bg-white px-4 py-4 space-y-3">{children}</div>}
     </div>
   );
 };
 
-// ── Input helpers ─────────────────────────────────────────────────────────────
-const Field = ({
-  label, required, error, children,
-}: {
+// ── Field wrapper ─────────────────────────────────────────────────────────────
+const Field = ({ label, required, error, children }: {
   label: string; required?: boolean; error?: string; children: React.ReactNode;
 }) => (
   <div>
@@ -64,14 +53,13 @@ const Field = ({
   </div>
 );
 
-const inputCls = (hasError?: boolean) =>
+const inputCls = (err?: boolean) =>
   `w-full text-sm text-slate-700 bg-slate-50 rounded-xl px-3 py-2.5 border outline-none transition-colors placeholder-slate-300
-  ${hasError ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-green-500"}`;
-
+  ${err ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-green-500"}`;
 const selectCls = inputCls();
 
-// ── Empty record ──────────────────────────────────────────────────────────────
-const emptyRecord = () => ({
+// ── Empty form ────────────────────────────────────────────────────────────────
+const emptyRecord = (): Partial<BusinessRecord> => ({
   "Business Identification Number": "",
   "Business Name": "",
   "Trade Name": null, "Business Nature": null, "Business Line": null,
@@ -103,23 +91,59 @@ const emptyRecord = () => ({
   assigned_inspector: null, scheduled_date: null,
 });
 
+// ── Suggestion Dropdown ───────────────────────────────────────────────────────
+const Dropdown = ({
+  items, onSelect,
+}: {
+  items: BusinessRecord[];
+  onSelect: (r: BusinessRecord) => void;
+}) => (
+  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-56 overflow-y-auto">
+    {items.map((r, i) => (
+      <button key={r["Business Identification Number"] ?? i} type="button" onMouseDown={() => onSelect(r)}
+        className="w-full text-left px-4 py-3 hover:bg-green-50 active:bg-green-100 transition-colors border-b border-slate-50 last:border-0">
+        <p className="text-sm font-semibold text-slate-800 truncate">{r["Business Name"]}</p>
+        <p className="text-xs text-slate-400 mt-0.5">BIN: {r["Business Identification Number"]}</p>
+      </button>
+    ))}
+  </div>
+);
+
 // ── Main Component ────────────────────────────────────────────────────────────
 const AddBusinessRecordModal = ({
-  isOpen, onClose, onSaved, onRequestSchedule, isMobile = false,
+  isOpen, onClose, onSaved, onOpenReview, isMobile = false,
 }: AddBusinessRecordModalProps) => {
-  const [form, setForm] = useState(emptyRecord());
-  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
-  const [visible, setVisible] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [form, setForm]           = useState(emptyRecord());
+  const [errors, setErrors]       = useState<Record<string, string>>({});
+  const [visible, setVisible]     = useState(false);
+  const [busy, setBusy]           = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // search
+  const [binResults, setBinResults]       = useState<BusinessRecord[]>([]);
+  const [nameResults, setNameResults]     = useState<BusinessRecord[]>([]);
+  const [binSearching, setBinSearching]   = useState(false);
+  const [nameSearching, setNameSearching] = useState(false);
+  const [binNotFound, setBinNotFound]     = useState(false);
+  const [nameNotFound, setNameNotFound]   = useState(false);
+  const [fromDB, setFromDB]               = useState(false);
+  const [binFocused, setBinFocused]       = useState(false);
+  const [nameFocused, setNameFocused]     = useState(false);
+
+  const binTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Schedule mode = record came from DB; Save mode = new manual entry
+  const scheduleMode = fromDB;
 
   useEffect(() => {
     if (isOpen) {
       setForm(emptyRecord());
-      setErrors({});
-      setSaveError(null);
-      setShowSuccess(false);
+      setErrors({}); setSaveError(null); setShowSuccess(false);
+      setBinResults([]); setNameResults([]);
+      setBinNotFound(false); setNameNotFound(false);
+      setFromDB(false);
       setTimeout(() => setVisible(true), 10);
     } else {
       setVisible(false);
@@ -127,111 +151,162 @@ const AddBusinessRecordModal = ({
   }, [isOpen]);
 
   const set = (key: string, value: string | number | null) =>
-    setForm(prev => ({ ...prev, [key]: value === "" ? null : value }));
-
+    setForm(p => ({ ...p, [key]: value === "" ? null : value }));
   const num = (v: string) => (v === "" ? null : parseFloat(v));
 
+  // ── Search BIN ──
+  const searchBin = (val: string) => {
+    if (binTimer.current) clearTimeout(binTimer.current);
+    if (!val || val.length < 2) { setBinResults([]); setBinNotFound(false); return; }
+    setBinSearching(true);
+    binTimer.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from("business_records").select("*")
+        .ilike("Business Identification Number", `%${val}%`).limit(8);
+      setBinSearching(false);
+      if (data && data.length > 0) { setBinResults(data as BusinessRecord[]); setBinNotFound(false); }
+      else { setBinResults([]); setBinNotFound(true); }
+    }, 300);
+  };
+
+  // ── Search Name ──
+  const searchName = (val: string) => {
+    if (nameTimer.current) clearTimeout(nameTimer.current);
+    if (!val || val.length < 2) { setNameResults([]); setNameNotFound(false); return; }
+    setNameSearching(true);
+    nameTimer.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from("business_records").select("*")
+        .ilike("Business Name", `%${val}%`).limit(8);
+      setNameSearching(false);
+      if (data && data.length > 0) { setNameResults(data as BusinessRecord[]); setNameNotFound(false); }
+      else { setNameResults([]); setNameNotFound(true); }
+    }, 300);
+  };
+
+  const handleBinChange = (val: string) => {
+    if (!/^[0-9-]*$/.test(val)) return;
+    setForm(p => ({ ...p, "Business Identification Number": val }));
+    setFromDB(false); setBinNotFound(false);
+    if (errors["bin"]) setErrors(p => ({ ...p, bin: "" }));
+    searchBin(val);
+  };
+
+  const handleNameChange = (val: string) => {
+    setForm(p => ({ ...p, "Business Name": val }));
+    setFromDB(false); setNameNotFound(false);
+    if (errors["name"]) setErrors(p => ({ ...p, name: "" }));
+    searchName(val);
+  };
+
+  // User picks a record from dropdown → populate all fields
+  const pickRecord = (r: BusinessRecord) => {
+    setForm({ ...emptyRecord(), ...r });
+    setFromDB(true);
+    setBinResults([]); setNameResults([]);
+    setBinNotFound(false); setNameNotFound(false);
+    setBinFocused(false); setNameFocused(false);
+  };
+
+  // ── Validate ──
   const validate = () => {
-    const e: Partial<Record<string, string>> = {};
-    const bin = form["Business Identification Number"].trim();
-    if (!bin) {
-      e["bin"] = "BIN is required.";
-    } else if (!/^[0-9-]+$/.test(bin)) {
-      e["bin"] = "BIN must contain numbers only (e.g. 2024-00123).";
-    }
-    if (!form["Business Name"].trim()) e["name"] = "Business Name is required.";
+    const e: Record<string, string> = {};
+    const bin = (form["Business Identification Number"] ?? "").trim();
+    if (!bin) e["bin"] = "BIN is required.";
+    else if (!/^[0-9-]+$/.test(bin)) e["bin"] = "Numbers only (e.g. 2024-00123).";
+    if (!(form["Business Name"] ?? "").trim()) e["name"] = "Business Name is required.";
     return e;
   };
 
-  const handleSave = async () => {
+  // ── Primary action: Schedule (fromDB) or Save (new) ──
+  const handleAction = async () => {
     const e = validate();
     if (Object.keys(e).length > 0) { setErrors(e); return; }
 
-    setSaving(true);
-    setSaveError(null);
-
-    try {
-      const { file_id, ...recordWithoutFileId } = form as any;
-
-      const { data, error } = await supabase
-        .from("business_records")
-        .insert([recordWithoutFileId])
-        .select()
-        .single();
-
-      if (error) { setSaveError(error.message); setSaving(false); return; }
-
-      const newRecord = data as BusinessRecord;
-      onSaved(newRecord);
+    if (scheduleMode) {
+      // Existing record — skip insert, go straight to review modal
+      const record = form as BusinessRecord;
+      onSaved(record);
       setShowSuccess(true);
-
       setTimeout(() => {
         setShowSuccess(false);
         setVisible(false);
-        // ✅ After slide-down animation, tell parent to handle confirm+review
         setTimeout(() => {
-          if (onRequestSchedule) {
-            onRequestSchedule(newRecord);
-          } else {
-            onClose();
-          }
+          onOpenReview ? onOpenReview(record) : onClose();
         }, 300);
-      }, 1200);
+      }, 900);
+      return;
+    }
 
+    // New record — insert then close (no review modal for brand new entries)
+    setBusy(true); setSaveError(null);
+    try {
+      const { file_id, ...payload } = form as any;
+      const { data, error } = await supabase
+        .from("business_records").insert([payload]).select().single();
+      if (error) { setSaveError(error.message); setBusy(false); return; }
+      const saved = data as BusinessRecord;
+      onSaved(saved);
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setVisible(false);
+        setTimeout(() => {
+          onOpenReview ? onOpenReview(saved) : onClose();
+        }, 300);
+      }, 1000);
     } catch (err: any) {
       setSaveError(err?.message ?? "Unknown error");
     } finally {
-      setSaving(false);
+      setBusy(false);
     }
   };
 
-  const handleClose = () => {
-    setVisible(false);
-    setTimeout(onClose, 300);
-  };
+  const handleClose = () => { setVisible(false); setTimeout(onClose, 300); };
+
+  const showBinUnavailable  = binNotFound  && !fromDB && (form["Business Identification Number"] ?? "").length >= 2;
+  const showNameUnavailable = nameNotFound && !fromDB && (form["Business Name"] ?? "").length >= 2;
 
   return (
     <>
-      {/* ── Success Toast ── */}
-      <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[90] transition-all duration-500 ${showSuccess ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"}`}>
-        <div className="flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-2xl shadow-xl shadow-green-200">
+      {/* ── Success toast ── */}
+      <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[90] transition-all duration-500
+        ${showSuccess ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"}`}>
+        <div className={`flex items-center gap-3 text-white px-5 py-3 rounded-2xl shadow-xl
+          ${scheduleMode ? "bg-green-600 shadow-green-200" : "bg-blue-600 shadow-blue-200"}`}>
           <CheckCircle size={20} className="shrink-0" />
           <div>
-            <p className="text-sm font-bold">Record Saved!</p>
-            <p className="text-xs text-green-100">Business record added successfully.</p>
+            <p className="text-sm font-bold">{scheduleMode ? "Scheduled!" : "Record Saved!"}</p>
+            <p className="text-xs opacity-80">Opening review modal…</p>
           </div>
         </div>
       </div>
 
-      {/* ── Saving Overlay ── */}
-      {saving && (
+      {/* ── Busy overlay ── */}
+      {busy && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center">
           <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3">
             <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-semibold text-slate-700">Saving record...</p>
-            <p className="text-xs text-slate-400">Please wait</p>
+            <p className="text-sm font-semibold text-slate-700">Saving record…</p>
           </div>
         </div>
       )}
 
-      {/* ── Add-form sheet ── */}
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div
-            onClick={saving ? undefined : handleClose}
+          <div onClick={busy ? undefined : handleClose}
             className="fixed inset-0 z-[60] transition-all duration-300"
             style={{
               background: visible ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0)",
               backdropFilter: visible ? "blur(2px)" : "none",
-            }}
-          />
+            }} />
 
-          {/* Bottom Sheet */}
+          {/* Bottom sheet */}
           <div
             className="fixed left-0 right-0 bottom-0 z-[70] bg-white rounded-t-3xl shadow-2xl flex flex-col transition-transform duration-300 ease-out"
-            style={{ transform: visible ? "translateY(0)" : "translateY(100%)", maxHeight: "94vh" }}
-          >
+            style={{ transform: visible ? "translateY(0)" : "translateY(100%)", maxHeight: "94vh" }}>
+
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-slate-200" />
@@ -239,88 +314,141 @@ const AddBusinessRecordModal = ({
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 shrink-0">
-              <button onClick={handleClose} disabled={saving} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors active:scale-90 disabled:opacity-40">
+              <button onClick={handleClose} disabled={busy}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors active:scale-90 disabled:opacity-40">
                 <X size={18} className="text-slate-500" />
               </button>
+
               <div className="text-center">
-                <h2 className="text-base font-bold text-slate-800">Add Business Record</h2>
-                <p className="text-xs text-slate-400">Fill in the details below</p>
+                <h2 className="text-base font-bold text-slate-800">
+                  {scheduleMode ? "Schedule Inspection" : "Add Business Record"}
+                </h2>
+                <p className="text-xs text-slate-400">
+                  {scheduleMode ? "Record found · Edit if needed" : "Search or fill in manually"}
+                </p>
               </div>
-              <button onClick={handleSave} disabled={saving} className="px-4 py-1.5 bg-green-500 text-white text-sm font-bold rounded-full hover:bg-green-600 transition-colors active:scale-95 shadow-md shadow-green-200 disabled:opacity-60 flex items-center gap-2">
-                {saving ? (
-                  <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</>
-                ) : "Save"}
+
+              {/* Schedule / Save button */}
+              <button onClick={handleAction} disabled={busy}
+                className={`px-4 py-1.5 text-white text-sm font-bold rounded-full transition-colors active:scale-95 shadow-md disabled:opacity-60 flex items-center gap-1.5
+                  ${scheduleMode
+                    ? "bg-green-500 hover:bg-green-600 shadow-green-200"
+                    : "bg-blue-500 hover:bg-blue-600 shadow-blue-200"}`}>
+                {busy
+                  ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />Working…</>
+                  : scheduleMode
+                    ? <><CalendarClock size={13} />Schedule</>
+                    : <><Save size={13} />Save</>}
               </button>
             </div>
 
-            {/* Error banner */}
+            {/* Save error */}
             {saveError && (
               <div className="mx-5 mt-3 px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 shrink-0">
                 ⚠ {saveError}
               </div>
             )}
 
-            {/* Scrollable form */}
+            {/* Auto-populated badge */}
+            {fromDB && (
+              <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl shrink-0">
+                <CheckCircle size={14} className="text-green-500 shrink-0" />
+                <p className="text-xs font-semibold text-green-700">
+                  Record found &amp; auto-filled · You can still edit before scheduling.
+                </p>
+              </div>
+            )}
+
+            {/* Scrollable body */}
             <div className="overflow-y-auto flex-1 px-4 py-4 space-y-3">
 
-              <Section title="Business Details" icon={<Building2 size={16} className="text-green-600" />} color="bg-green-50" defaultOpen>
+              {/* ── Search section (always open) ── */}
+              <Section title="Business Identification" icon={<Building2 size={16} className="text-green-600" />} color="bg-green-50" defaultOpen>
+
+                {/* BIN field */}
                 <Field label="Business Identification Number (BIN)" required error={errors["bin"]}>
-                  <input
-                    type="text"
-                    placeholder="e.g. 2024-00123"
-                    value={form["Business Identification Number"]}
-                    onChange={e => {
-                      const val = e.target.value;
-                      if (/^[0-9-]*$/.test(val)) {
-                        setForm(p => ({ ...p, "Business Identification Number": val }));
-                        if (errors["bin"]) setErrors(prev => ({ ...prev, bin: undefined }));
-                      }
-                    }}
-                    className={inputCls(!!errors["bin"])}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="e.g. 2024-00123"
+                      value={form["Business Identification Number"] ?? ""}
+                      onChange={e => handleBinChange(e.target.value)}
+                      onFocus={() => setBinFocused(true)}
+                      onBlur={() => setTimeout(() => setBinFocused(false), 150)}
+                      autoComplete="off"
+                      className={inputCls(!!errors["bin"])}
+                    />
+                    {binSearching && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    {binFocused && binResults.length > 0 && (
+                      <Dropdown items={binResults} onSelect={pickRecord} />
+                    )}
+                  </div>
+                  {showBinUnavailable && (
+                    <div className="flex items-center gap-1.5 mt-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                      <AlertCircle size={13} className="text-amber-500 shrink-0" />
+                      <p className="text-xs text-amber-700 font-medium">
+                        No record found — fill in the form and hit <span className="font-bold">Save</span> to add it.
+                      </p>
+                    </div>
+                  )}
                 </Field>
+
+                {/* Business Name field */}
                 <Field label="Business Name" required error={errors["name"]}>
-                  <input
-                    type="text"
-                    placeholder="Official registered name"
-                    value={form["Business Name"]}
-                    onChange={e => {
-                      setForm(p => ({ ...p, "Business Name": e.target.value }));
-                      if (errors["name"]) setErrors(prev => ({ ...prev, name: undefined }));
-                    }}
-                    className={inputCls(!!errors["name"])}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Start typing to search…"
+                      value={form["Business Name"] ?? ""}
+                      onChange={e => handleNameChange(e.target.value)}
+                      onFocus={() => setNameFocused(true)}
+                      onBlur={() => setTimeout(() => setNameFocused(false), 150)}
+                      autoComplete="off"
+                      className={inputCls(!!errors["name"])}
+                    />
+                    {nameSearching && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    {nameFocused && nameResults.length > 0 && (
+                      <Dropdown items={nameResults} onSelect={pickRecord} />
+                    )}
+                  </div>
+                  {showNameUnavailable && (
+                    <div className="flex items-center gap-1.5 mt-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                      <AlertCircle size={13} className="text-amber-500 shrink-0" />
+                      <p className="text-xs text-amber-700 font-medium">
+                        No matching business found — fill in the form and hit <span className="font-bold">Save</span> to add it.
+                      </p>
+                    </div>
+                  )}
                 </Field>
+              </Section>
+
+              {/* ── All other sections always visible for manual entry ── */}
+
+              <Section title="Business Details" icon={<Building2 size={16} className="text-green-600" />} color="bg-green-50">
                 <Field label="Trade Name">
                   <input type="text" placeholder="DBA / Trade name" value={form["Trade Name"] ?? ""} onChange={e => set("Trade Name", e.target.value)} className={inputCls()} />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Business Nature">
-                    <input type="text" placeholder="e.g. Retail" value={form["Business Nature"] ?? ""} onChange={e => set("Business Nature", e.target.value)} className={inputCls()} />
-                  </Field>
-                  <Field label="Business Line">
-                    <input type="text" placeholder="e.g. Food" value={form["Business Line"] ?? ""} onChange={e => set("Business Line", e.target.value)} className={inputCls()} />
-                  </Field>
+                  <Field label="Business Nature"><input type="text" placeholder="e.g. Retail" value={form["Business Nature"] ?? ""} onChange={e => set("Business Nature", e.target.value)} className={inputCls()} /></Field>
+                  <Field label="Business Line"><input type="text" placeholder="e.g. Food" value={form["Business Line"] ?? ""} onChange={e => set("Business Line", e.target.value)} className={inputCls()} /></Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Business Type">
-                    <input type="text" placeholder="e.g. Sole" value={form["Business Type"] ?? ""} onChange={e => set("Business Type", e.target.value)} className={inputCls()} />
-                  </Field>
-                  <Field label="Year">
-                    <input type="number" placeholder="2024" value={form["Year"] ?? ""} onChange={e => set("Year", num(e.target.value))} className={inputCls()} />
-                  </Field>
+                  <Field label="Business Type"><input type="text" placeholder="e.g. Sole" value={form["Business Type"] ?? ""} onChange={e => set("Business Type", e.target.value)} className={inputCls()} /></Field>
+                  <Field label="Year"><input type="number" placeholder="2024" value={form["Year"] ?? ""} onChange={e => set("Year", num(e.target.value))} className={inputCls()} /></Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Module Type">
-                    <input type="text" value={form["Module Type"] ?? ""} onChange={e => set("Module Type", e.target.value)} className={inputCls()} />
-                  </Field>
-                  <Field label="Transaction Type">
-                    <input type="text" value={form["Transaction Type"] ?? ""} onChange={e => set("Transaction Type", e.target.value)} className={inputCls()} />
-                  </Field>
+                  <Field label="Module Type"><input type="text" value={form["Module Type"] ?? ""} onChange={e => set("Module Type", e.target.value)} className={inputCls()} /></Field>
+                  <Field label="Transaction Type"><input type="text" value={form["Transaction Type"] ?? ""} onChange={e => set("Transaction Type", e.target.value)} className={inputCls()} /></Field>
                 </div>
-                <Field label="Transmittal No.">
-                  <input type="text" value={form["Transmittal No."] ?? ""} onChange={e => set("Transmittal No.", e.target.value)} className={inputCls()} />
-                </Field>
+                <Field label="Transmittal No."><input type="text" value={form["Transmittal No."] ?? ""} onChange={e => set("Transmittal No.", e.target.value)} className={inputCls()} /></Field>
               </Section>
 
               <Section title="Incharge Information" icon={<UserCheck size={16} className="text-blue-600" />} color="bg-blue-50">
@@ -459,7 +587,9 @@ const AddBusinessRecordModal = ({
                   </select>
                 </Field>
                 <Field label="Violation">
-                  <textarea rows={2} placeholder="Describe violations (comma-separated)" value={form.violation ?? ""} onChange={e => set("violation", e.target.value)} className={`${inputCls()} resize-none`} />
+                  <textarea rows={2} placeholder="Describe violations (comma-separated)"
+                    value={form.violation ?? ""} onChange={e => set("violation", e.target.value)}
+                    className={`${inputCls()} resize-none`} />
                 </Field>
                 <Field label="Review Action">
                   <input type="text" value={form.review_action ?? ""} onChange={e => set("review_action", e.target.value)} className={inputCls()} />
