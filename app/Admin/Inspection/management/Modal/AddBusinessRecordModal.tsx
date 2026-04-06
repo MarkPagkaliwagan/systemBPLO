@@ -26,20 +26,19 @@ const Section = ({
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+    <div className="rounded-2xl border border-slate-100 shadow-sm overflow-visible"> {/* ← overflow-visible */}
       <button type="button" onClick={() => setOpen(v => !v)}
-        className={`w-full flex items-center justify-between px-4 py-3 ${color} transition-colors`}>
+        className={`w-full flex items-center justify-between px-4 py-3 ${color} rounded-t-2xl transition-colors`}> {/* ← add rounded-t-2xl */}
         <div className="flex items-center gap-2">
           {icon}
           <span className="text-sm font-bold text-slate-700">{title}</span>
         </div>
         {open ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
       </button>
-      {open && <div className="bg-white px-4 py-4 space-y-3">{children}</div>}
+      {open && <div className="bg-white px-4 py-4 space-y-3 rounded-b-2xl overflow-visible">{children}</div>} {/* ← rounded-b-2xl + overflow-visible */}
     </div>
   );
 };
-
 // ── Field wrapper ─────────────────────────────────────────────────────────────
 const Field = ({ label, required, error, children }: {
   label: string; required?: boolean; error?: string; children: React.ReactNode;
