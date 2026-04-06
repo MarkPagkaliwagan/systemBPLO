@@ -420,54 +420,51 @@ function ViolationsPageContent() {
     );
     return new Date() >= nextSend;
   };
-  const sendNoticeNow = async (id: number) => {
-    // Hanapin yung violation object
-    const violation = violations.find((v) => v.id === id);
-    if (!violation) return;
+  
+const sendNoticeNow = async (id: number) => {
+  const violation = violations.find((v) => v.id === id);
+  if (!violation) return;
 
-    // EMAIL CHECK
-    if (!violation.requestor_email || violation.requestor_email.trim() === "") {
-      openMessageModal(
-        "Missing Email",
-        `Cannot send notice. Business ID ${violation.business_id} has no email.`,
-        "error",
-      );
+  if (!violation.requestor_email || violation.requestor_email.trim() === "") {
+    openMessageModal(
+      "Missing Email",
+      `Cannot send notice. Business ID ${violation.business_id} has no email.`,
+      "error",
+    );
+    const row = document.querySelector(`[data-id="${id}"]`);
+    if (row) row.classList.add("border-2", "border-red-400");
+    return;
+  }
 
-      // Optional: highlight row
-      const row = document.querySelector(`[data-id="${id}"]`);
-      if (row) row.classList.add("border-2", "border-red-400");
+  // ✅ DAGDAG: kunin ang email ng naka-login na user
+  const storedUser = localStorage.getItem("user");
+  const loggedInUser = storedUser ? JSON.parse(storedUser) : null;
+  const bccEmail = loggedInUser?.email ?? "";
 
-      return; // stop sending
+  setSendingNoticeId(id);
+  try {
+    const res = await fetch("/api/manual-send-notice", {
+      method: "POST",
+      body: JSON.stringify({ id, bccEmail }), // ✅ DAGDAG: isama sa body
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      openMessageModal("Success", "Notice sent successfully.", "success");
+    } else {
+      openMessageModal("Error", data.error || "Failed to send notice.", "error");
     }
 
-    setSendingNoticeId(id); // <-- show loading for this notice
-    try {
-      const res = await fetch("/api/manual-send-notice", {
-        method: "POST",
-        body: JSON.stringify({ id }),
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        openMessageModal("Success", "Notice sent successfully.", "success");
-      } else {
-        openMessageModal(
-          "Error",
-          data.error || "Failed to send notice.",
-          "error",
-        );
-      }
-
-      await fetchViolations();
-    } catch (err) {
-      console.error(err);
-      openMessageModal("Error", "Error sending notice.", "error");
-    } finally {
-      setSendingNoticeId(null); // <-- hide loading
-    }
-  };
+    await fetchViolations();
+  } catch (err) {
+    console.error(err);
+    openMessageModal("Error", "Error sending notice.", "error");
+  } finally {
+    setSendingNoticeId(null);
+  }
+};
 
   const askSendNotice = (v: Violation) => {
     openConfirmModal(
